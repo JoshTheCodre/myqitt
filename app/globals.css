@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+/* Custom Font Faces */
+@font-face {
+  font-family: 'Atyp Display';
+  src: url('/fonts/AtypDisplayTRIAL-Regular-BF65727125d566e.otf') format('opentype');
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: 'Atyp Display';
+  src: url('/fonts/AtypDisplayTRIAL-Medium-BF65727125b8683.otf') format('opentype');
+  font-weight: 500;
+}
+
+@font-face {
+  font-family: 'Atyp Display';
+  src: url('/fonts/AtypDisplayTRIAL-Semibold-BF65727125c6fc9.otf') format('opentype');
+  font-weight: 600;
+}
+
+@font-face {
+  font-family: 'Atyp Display';
+  src: url('/fonts/AtypDisplayTRIAL-Bold-BF65727125c8d1d.otf') format('opentype');
+  font-weight: 700;
+}
+
+@font-face {
+  font-family: 'Atyp Text';
+  src: url('/fonts/AtypTextTRIAL-Regular-BF65727125ea126.otf') format('opentype');
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: 'Atyp Text';
+  src: url('/fonts/AtypTextTRIAL-Medium-BF65727125d9c4c.otf') format('opentype');
+  font-weight: 500;
+}
+
+@font-face {
+  font-family: 'Atyp Text';
+  src: url('/fonts/AtypTextTRIAL-Semibold-BF65727125e65f1.otf') format('opentype');
+  font-weight: 600;
+}
+
+@font-face {
+  font-family: 'Atyp Text';
+  src: url('/fonts/AtypTextTRIAL-Bold-BF65727125ceed1.otf') format('opentype');
+  font-weight: 700;
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --font-display: 'Atyp Display', sans-serif;
+  --font-text: 'Atyp Text', sans-serif;
+  
+  /* Brand Colors */
+  --color-primary: #2563eb;
+  --color-primary-light: #dbeafe;
+  --color-primary-lighter: #eff6ff;
+  --color-secondary: #e5e7eb;
+  --color-text-secondary: #374151;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-text);
+}
