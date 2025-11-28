@@ -31,7 +31,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     
     return () => {
       clearTimeout(checkAuth)
-      if (unsubscribe) unsubscribe()
+      if (typeof unsubscribe === 'function') {
+        unsubscribe()
+      }
     }
   }, [isHydrated, user, router, initAuth])
 

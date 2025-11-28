@@ -38,7 +38,7 @@ export default function Page() {
       <div className="flex items-start justify-between ">
         <div>
           <h1 className="text-2xl md:text-4xl font-extrabold tracking-tight">Hello, {profile?.name || 'Guest'}</h1>
-          <p className="text-xs font-semibold text-gray-700 mt-1 md:mt-2">{(profile?.department || 'CSC').toUpperCase()} • {profile?.level ? `${profile.level}00 Level` : 'N/A'}</p>
+          <p className="text-xs font-semibold text-gray-700 mt-1 md:mt-2">{(profile?.department || 'CSC').toUpperCase()} <span className="text-green-500">•</span> {profile?.level ? `${profile.level}00 Level` : 'N/A'}</p>
         </div>
         <div className="flex items-center gap-3">
           <button 
