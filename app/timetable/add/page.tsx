@@ -30,7 +30,13 @@ export default function AddTimetablePage() {
     Thursday: [{ id: '4', startTime: '', endTime: '', title: '', location: '' }],
     Friday: [{ id: '5', startTime: '', endTime: '', title: '', location: '' }],
   })
-  const [venues, setVenues] = useState<string[]>([])
+  const [venues, setVenues] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      const savedVenues = localStorage.getItem('timetable_venues')
+      return savedVenues ? JSON.parse(savedVenues) : []
+    }
+    return []
+  })
   const [isVenueModalOpen, setIsVenueModalOpen] = useState(false)
   const [newVenue, setNewVenue] = useState('')
 
@@ -46,14 +52,6 @@ export default function AddTimetablePage() {
     classes.some(c => c.startTime || c.endTime || c.title || c.location)
   )
 
-  // Load venues from localStorage on mount
-  useEffect(() => {
-    const savedVenues = localStorage.getItem('timetable_venues')
-    if (savedVenues) {
-      setVenues(JSON.parse(savedVenues))
-    }
-  }, [])
-  
   // Fetch user courses
   useEffect(() => {
     // TODO: Get actual user ID from auth

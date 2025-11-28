@@ -1,6 +1,4 @@
-'use client'
-
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import type { Course, CourseFilters, GroupedCourses } from '@/lib/types/course'
 import { CourseService } from '@/lib/services/courseService'
 
@@ -8,6 +6,9 @@ export function useCourses(filters?: CourseFilters) {
   const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // Serialize filters to avoid dependency issues
+  const filterKey = useMemo(() => JSON.stringify(filters || {}), [filters])
 
   useEffect(() => {
     async function fetchCourses() {
@@ -24,7 +25,7 @@ export function useCourses(filters?: CourseFilters) {
     }
 
     fetchCourses()
-  }, [filters?.school, filters?.department, filters?.level, filters?.semester])
+  }, [filterKey, filters])
 
   return { courses, loading, error }
 }
@@ -36,6 +37,9 @@ export function useGroupedCourses(filters?: CourseFilters) {
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // Serialize filters to avoid dependency issues
+  const filterKey = useMemo(() => JSON.stringify(filters || {}), [filters])
 
   useEffect(() => {
     async function fetchCourses() {
@@ -52,7 +56,7 @@ export function useGroupedCourses(filters?: CourseFilters) {
     }
 
     fetchCourses()
-  }, [filters?.school, filters?.department, filters?.level, filters?.semester])
+  }, [filterKey, filters])
 
   return { groupedCourses, loading, error }
 }
@@ -92,6 +96,9 @@ export function useCourseSearch(searchTerm: string, filters?: CourseFilters) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Serialize filters to avoid dependency issues
+  const filterKey = useMemo(() => JSON.stringify(filters || {}), [filters])
+
   useEffect(() => {
     async function searchCourses() {
       if (!searchTerm.trim()) {
@@ -113,7 +120,7 @@ export function useCourseSearch(searchTerm: string, filters?: CourseFilters) {
 
     const debounce = setTimeout(searchCourses, 300)
     return () => clearTimeout(debounce)
-  }, [searchTerm, filters?.school, filters?.department, filters?.level, filters?.semester])
+  }, [searchTerm, filterKey, filters])
 
   return { courses, loading, error }
 }
