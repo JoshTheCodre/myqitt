@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation'
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime'
 import { AppShell } from '@/components/layout/app-shell'
-import { FileText, Calendar, ChevronRight } from 'lucide-react'
+import { FileText, Calendar, ChevronRight, Plus } from 'lucide-react'
 
 // ============ TYPES ============
 interface AssignmentDate {
@@ -34,17 +34,26 @@ interface AssignmentsListProps {
 }
 
 // ============ HEADER COMPONENT ============
-function Header() {
+function Header({ onAddClick }: { onAddClick: () => void }) {
   return (
-    <div>
-      <div className="flex items-center gap-3">
-        <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-gray-900">Assignments</h1>
-        <div className="px-3 py-1 rounded-full text-sm font-semibold" style={{ backgroundColor: '#E8ECFF', color: '#0A32F8' }}>5</div>
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <div className="flex items-center gap-3">
+          <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-gray-900">Assignments</h1>
+          <div className="px-3 py-1 rounded-full text-sm font-semibold" style={{ backgroundColor: '#E8ECFF', color: '#0A32F8' }}>5</div>
+        </div>
+        <div className="flex items-center gap-2 text-gray-500 mt-2 text-sm">
+          <FileText className="w-4 h-4" />
+          <p>Track your academic assignments and deadlines</p>
+        </div>
       </div>
-      <div className="flex items-center gap-2 text-gray-500 mt-2 text-sm">
-        <FileText className="w-4 h-4" />
-        <p>Track your academic assignments and deadlines</p>
-      </div>
+      <button
+        onClick={onAddClick}
+        className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-sm flex-shrink-0"
+      >
+        <Plus className="w-5 h-5" />
+        <span className="hidden sm:inline">Add Assignment</span>
+      </button>
     </div>
   )
 }
@@ -251,7 +260,7 @@ export default function AssignmentPage() {
     <AppShell>
       <div className="h-full flex items-start justify-center overflow-hidden">
         <div className="w-full px-4 py-8 pb-24 lg:pb-8 overflow-x-hidden">
-          <Header />
+          <Header onAddClick={() => router.push('/assignment/add')} />
           
           <div className="mt-12">
             <AssignmentsList router={router} />
