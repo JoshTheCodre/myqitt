@@ -45,6 +45,16 @@ export default function ProfilePage() {
         </div>
     )
 
+    // Map school IDs to names
+    const getSchoolName = (schoolId: string | undefined) => {
+        if (!schoolId) return 'Not set'
+        const schoolMap: Record<string, string> = {
+            '6c59c8d9-b5d3-4525-b5bd-4ad38ef65e57': 'University of Port Harcourt',
+            '426a9fce-3d64-4679-8178-5d0776990d4a': 'Rivers State University'
+        }
+        return schoolMap[schoolId] || schoolId
+    }
+
     // Get initials for avatar
     const initials = profile?.name
         ?.split(' ')
@@ -75,7 +85,7 @@ export default function ProfilePage() {
                             <p className="text-blue-100 text-sm">{profile?.email}</p>
                             {profile?.level && profile?.semester && (
                                 <div className="mt-3 px-4 py-1.5 bg-white/20 backdrop-blur-sm rounded-full text-sm font-medium">
-                                    Level {profile.level} • {profile.semester === 'first' ? 'First' : 'Second'} Semester
+                                    {profile.level}00 Level • {profile.semester === 'first' ? 'First' : 'Second'} Semester
                                 </div>
                             )}
                         </div>
@@ -87,7 +97,7 @@ export default function ProfilePage() {
                         
                         <ProfileCard icon={Mail} label="Email Address" value={profile?.email} />
                         <ProfileCard icon={Phone} label="Phone Number" value={profile?.phone_number} />
-                        <ProfileCard icon={Building2} label="School" value={profile?.school} />
+                        <ProfileCard icon={Building2} label="School" value={getSchoolName(profile?.school)} />
                         <ProfileCard icon={GraduationCap} label="Department" value={profile?.department} />
                         
                         <div className="grid grid-cols-2 gap-3">

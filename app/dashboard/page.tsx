@@ -38,14 +38,15 @@ export default function Page() {
       <div className="flex items-start justify-between ">
         <div>
           <h1 className="text-2xl md:text-4xl font-extrabold tracking-tight">Hello, {profile?.name || 'Guest'}</h1>
-          <p className="bg-gray-200 py-1 px-2 rounded-xl w-fit text-gray-700 mt-1 md:mt-2 text-sm md:text-base">{(profile?.department || 'CSC').toUpperCase()} - Level {profile?.level || 'N/A'} 🎖️</p>
+          <p className="text-xs font-semibold text-gray-700 mt-1 md:mt-2">{(profile?.department || 'CSC').toUpperCase()} • {profile?.level ? `${profile.level}00 Level` : 'N/A'}</p>
         </div>
         <div className="flex items-center gap-3">
           <button 
             className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center hover:bg-blue-100 transition-colors cursor-pointer"
             onClick={() => {
-              // Handle support click
-              window.open('mailto:support@qitt.com', '_blank')
+              // Handle support click - open WhatsApp with predefined message
+              const message = encodeURIComponent('Hi, the issue am facing : ')
+              window.open(`https://wa.me/2349034954069?text=${message}`, '_blank')
             }}
           >
             <HeadsetIcon className="w-6 h-6 text-blue-600" />
@@ -143,13 +144,14 @@ export default function Page() {
     const classes = [
       {
         id: 1,
-        code: 'CSC 345',
-        program: 'MBA 2',
-        time: '2:00 PM - 5:00 PM',
+        code: 'CSC 215',
+        program: 'CS 2',
+        time: '9:00 AM - 12:00 PM',
         status: 'Upcoming',
         borderColor: 'border-l-blue-500',
         badgeBg: 'bg-blue-50',
         badgeText: 'text-blue-600',
+        dot: 'bg-blue-600',
       },
       {
         id: 2,
