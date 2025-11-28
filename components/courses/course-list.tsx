@@ -42,19 +42,6 @@ export function CourseCard({ course, onClick, selected }: CourseCardProps) {
       <div className={`h-2 ${color.bg}`} />
       
       <div className="px-5 py-3 flex flex-col gap-4">
-        {/* Compulsory/Elective badge in top right */}
-        {isCompulsory !== undefined && (
-          <div className="flex justify-end">
-            <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
-              isCompulsory
-                ? 'bg-red-50 text-red-600'
-                : 'bg-green-50 text-green-600'
-            }`}>
-              {isCompulsory ? 'C' : 'E'}
-            </span>
-          </div>
-        )}
-        
         {/* Course details */}
         <div className="space-y-3">
           {/* Code and Title row */}
@@ -62,15 +49,24 @@ export function CourseCard({ course, onClick, selected }: CourseCardProps) {
             <div className="flex flex-col gap-2 mb-1">
               <div className='flex justify-between items-start'>
                 <p className={`text-md font-bold ${color.code} uppercase tracking-wider`}>{course.code}</p>
-                <div className="text-right">
-                  <div className={`${color.badge} px-3 py-1.5 rounded-lg`}>
-                    <p className={`text-xs font-bold ${color.code}`}>{course.credits} units</p>
-                  </div>
+                <div className={`${color.badge} px-3 py-1.5 rounded-lg`}>
+                  <p className={`text-xs font-bold ${color.code}`}>{course.credits} units</p>
                 </div>
               </div>
               <p className="text-sm font-bold text-gray-900">{course.title}</p>
               {course.description && (
                 <p className="text-xs text-gray-600 line-clamp-2">{course.description}</p>
+              )}
+              {isCompulsory !== undefined && (
+                <div className="pt-2">
+                  <span className={`text-xs font-medium px-2 py-1 rounded-full inline-block ${
+                    isCompulsory
+                      ? 'bg-gray-100 text-gray-600'
+                      : 'bg-gray-100 text-gray-600'
+                  }`}>
+                    {isCompulsory ? 'Compulsory' : 'Elective'}
+                  </span>
+                </div>
               )}
             </div>
           </div>
