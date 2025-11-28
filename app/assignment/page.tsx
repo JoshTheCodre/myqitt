@@ -1,11 +1,12 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { AppShell } from '@/components/layout/app-shell'
 import { FileText, Calendar, User, ChevronRight } from 'lucide-react'
 
 export default function AssignmentPage() {
-  const [selectedAssignment, setSelectedAssignment] = useState<string | null>(null)
+  const router = useRouter()
 
   // ============ HEADER COMPONENT ============
   const Header = () => (
@@ -30,10 +31,10 @@ export default function AssignmentPage() {
   }: { 
     courseCode: string
     assignmentCount: number
-    dates: { date: string; label: string }[]
-    onDateClick: (date: string) => void
+    dates: any[]
+    onDateClick: (dateLabel: string) => void
   }) => (
-    <div className="bg-white rounded-xl border border-gray-200 hover:shadow-md transition-all p-6" style={{ borderColor: selectedAssignment ? '#0A32F8' : '#e5e7eb' }}>
+    <div className="bg-white rounded-xl border border-gray-200 hover:shadow-md transition-all p-6">
       <div className="rounded-full mb-4 h-2" style={{ background: 'linear-gradient(to right, #E8ECFF, #C8DBFF)' }} />
       
       <div className="flex items-start justify-between mb-4">
@@ -49,7 +50,7 @@ export default function AssignmentPage() {
           {dates.map((item, idx) => (
             <button
               key={idx}
-              onClick={() => onDateClick(item.date)}
+              onClick={() => onDateClick(item.label)}
               className="px-3 py-1.5 rounded-full text-xs font-medium inline-flex items-center gap-1 transition-colors"
               style={{ 
                 backgroundColor: '#E8ECFF',
@@ -81,8 +82,22 @@ export default function AssignmentPage() {
         courseCode: 'STAT 180',
         assignmentCount: 2,
         dates: [
-          { date: '2025-12-25', label: 'Dec 25' },
-          { date: '2025-12-30', label: 'Dec 30' },
+          { 
+            date: '2025-12-25', 
+            label: 'Dec 25',
+            title: 'Statistical Analysis Project',
+            description: 'Complete a comprehensive statistical analysis of the provided dataset using SPSS or R. Include hypothesis testing, correlation analysis, and regression modeling.',
+            submissionType: 'PDF Report',
+            lecturer: 'Dr. Adewale Johnson'
+          },
+          { 
+            date: '2025-12-30', 
+            label: 'Dec 30',
+            title: 'Probability Theory Assignment',
+            description: 'Solve problems 1-20 from Chapter 5. Show all working and provide detailed explanations for each solution.',
+            submissionType: 'Handwritten/PDF',
+            lecturer: 'Dr. Adewale Johnson'
+          },
         ],
       },
       {
@@ -90,7 +105,14 @@ export default function AssignmentPage() {
         courseCode: 'CSC 310',
         assignmentCount: 1,
         dates: [
-          { date: '2025-12-28', label: 'Dec 28' },
+          { 
+            date: '2025-12-28', 
+            label: 'Dec 28',
+            title: 'Web Application Development',
+            description: 'Build a full-stack web application using React and Node.js. Must include authentication, CRUD operations, and responsive design.',
+            submissionType: 'GitHub Repository Link',
+            lecturer: 'Engr. Sarah Okonkwo'
+          },
         ],
       },
       {
@@ -98,9 +120,30 @@ export default function AssignmentPage() {
         courseCode: 'MATH 250',
         assignmentCount: 3,
         dates: [
-          { date: '2025-12-22', label: 'Dec 22' },
-          { date: '2025-12-26', label: 'Dec 26' },
-          { date: '2025-12-31', label: 'Dec 31' },
+          { 
+            date: '2025-12-22', 
+            label: 'Dec 22',
+            title: 'Linear Algebra Problems',
+            description: 'Complete exercises 10-25 from the textbook. Focus on matrix operations, eigenvalues, and vector spaces.',
+            submissionType: 'PDF',
+            lecturer: 'Prof. Michael Eze'
+          },
+          { 
+            date: '2025-12-26', 
+            label: 'Dec 26',
+            title: 'Calculus Applications',
+            description: 'Solve real-world problems using integration and differentiation techniques learned in class.',
+            submissionType: 'Handwritten',
+            lecturer: 'Prof. Michael Eze'
+          },
+          { 
+            date: '2025-12-31', 
+            label: 'Dec 31',
+            title: 'Differential Equations',
+            description: 'Solve first and second-order differential equations. Include boundary value problems.',
+            submissionType: 'PDF',
+            lecturer: 'Prof. Michael Eze'
+          },
         ],
       },
       {
@@ -108,8 +151,22 @@ export default function AssignmentPage() {
         courseCode: 'PHY 240',
         assignmentCount: 2,
         dates: [
-          { date: '2025-12-24', label: 'Dec 24' },
-          { date: '2025-12-29', label: 'Dec 29' },
+          { 
+            date: '2025-12-24', 
+            label: 'Dec 24',
+            title: 'Quantum Mechanics Lab Report',
+            description: 'Write a detailed lab report on the photoelectric effect experiment conducted in class. Include data analysis and conclusions.',
+            submissionType: 'PDF Report',
+            lecturer: 'Dr. Chukwuemeka Nnamdi'
+          },
+          { 
+            date: '2025-12-29', 
+            label: 'Dec 29',
+            title: 'Thermodynamics Problems',
+            description: 'Solve problems related to the laws of thermodynamics, heat engines, and entropy.',
+            submissionType: 'Handwritten/PDF',
+            lecturer: 'Dr. Chukwuemeka Nnamdi'
+          },
         ],
       },
       {
@@ -117,14 +174,29 @@ export default function AssignmentPage() {
         courseCode: 'ENG 260',
         assignmentCount: 1,
         dates: [
-          { date: '2025-12-27', label: 'Dec 27' },
+          { 
+            date: '2025-12-27', 
+            label: 'Dec 27',
+            title: 'Research Paper on Nigerian Literature',
+            description: 'Write a 2000-word research paper analyzing the themes and literary devices in Chinua Achebe\'s "Things Fall Apart".',
+            submissionType: 'Word Document',
+            lecturer: 'Dr. Fatima Bello'
+          },
         ],
       },
     ]
 
-    const handleDateClick = (date: string) => {
-      setSelectedAssignment(date)
-      // Can add modal or navigation here
+    const handleDateClick = (assignmentData: any) => {
+      // Navigate to assignment detail page with query params
+      const params = new URLSearchParams({
+        courseCode: assignmentData.courseCode,
+        title: assignmentData.title,
+        description: assignmentData.description,
+        dueDate: assignmentData.label,
+        submissionType: assignmentData.submissionType,
+        lecturer: assignmentData.lecturer,
+      })
+      router.push(`/assignment/detail?${params.toString()}`)
     }
 
     return (
@@ -135,7 +207,12 @@ export default function AssignmentPage() {
             courseCode={assignment.courseCode}
             assignmentCount={assignment.assignmentCount}
             dates={assignment.dates}
-            onDateClick={handleDateClick}
+            onDateClick={(dateLabel) => {
+              const dateData = assignment.dates.find(d => d.label === dateLabel)
+              if (dateData) {
+                handleDateClick({ ...dateData, courseCode: assignment.courseCode })
+              }
+            }}
           />
         ))}
       </div>

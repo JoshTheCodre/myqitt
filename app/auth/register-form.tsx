@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ChevronDown, Check } from 'lucide-react'
 import Image from 'next/image'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '@/lib/store/authStore'
+import { supabase } from '@/lib/supabase/client'
 
 interface SchoolOption {
     id: string
@@ -13,17 +14,14 @@ interface SchoolOption {
     initials: string
 }
 
-const schools: SchoolOption[] = [
-    { id: 'uniport', name: 'Uniport', logo: '/uniport.png', initials: 'U' },
-    { id: 'rsu', name: 'RSU', logo: '/rsu.jpeg', initials: 'R' },
-]
-
 export function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) {
     const { register, loading } = useAuthStore()
+    const [schools, setSchools] = useState<SchoolOption[]>([])
+    const [loadingSchools, setLoadingSchools] = useState(true)
     const [data, setData] = useState({
-        fullName: '',
+        name: '',
         email: '',
-        phoneNumber: '',
+        phone_number: '',
         department: '',
         level: '',
         semester: '',
@@ -32,15 +30,43 @@ export function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => v
     const [selectedSchool, setSelectedSchool] = useState<string | null>(null)
     const [agreedToTerms, setAgreedToTerms] = useState(false)
 
+    useEffect(() => {
+        const fetchSchools = async () => {
+            try {
+                const { data: schoolsData, error } = await supabase
+                    .from('schools')
+                    .select('id, name')
+                
+                if (error) throw error
+                
+                const formattedSchools: SchoolOption[] = schoolsData.map((school: any) => ({
+                    id: school.id,
+                    name: school.name,
+                    logo: `/schools/${school.name.toLowerCase()}.png`,
+                    initials: school.name.substring(0, 1),
+                }))
+                
+                setSchools(formattedSchools)
+            } catch (error) {
+                console.error('Failed to fetch schools:', error)
+                toast.error('Failed to load schools')
+            } finally {
+                setLoadingSchools(false)
+            }
+        }
+
+        fetchSchools()
+    }, [])
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target
         setData(prev => ({ ...prev, [name]: value }))
     }
 
     const validate = () => {
-        if (!data.fullName.trim()) return toast.error('Full name is required')
+        if (!data.name.trim()) return toast.error('Full name is required')
         if (!data.email.trim()) return toast.error('Email is required')
-        if (!data.phoneNumber.trim()) return toast.error('Phone number is required')
+        if (!data.phone_number.trim()) return toast.error('Phone number is required')
         if (!selectedSchool) return toast.error('Please select a school')
         if (!data.department) return toast.error('Please select a department')
         if (!data.level) return toast.error('Please select a level')
@@ -56,16 +82,22 @@ export function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => v
         if (!validate()) return
 
         try {
+            // Convert semester from "1"/"2" to "first"/"second"
+            const semesterMap: { [key: string]: string } = {
+                '1': 'first',
+                '2': 'second'
+            }
+
             await register(data.email, data.password, {
-                fullName: data.fullName,
+                name: data.name,
                 email: data.email,
-                phoneNumber: data.phoneNumber,
+                phone_number: data.phone_number,
                 school: selectedSchool!,
                 department: data.department,
-                level: data.level,
-                semester: data.semester,
+                level: parseInt(data.level),
+                semester: semesterMap[data.semester],
             })
-            setData({ fullName: '', email: '', phoneNumber: '', department: '', level: '', semester: '', password: '' })
+            setData({ name: '', email: '', phone_number: '', department: '', level: '', semester: '', password: '' })
             setSelectedSchool(null)
             setAgreedToTerms(false)
             onRegisterSuccess()
@@ -80,9 +112,9 @@ export function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => v
                 <label className="block text-sm font-medium text-gray-800 mb-2">Full Name</label>
                 <input
                     type="text"
-                    name="fullName"
+                    name="name"
                     placeholder="eg Zewaen"
-                    value={data.fullName}
+                    value={data.name}
                     onChange={handleChange}
                     autoComplete="off"
                     disabled={loading}
@@ -110,9 +142,9 @@ export function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => v
                 <label className="block text-sm font-medium text-gray-800 mb-2">Phone Number</label>
                 <input
                     type="tel"
-                    name="phoneNumber"
+                    name="phone_number"
                     placeholder="+234 800 123 4567"
-                    value={data.phoneNumber}
+                    value={data.phone_number}
                     onChange={handleChange}
                     autoComplete="off"
                     disabled={loading}
@@ -124,22 +156,25 @@ export function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => v
             <div>
                 <label className="block text-sm font-medium text-gray-800 mb-2">Select School</label>
                 <div className="flex gap-2 h-12">
-                    {schools.map(school => (
-                        <button
-                            key={school.id}
-                            type="button"
-                            onClick={() => setSelectedSchool(school.id)}
-                            disabled={loading}
-                            className={`flex-1 flex items-center justify-center gap-2 border-2 rounded-lg transition-colors overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed ${selectedSchool === school.id ? 'border-2' : 'border-gray-200 hover:border-gray-300'
-                                }`}
-                            style={selectedSchool === school.id ? { borderColor: '#4045EF', backgroundColor: '#f0f4ff' } : {}}
-                        >
-                            <div className="relative w-5 h-5">
-                                <Image src={school.logo} alt={school.name} fill className="object-cover rounded" />
-                            </div>
-                            <span className="text-xs font-semibold text-gray-700">{school.name}</span>
-                        </button>
-                    ))}
+                    {loadingSchools ? (
+                        <div className="flex-1 flex items-center justify-center text-gray-500">Loading schools...</div>
+                    ) : schools.length > 0 ? (
+                        schools.map(school => (
+                            <button
+                                key={school.id}
+                                type="button"
+                                onClick={() => setSelectedSchool(school.id)}
+                                disabled={loading || loadingSchools}
+                                className={`flex-1 flex items-center justify-center gap-2 border-2 rounded-lg transition-colors overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed ${selectedSchool === school.id ? 'border-2' : 'border-gray-200 hover:border-gray-300'
+                                    }`}
+                                style={selectedSchool === school.id ? { borderColor: '#4045EF', backgroundColor: '#f0f4ff' } : {}}
+                            >
+                                <span className="text-xs font-semibold text-gray-700">{school.name}</span>
+                            </button>
+                        ))
+                    ) : (
+                        <div className="flex-1 flex items-center justify-center text-gray-500">No schools available</div>
+                    )}
                 </div>
             </div>
 
@@ -155,8 +190,8 @@ export function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => v
                         style={{ '--tw-ring-color': '#4045EF' } as React.CSSProperties}
                     >
                         <option value="">Select Department</option>
-                        <option value="cs">Computer Science</option>
-                        <option value="eng">Engineering</option>
+                        <option value="Computer Science">Computer Science</option>
+                        <option value="Engineering">Engineering</option>
                     </select>
                     <ChevronDown size={16} className="absolute right-4 top-4 text-gray-600 pointer-events-none" />
                 </div>
@@ -175,8 +210,12 @@ export function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => v
                             style={{ '--tw-ring-color': '#4045EF' } as React.CSSProperties}
                         >
                             <option value="">Select Level</option>
-                            <option value="100">100</option>
-                            <option value="200">200</option>
+                            <option value="1">Level 1</option>
+                            <option value="2">Level 2</option>
+                            <option value="3">Level 3</option>
+                            <option value="4">Level 4</option>
+                            <option value="5">Level 5</option>
+                            <option value="6">Level 6</option>
                         </select>
                         <ChevronDown size={16} className="absolute right-4 top-4 text-gray-600 pointer-events-none" />
                     </div>

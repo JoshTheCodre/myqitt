@@ -9,21 +9,54 @@ import { BottomNav } from './bottom-nav'
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, initAuth } = useAuthStore()
   const router = useRouter()
-  const [mounted, setMounted] = useState(false)
+  const [isHydrated, setIsHydrated] = useState(false)
 
   useEffect(() => {
-    initAuth()
-    setMounted(true)
-  }, [initAuth])
+    // Mark as hydrated first
+    setIsHydrated(true)
+  }, [])
 
   useEffect(() => {
-    if (mounted && !user) {
-      router.push('/')
+    if (!isHydrated) return
+
+    // Initialize auth listener
+    const unsubscribe = initAuth()
+    
+    // Check if user is authenticated
+    const checkAuth = setTimeout(() => {
+      if (!user) {
+        router.push('/')
+      }
+    }, 500)
+    
+    return () => {
+      clearTimeout(checkAuth)
+      if (unsubscribe) unsubscribe()
     }
-  }, [user, mounted, router])
+  }, [isHydrated, user, router, initAuth])
 
-  if (!mounted || !user) {
-    return null
+  // Show loading state while hydrating
+  if (!isHydrated) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show loading while auth is being checked
+  if (!user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
   }
 
   return (

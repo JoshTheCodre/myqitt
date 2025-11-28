@@ -1,26 +1,27 @@
 import { create } from 'zustand'
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth'
-import { doc, setDoc, getDoc, onSnapshot } from 'firebase/firestore'
-import { auth, db } from '@/lib/firebase/config'
+import { supabase } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
 
 export interface UserProfile {
-  uid: string
-  fullName: string
+  id: string
   email: string
-  phoneNumber: string
-  school: string
-  department: string
-  level: string
-  semester: string
-  createdAt: string
+  name: string
+  phone_number?: string
+  school?: string
+  department?: string
+  level?: number
+  semester?: string
+  bio?: string
+  avatar_url?: string
+  created_at?: string
+  updated_at?: string
 }
 
 interface AuthStore {
   user: any
   profile: UserProfile | null
   loading: boolean
-  register: (email: string, password: string, userData: Omit<UserProfile, 'uid' | 'createdAt'>) => Promise<void>
+  register: (email: string, password: string, userData: Partial<UserProfile>) => Promise<void>
   login: (email: string, password: string) => Promise<void>
   logout: () => Promise<void>
   initAuth: () => void
@@ -31,22 +32,52 @@ export const useAuthStore = create<AuthStore>((set) => ({
   profile: null,
   loading: false,
 
-  register: async (email: string, password: string, userData: Omit<UserProfile, 'uid' | 'createdAt'>) => {
+  register: async (email: string, password: string, userData: Partial<UserProfile>) => {
     set({ loading: true })
     try {
-      // Create user in Firebase Auth
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password)
-      const uid = userCredential.user.uid
+      // Create user in Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+      })
 
-      // Create user profile in Firestore
-      const userProfile: UserProfile = {
-        uid,
-        ...userData,
-        createdAt: new Date().toISOString(),
+      if (authError) throw authError
+      if (!authData.user) throw new Error('User creation failed')
+
+      const userId = authData.user.id
+
+      // Create user profile in users table (works with or without email confirmation)
+      const { error: profileError } = await supabase
+        .from('users')
+        .insert({
+          id: userId,
+          email,
+          name: userData.name || '',
+          phone_number: userData.phone_number,
+          school: userData.school,
+          department: userData.department,
+          level: userData.level,
+          semester: userData.semester,
+          bio: userData.bio,
+        })
+
+      if (profileError) {
+        console.error('Profile creation error:', profileError)
+        throw profileError
       }
 
-      await setDoc(doc(db, 'users', uid), userProfile)
-      set({ user: userCredential.user, profile: userProfile, loading: false })
+      const profile: UserProfile = {
+        id: userId,
+        email,
+        name: userData.name || '',
+        phone_number: userData.phone_number,
+        school: userData.school,
+        department: userData.department,
+        level: userData.level,
+        semester: userData.semester,
+      }
+
+      set({ user: authData.user, profile, loading: false })
       toast.success('Account created successfully!')
     } catch (error: any) {
       set({ loading: false })
@@ -59,20 +90,43 @@ export const useAuthStore = create<AuthStore>((set) => ({
   login: async (email: string, password: string) => {
     set({ loading: true })
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password)
-      const uid = userCredential.user.uid
-
-      // Set up real-time listener for user profile
-      onSnapshot(doc(db, 'users', uid), (snapshot) => {
-        const profile = snapshot.exists() ? (snapshot.data() as UserProfile) : null
-        set({ user: userCredential.user, profile, loading: false })
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       })
 
+      if (authError) {
+        set({ loading: false })
+        // Better error message for unconfirmed email
+        if (authError.message?.toLowerCase().includes('email not confirmed') || 
+            authError.message?.toLowerCase().includes('email_not_confirmed')) {
+          toast.error('Email not yet confirmed. Please check your inbox for a confirmation link, or wait a moment and try again.')
+          throw new Error('Email not confirmed')
+        }
+        throw authError
+      }
+
+      if (!authData.user) throw new Error('Login failed')
+
+      // Fetch user profile
+      const { data: profileData, error: profileError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', authData.user.id)
+        .single()
+
+      if (profileError && profileError.code !== 'PGRST116') throw profileError
+
+      const profile = profileData as UserProfile
+
+      set({ user: authData.user, profile: profile || null, loading: false })
       toast.success('Logged in successfully!')
     } catch (error: any) {
       set({ loading: false })
       const msg = error?.message || 'Login failed'
-      toast.error(msg)
+      if (!msg.includes('Email not confirmed')) {
+        toast.error(msg)
+      }
       throw error
     }
   },
@@ -80,7 +134,9 @@ export const useAuthStore = create<AuthStore>((set) => ({
   logout: async () => {
     set({ loading: true })
     try {
-      await signOut(auth)
+      const { error } = await supabase.auth.signOut()
+      if (error) throw error
+
       set({ user: null, profile: null, loading: false })
       toast.success('Logged out successfully!')
     } catch (error: any) {
@@ -91,16 +147,32 @@ export const useAuthStore = create<AuthStore>((set) => ({
   },
 
   initAuth: () => {
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        // Set up real-time listener for user profile
-        onSnapshot(doc(db, 'users', user.uid), (snapshot) => {
-          const profile = snapshot.exists() ? (snapshot.data() as UserProfile) : null
-          set({ user, profile })
-        })
-      } else {
-        set({ user: null, profile: null })
+    const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      try {
+        if (session?.user) {
+          // Fetch user profile
+          const { data: profileData, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', session.user.id)
+            .single()
+
+          if (error && error.code !== 'PGRST116') {
+            console.error('Profile fetch error:', error)
+          }
+
+          const profile = profileData as UserProfile
+          set({ user: session.user, profile: profile || null })
+        } else {
+          set({ user: null, profile: null })
+        }
+      } catch (error) {
+        console.error('Auth state change error:', error)
       }
     })
+
+    return () => {
+      listener?.subscription.unsubscribe()
+    }
   },
 }))

@@ -1,0 +1,520 @@
+{
+  "computer_science": {
+    "100": {
+      "1": [
+        {
+          "courseCode": "COS101.2",
+          "courseTitle": "INTRODUCTION TO COMPUTER SCIENCE",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "COS103.1",
+          "courseTitle": "INTRODUCTION TO BASIC PROGRAMMING",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "GES111.1",
+          "courseTitle": "COMMUNICATION IN ENGLISH",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "MTH110.1",
+          "courseTitle": "ALGEBRA AND TRIGONOMETRY",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "MTH120.1",
+          "courseTitle": "CALCULUS",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "PHY101.1",
+          "courseTitle": "MECHANICS AND PROPERTIES OF MATTER",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "PHY102.1",
+          "courseTitle": "LABORATORY PRACTICE I",
+          "courseUnit": 1,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "CHM130.1",
+          "courseTitle": "GENERAL CHEMISTRY I",
+          "courseUnit": 3,
+          "category": "ELECTIVE"
+        },
+        {
+          "courseCode": "CSC180.1",
+          "courseTitle": "INTRODUCTION TO COMPUTER SCIENCE AND BASIC PROGRAMMING",
+          "courseUnit": 2,
+          "category": "ELECTIVE"
+        },
+        {
+          "courseCode": "FSB101.1",
+          "courseTitle": "GENERAL BIOLOGY I",
+          "courseUnit": 3,
+          "category": "ELECTIVE"
+        },
+        {
+          "courseCode": "GES100.1",
+          "courseTitle": "COMMUNICATION SKILLS IN ENGLISH LANGUAGE I",
+          "courseUnit": 3,
+          "category": "ELECTIVE"
+        },
+        {
+          "courseCode": "GES102.1",
+          "courseTitle": "INTRODUCTION TO LOGIC AND PHILOSOPHY I",
+          "courseUnit": 2,
+          "category": "ELECTIVE"
+        }
+      ],
+      "2": [
+        {
+          "courseCode": "CSC183.2",
+          "courseTitle": "INTRODUCTION TO PROBLEM SOLVING",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "GES112.2",
+          "courseTitle": "NIGERIAN PEOPLE AND CULTURE",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "MTH114.2",
+          "courseTitle": "INTRODUCTION TO SET, LOGIC AND NUMBERS",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "MTH124.2",
+          "courseTitle": "COORDINATE GEOMETRY",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "PHY103.2",
+          "courseTitle": "LABORATORY PHYSICS II",
+          "courseUnit": 1,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "PHY112.2",
+          "courseTitle": "INTRODUCTION TO ELECTRICITY AND MAGNETISM",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "STA160.2",
+          "courseTitle": "DESCRIPTIVE STATISTICS",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "CSC182.2",
+          "courseTitle": "COMPUTER APPLICATIONS",
+          "courseUnit": 3,
+          "category": "ELECTIVE"
+        },
+        {
+          "courseCode": "GES101.2",
+          "courseTitle": "COMPUTER APPRECIATION AND APPLICATIONS II",
+          "courseUnit": 2,
+          "category": "ELECTIVE"
+        },
+        {
+          "courseCode": "GES103.2",
+          "courseTitle": "NIGERIAN PEOPLE AND CULTURE II",
+          "courseUnit": 2,
+          "category": "ELECTIVE"
+        }
+      ]
+    },
+
+    "200": {
+      "1": [
+        {
+          "courseCode": "COS201.1",
+          "courseTitle": "COMPUTER PROGRAMMING I",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "CSC203.1",
+          "courseTitle": "DISCRETE STRUCTURES",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "CSC238.1",
+          "courseTitle": "VISUAL BASIC.NET PROGRAMMING",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "CSC270.1",
+          "courseTitle": "USER INTERFACE/USER EXPERIENCE (UI/UX) DESIGN",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "CYB281.1",
+          "courseTitle": "FUNDAMENTAL OF CYBER SECURITY",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "GES200.1",
+          "courseTitle": "COMMUNICATION SKILLS AND COMPUTER APPLICATION",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "GES212.1",
+          "courseTitle": "PHILOSOPHY, LOGIC AND HUMAN EXISTENCE",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "IFT211.2",
+          "courseTitle": "DIGITAL LOGIC DESIGN",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "MTH201.1",
+          "courseTitle": "MATHEMATICAL METHODS",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+
+        {
+          "courseCode": "CSC280.1",
+          "courseTitle": "INTRODUCTION TO COMPUTER PROGRAMMING",
+          "courseUnit": 3,
+          "category": "ELECTIVE"
+        },
+        {
+          "courseCode": "CSC281.1",
+          "courseTitle": "COMPUTER SYSTEM FUNDAMENTALS",
+          "courseUnit": 3,
+          "category": "ELECTIVE"
+        },
+        {
+          "courseCode": "CSC283.1",
+          "courseTitle": "INTRODUCTION TO INFORMATION SYSTEMS AND FILE STRUCTURES",
+          "courseUnit": 2,
+          "category": "ELECTIVE"
+        },
+        {
+          "courseCode": "CSC284.1",
+          "courseTitle": "INTRODUCTION TO LOGIC DESIGN",
+          "courseUnit": 2,
+          "category": "ELECTIVE"
+        },
+        {
+          "courseCode": "CSC286.1",
+          "courseTitle": "CLOUD APPLICATION AND DEVELOPMENT",
+          "courseUnit": 2,
+          "category": "ELECTIVE"
+        },
+        {
+          "courseCode": "CSC288.1",
+          "courseTitle": "STRUCTURED PROGRAMMING",
+          "courseUnit": 3,
+          "category": "ELECTIVE"
+        },
+        {
+          "courseCode": "MTH210.1",
+          "courseTitle": "LINEAR ALGEBRA",
+          "courseUnit": 3,
+          "category": "ELECTIVE"
+        },
+        {
+          "courseCode": "MTH230.1",
+          "courseTitle": "MODERN ALGEBRA",
+          "courseUnit": 3,
+          "category": "ELECTIVE"
+        },
+        {
+          "courseCode": "MTH270.1",
+          "courseTitle": "NUMERICAL ANALYSIS",
+          "courseUnit": 3,
+          "category": "ELECTIVE"
+        },
+        {
+          "courseCode": "STA260.1",
+          "courseTitle": "INTRODUCTION TO PROBABILITY AND STATISTICS",
+          "courseUnit": 3,
+          "category": "ELECTIVE"
+        }
+      ],
+
+      "2": [
+        {
+          "courseCode": "COS202.2",
+          "courseTitle": "COMPUTER PROGRAMMING II",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "CSC288.2",
+          "courseTitle": "INTERACTIVE PROGRAMMING USING JAVASCRIPT",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "DTS204.2",
+          "courseTitle": "DATA MANAGEMENT I",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "FSC2C1.2",
+          "courseTitle": "COMMUNITY SERVICE",
+          "courseUnit": 1,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "GES201.2",
+          "courseTitle": "LOGIC, PHILOSOPHY OF SCIENCE AND NIGERIAN HERITAGE",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "GES211.2",
+          "courseTitle": "ENTREPRENEURSHIP AND INNOVATION",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "IFT212.2",
+          "courseTitle": "COMPUTER ARCHITECTURE AND ORGANISATION",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "MTH250.2",
+          "courseTitle": "ELEMENTARY DIFFERENTIAL EQUATIONS",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "SEN201.1",
+          "courseTitle": "INTRODUCTION TO SOFTWARE ENGINEERING",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+
+        {
+          "courseCode": "CSC273.2",
+          "courseTitle": "INTRODUCTION TO CRYPTOGRAPHY AND BLOCKCHAIN TECHNOLOGIES",
+          "courseUnit": 2,
+          "category": "ELECTIVE"
+        },
+        {
+          "courseCode": "CSC282.2",
+          "courseTitle": "DATABASE PROGRAMMING",
+          "courseUnit": 3,
+          "category": "ELECTIVE"
+        },
+        {
+          "courseCode": "CSC285.2",
+          "courseTitle": "DIGITAL DESIGN AND MICROPROCESSOR",
+          "courseUnit": 2,
+          "category": "ELECTIVE"
+        },
+        {
+          "courseCode": "CSC286.2",
+          "courseTitle": "DATA STRUCTURES",
+          "courseUnit": 2,
+          "category": "ELECTIVE"
+        },
+        {
+          "courseCode": "CSC287.2",
+          "courseTitle": "OBJECT ORIENTED PROGRAMMING I",
+          "courseUnit": 3,
+          "category": "ELECTIVE"
+        },
+        {
+          "courseCode": "MTH224.2",
+          "courseTitle": "MATHEMATICAL METHODS I",
+          "courseUnit": 2,
+          "category": "ELECTIVE"
+        },
+        {
+          "courseCode": "PHY351.1",
+          "courseTitle": "ELECTRONICS I",
+          "courseUnit": 2,
+          "category": "ELECTIVE"
+        },
+        {
+          "courseCode": "STA262.2",
+          "courseTitle": "MATHEMATICAL STATISTICS I",
+          "courseUnit": 3,
+          "category": "ELECTIVE"
+        }
+      ]
+    },
+
+    "300": {
+      "1": [
+        {
+          "courseCode": "CSC382.1",
+          "courseTitle": "COMPUTER ARCHITECTURE I",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "CSC394.1",
+          "courseTitle": "OPERATING SYSTEMS",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "CSC395.1",
+          "courseTitle": "SOFTWARE ENGINEERING",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "CSC396.1",
+          "courseTitle": "AUTOMATA THEORY, COMPUTABILITY AND FORMAL LANGUAGES",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "CSC397.1",
+          "courseTitle": "COMPUTATIONAL METHODS",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "GES300.1",
+          "courseTitle": "FUNDAMENTALS OF ENTREPRENEURSHIP STUDIES",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "STA370.1",
+          "courseTitle": "OPERATIONS RESEARCH",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        }
+      ],
+      "2": [
+        {
+          "courseCode": "CSC300.2",
+          "courseTitle": "INDUSTRIAL TRAINING",
+          "courseUnit": 9,
+          "category": "COMPULSORY"
+        }
+      ]
+    },
+
+    "400": {
+      "1": [
+        {
+          "courseCode": "CSC480.1",
+          "courseTitle": "DATABASE MANAGEMENT",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "CSC481.1",
+          "courseTitle": "OBJECT ORIENTED PROGRAMMING",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "CSC482.1",
+          "courseTitle": "COMPILER CONSTRUCTION",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "CSC483.1",
+          "courseTitle": "ALGORITHMS",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "CSC486.1",
+          "courseTitle": "SYSTEMS ANALYSIS AND DESIGN",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "CSC496.1",
+          "courseTitle": "PROGRAMMING LANGUAGES",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "CSC498.1",
+          "courseTitle": "DATA COMMUNICATIONS AND NETWORK",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "GES400.2",
+          "courseTitle": "ENTREPRENEURSHIP DEVELOPMENT",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        }
+      ],
+      "2": [
+        {
+          "courseCode": "CSC470.2",
+          "courseTitle": "PROJECT",
+          "courseUnit": 6,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "CSC491.2",
+          "courseTitle": "COMPUTER MODELLING AND SIMULATION",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "CSC492.2",
+          "courseTitle": "COMPUTER GRAPHICS",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "CSC493.2",
+          "courseTitle": "INTERNET AND WEB DESIGN",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "CSC494.2",
+          "courseTitle": "INTRODUCTION TO ARTIFICIAL INTELLIGENCE",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "CSC495.2",
+          "courseTitle": "COMPUTER ARCHITECTURE II",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "CSC497.2",
+          "courseTitle": "PROJECT MANAGEMENT",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        }
+      ]
+    }
+  }
+}

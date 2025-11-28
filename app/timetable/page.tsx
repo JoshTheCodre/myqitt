@@ -23,26 +23,37 @@ export default function TimetablePage() {
   )
 
   // ============ DAY SELECTOR COMPONENT ============
-  const DaySelector = () => (
-    <div className="flex gap-2 w-full">
-      {days.map((day) => (
-        <button
-          key={day}
-          onClick={() => setSelectedDay(day)}
-          className={`px-3 py-2 rounded-full font-semibold text-xs md:text-sm whitespace-nowrap transition-all flex-1 min-w-0 ${
-            selectedDay === day
-              ? 'text-white shadow-md'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          }`}
-          style={{
-            backgroundColor: selectedDay === day ? '#0A32F8' : undefined
-          }}
-        >
-          {day}
-        </button>
-      ))}
-    </div>
-  )
+  const DaySelector = () => {
+    const dayAbbreviations: Record<string, string> = {
+      'Monday': 'MON',
+      'Tuesday': 'TUES',
+      'Wednesday': 'WED',
+      'Thursday': 'THURS',
+      'Friday': 'FRI'
+    }
+
+    return (
+      <div className="flex gap-2 w-full">
+        {days.map((day) => (
+          <button
+            key={day}
+            onClick={() => setSelectedDay(day)}
+            className={`px-3 py-2 rounded-full font-semibold text-xs md:text-sm whitespace-nowrap transition-all flex-1 min-w-0 ${
+              selectedDay === day
+                ? 'text-white shadow-md'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+            style={{
+              backgroundColor: selectedDay === day ? '#0A32F8' : undefined
+            }}
+          >
+            <span className="md:hidden">{dayAbbreviations[day]}</span>
+            <span className="hidden md:inline">{day}</span>
+          </button>
+        ))}
+      </div>
+    )
+  }
 
   // ============ CLASS CARD COMPONENT ============
   const ClassCard = ({ time, title, location, lecturer }: { time: string; title: string; location: string; lecturer: string }) => (

@@ -1,6 +1,7 @@
 'use client'
 
-import { X } from 'lucide-react'
+import { useState } from 'react'
+import { X, MessageCircle, Lock, Zap } from 'lucide-react'
 
 interface CatchUpModalProps {
   isOpen: boolean
@@ -9,6 +10,8 @@ interface CatchUpModalProps {
 }
 
 export function CatchUpModal({ isOpen, item, onClose }: CatchUpModalProps) {
+  const [regNumber, setRegNumber] = useState('')
+
   if (!isOpen || !item) return null
 
   // Map items to content
@@ -37,14 +40,13 @@ export function CatchUpModal({ isOpen, item, onClose }: CatchUpModalProps) {
       ],
     },
     'Do your Course Reg Here': {
-      title: 'Course Registration',
-      description: 'Register your courses for the semester',
+      title: 'Course Registration Service',
+      description: 'Get your course registration done quickly and securely',
       details: [
-        '📝 Registration Period: September 1-10, 2024',
-        '📝 Minimum Units: 12',
-        '📝 Maximum Units: 18',
-        '📝 Late Registration Fee: ₦5,000',
-        '📝 Registration Portal: portal.university.edu.ng',
+        '📱 Message this number with your portal details',
+        '⚡ Get it done in minutes',
+        '🔒 Fast and secured',
+        '✅ Verified and trusted service',
       ],
     },
   }
@@ -54,6 +56,9 @@ export function CatchUpModal({ isOpen, item, onClose }: CatchUpModalProps) {
     description: 'Item details',
     details: ['No additional details available'],
   }
+
+  // Special rendering for Course Registration
+  const isCourseReg = item === 'Do your Course Reg Here'
 
   return (
     <>
@@ -85,20 +90,68 @@ export function CatchUpModal({ isOpen, item, onClose }: CatchUpModalProps) {
           <h2 className="text-2xl font-bold text-gray-900 mb-2">{content.title}</h2>
           <p className="text-gray-500 mb-6">{content.description}</p>
 
-          <div className="space-y-3">
-            {content.details.map((detail, index) => (
-              <div
-                key={index}
-                className="p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg border border-blue-100"
-              >
-                <p className="text-sm text-gray-700">{detail}</p>
+          {isCourseReg ? (
+            <div className="space-y-3">
+              {/* Registration Number Input Card */}
+              <div className="p-4 bg-green-50 rounded-xl border border-green-200">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Your Registration Number</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 202210955032DF"
+                  value={regNumber}
+                  onChange={(e) => setRegNumber(e.target.value)}
+                  className="w-full px-4 py-2.5 border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-sm"
+                />
               </div>
-            ))}
-          </div>
+
+              {/* WhatsApp Button */}
+              <button 
+                className="w-full bg-gradient-to-br from-green-500 to-green-600 text-white py-3 rounded-xl font-semibold hover:from-green-600 hover:to-green-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+                disabled={!regNumber.trim()}
+                onClick={() => {
+                  const message = `Hi, I need help with course registration. My registration number is: ${regNumber}`
+                  const encodedMessage = encodeURIComponent(message)
+                  window.open(`https://wa.me/2349034954069?text=${encodedMessage}`, '_blank')
+                }}
+              >
+                <MessageCircle className="w-5 h-5" />
+                Start Registration
+              </button>
+
+              {/* Quick Info Badge */}
+              <div className="flex items-center justify-center gap-3 py-2 px-3 bg-green-50 rounded-lg border border-green-200">
+                <div className="flex items-center gap-1.5">
+                  <Zap className="w-3.5 h-3.5 text-green-600" />
+                  <span className="text-xs font-medium text-gray-700">Fast</span>
+                </div>
+                <div className="w-1 h-1 bg-green-300 rounded-full" />
+                <div className="flex items-center gap-1.5">
+                  <Lock className="w-3.5 h-3.5 text-green-600" />
+                  <span className="text-xs font-medium text-gray-700">Secure</span>
+                </div>
+                <div className="w-1 h-1 bg-green-300 rounded-full" />
+                <div className="flex items-center gap-1.5">
+                  <MessageCircle className="w-3.5 h-3.5 text-green-600" />
+                  <span className="text-xs font-medium text-gray-700">Easy</span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {content.details.map((detail, index) => (
+                <div
+                  key={index}
+                  className="p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg border border-blue-100"
+                >
+                  <p className="text-sm text-gray-700">{detail}</p>
+                </div>
+              ))}
+            </div>
+          )}
 
           <button
             onClick={onClose}
-            className="w-full mt-8 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+            className="w-full mt-6 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors text-sm"
           >
             Close
           </button>
@@ -120,20 +173,69 @@ export function CatchUpModal({ isOpen, item, onClose }: CatchUpModalProps) {
 
           <div className="p-6">
             <p className="text-gray-500 mb-6">{content.description}</p>
-            <div className="space-y-3">
-              {content.details.map((detail, index) => (
-                <div
-                  key={index}
-                  className="p-3 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg border border-blue-100"
-                >
-                  <p className="text-sm text-gray-700">{detail}</p>
+            
+            {isCourseReg ? (
+              <div className="space-y-3">
+                {/* Registration Number Input Card */}
+                <div className="p-4 bg-green-50 rounded-xl border border-green-200">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Your Registration Number</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 202210955032DF"
+                    value={regNumber}
+                    onChange={(e) => setRegNumber(e.target.value)}
+                    className="w-full px-4 py-2.5 border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-sm"
+                  />
                 </div>
-              ))}
-            </div>
+
+                {/* WhatsApp Button */}
+                <button 
+                  className="w-full bg-gradient-to-br from-green-500 to-green-600 text-white py-3 rounded-xl font-semibold hover:from-green-600 hover:to-green-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+                  disabled={!regNumber.trim()}
+                  onClick={() => {
+                    const message = `Hi, I need help with course registration. My registration number is: ${regNumber}`
+                    const encodedMessage = encodeURIComponent(message)
+                    window.open(`https://wa.me/2349034954069?text=${encodedMessage}`, '_blank')
+                  }}
+                >
+                  <MessageCircle className="w-5 h-5" />
+                  Start Registration
+                </button>
+
+                {/* Quick Info Badge */}
+                <div className="flex items-center justify-center gap-3 py-2 px-3 bg-green-50 rounded-lg border border-green-200">
+                  <div className="flex items-center gap-1.5">
+                    <Zap className="w-3.5 h-3.5 text-green-600" />
+                    <span className="text-xs font-medium text-gray-700">Fast</span>
+                  </div>
+                  <div className="w-1 h-1 bg-green-300 rounded-full" />
+                  <div className="flex items-center gap-1.5">
+                    <Lock className="w-3.5 h-3.5 text-green-600" />
+                    <span className="text-xs font-medium text-gray-700">Secure</span>
+                  </div>
+                  <div className="w-1 h-1 bg-green-300 rounded-full" />
+                  <div className="flex items-center gap-1.5">
+                    <MessageCircle className="w-3.5 h-3.5 text-green-600" />
+                    <span className="text-xs font-medium text-gray-700">Easy</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {content.details.map((detail, index) => (
+                  <div
+                    key={index}
+                    className="p-3 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg border border-blue-100"
+                  >
+                    <p className="text-sm text-gray-700">{detail}</p>
+                  </div>
+                ))}
+              </div>
+            )}
 
             <button
               onClick={onClose}
-              className="w-full mt-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+              className="w-full mt-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors text-sm"
             >
               Close
             </button>

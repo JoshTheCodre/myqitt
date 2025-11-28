@@ -3,23 +3,23 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Headphones, BookIcon, Users, ArrowRight } from 'lucide-react'
+import { HeadsetIcon, BookIcon, Users, ArrowRight } from 'lucide-react'
 import { useAuthStore } from '@/lib/store/authStore'
 import { AppShell } from '@/components/layout/app-shell'
 import { CatchUpModal } from '@/components/catch-up-modal'
 
 export default function Page() {
-  const [mounted, setMounted] = useState(false)
+  const [isHydrated, setIsHydrated] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
   const [selectedItem, setSelectedItem] = useState<string | null>(null)
-  const { user, profile, initAuth } = useAuthStore()
+  const { user, profile } = useAuthStore()
 
   useEffect(() => {
-    initAuth()
-    setMounted(true)
-  }, [initAuth])
+    setIsHydrated(true)
+  }, [])
 
-  if (!mounted || !user) {
+  // AppShell handles auth checking, so if we're here, user exists
+  if (!isHydrated || !user) {
     return null
   }
 
@@ -37,16 +37,24 @@ export default function Page() {
     return (
       <div className="flex items-start justify-between ">
         <div>
-          <h1 className="text-2xl md:text-4xl font-extrabold tracking-tight">Hello, {profile?.fullName || 'Guest'}</h1>
-          <p className="bg-gray-200 py-1 px-2 rounded-xl w-fit text-gray-700 mt-1 md:mt-2 text-sm md:text-base">{(profile?.department || 'CSC').toUpperCase()} - {profile?.level || 'N/A'}lvl 🎖️</p>
+          <h1 className="text-2xl md:text-4xl font-extrabold tracking-tight">Hello, {profile?.name || 'Guest'}</h1>
+          <p className="bg-gray-200 py-1 px-2 rounded-xl w-fit text-gray-700 mt-1 md:mt-2 text-sm md:text-base">{(profile?.department || 'CSC').toUpperCase()} - Level {profile?.level || 'N/A'} 🎖️</p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center">
-            <Headphones className="w-6 h-6 text-blue-600" />
-          </div>
-          <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center">
-            <span className="text-white font-bold text-lg">{getInitials(profile?.fullName)}</span>
-          </div>
+          <button 
+            className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center hover:bg-blue-100 transition-colors cursor-pointer"
+            onClick={() => {
+              // Handle support click
+              window.open('mailto:support@qitt.com', '_blank')
+            }}
+          >
+            <HeadsetIcon className="w-6 h-6 text-blue-600" />
+          </button>
+          <Link href="/profile">
+            <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center hover:bg-blue-700 transition-colors cursor-pointer">
+              <span className="text-white font-bold text-lg">{getInitials(profile?.name)}</span>
+            </div>
+          </Link>
         </div>
       </div>
     )
