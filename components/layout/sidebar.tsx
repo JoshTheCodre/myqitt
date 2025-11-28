@@ -12,8 +12,12 @@ export function Sidebar() {
   const pathname = usePathname()
 
   const handleLogout = async () => {
-    await logout()
-    router.push('/')
+    try {
+      await logout()
+      router.push('/')
+    } catch (error) {
+      console.error('Logout error:', error)
+    }
   }
 
   const isActive = (href: string) => pathname === href

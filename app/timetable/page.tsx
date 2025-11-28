@@ -31,20 +31,22 @@ interface ClassScheduleProps {
 }
 
 // ============ HEADER COMPONENT ============
-const Header = () => (
-  <div>
-    <div className="flex items-center gap-3">
-      <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-gray-900">Timetable</h1>
+function Header() {
+  return (
+    <div>
+      <div className="flex items-center gap-3">
+        <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-gray-900">Timetable</h1>
+      </div>
+      <div className="flex items-center gap-2 text-gray-500 mt-2 text-sm">
+        <Clock className="w-4 h-4" />
+        <p>View your class schedule and timings</p>
+      </div>
     </div>
-    <div className="flex items-center gap-2 text-gray-500 mt-2 text-sm">
-      <Clock className="w-4 h-4" />
-      <p>View your class schedule and timings</p>
-    </div>
-  </div>
-)
+  )
+}
 
 // ============ DAY SELECTOR COMPONENT ============
-const DaySelector = ({ days, selectedDay, setSelectedDay }: DaySelectorProps) => {
+function DaySelector({ days, selectedDay, setSelectedDay }: DaySelectorProps) {
   const dayAbbreviations: Record<string, string> = {
     'Monday': 'MON',
     'Tuesday': 'TUES',
@@ -77,45 +79,49 @@ const DaySelector = ({ days, selectedDay, setSelectedDay }: DaySelectorProps) =>
 }
 
 // ============ CLASS CARD COMPONENT ============
-const ClassCard = ({ time, title, location, lecturer }: ClassCardProps) => (
-  <div className="bg-white rounded-lg p-5 border-r border-t border-b border-gray-200 hover:shadow-md transition-all" style={{ borderLeft: '2px solid #0A32F8' }}>
-    <div className="flex items-start justify-between gap-4">
-      <div className="flex-1 min-w-0">
-        <h3 className="text-lg font-bold text-gray-900">{title}</h3>
-        <p className="text-sm text-gray-600 mt-1">{lecturer}</p>
-      </div>
-      <div className="text-right flex-shrink-0">
-        <p className="font-semibold text-sm mb-2">{time}</p>
-        <div className="rounded-full px-3 py-1 text-xs font-medium inline-flex items-center gap-1" style={{ backgroundColor: '#E8ECFF', color: '#0A32F8' }}>
-          <MapPin className="w-3 h-3" />
-          <span>{location}</span>
+function ClassCard({ time, title, location, lecturer }: ClassCardProps) {
+  return (
+    <div className="bg-white rounded-lg p-5 border-r border-t border-b border-gray-200 hover:shadow-md transition-all" style={{ borderLeft: '2px solid #0A32F8' }}>
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          <h3 className="text-lg font-bold text-gray-900">{title}</h3>
+          <p className="text-sm text-gray-600 mt-1">{lecturer}</p>
+        </div>
+        <div className="text-right flex-shrink-0">
+          <p className="font-semibold text-sm mb-2">{time}</p>
+          <div className="rounded-full px-3 py-1 text-xs font-medium inline-flex items-center gap-1" style={{ backgroundColor: '#E8ECFF', color: '#0A32F8' }}>
+            <MapPin className="w-3 h-3" />
+            <span>{location}</span>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-)
+  )
+}
 
 // ============ CLASS SCHEDULE COMPONENT ============
-const ClassSchedule = ({ classesForDay, selectedDay }: ClassScheduleProps) => (
-  <div className="mt-8">
-    <div className="space-y-4">
-      {classesForDay.map((cls, index) => (
-        <ClassCard
-          key={index}
-          time={cls.time}
-          title={cls.title}
-          location={cls.location}
-          lecturer={cls.lecturer}
-        />
-      ))}
-      {classesForDay.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-gray-500">No classes scheduled for {selectedDay}</p>
-        </div>
-      )}
+function ClassSchedule({ classesForDay, selectedDay }: ClassScheduleProps) {
+  return (
+    <div className="mt-8">
+      <div className="space-y-4">
+        {classesForDay.map((cls, index) => (
+          <ClassCard
+            key={index}
+            time={cls.time}
+            title={cls.title}
+            location={cls.location}
+            lecturer={cls.lecturer}
+          />
+        ))}
+        {classesForDay.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-gray-500">No classes scheduled for {selectedDay}</p>
+          </div>
+        )}
+      </div>
     </div>
-  </div>
-)
+  )
+}
 
 // ============ TIMETABLE DATA ============
 const timetableData: Record<string, ClassInfo[]> = {

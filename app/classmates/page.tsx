@@ -34,18 +34,20 @@ interface ClassmatesListProps {
 }
 
 // ============ HEADER COMPONENT ============
-const Header = ({ classmateCount }: HeaderProps) => (
-  <div>
-    <div className="flex items-center gap-3">
-      <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-gray-900">Classmates</h1>
-      <div className="bg-emerald-100 text-emerald-600 px-3 py-1 rounded-full text-sm font-semibold">{classmateCount}</div>
+function Header({ classmateCount }: HeaderProps) {
+  return (
+    <div>
+      <div className="flex items-center gap-3">
+        <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-gray-900">Classmates</h1>
+        <div className="bg-emerald-100 text-emerald-600 px-3 py-1 rounded-full text-sm font-semibold">{classmateCount}</div>
+      </div>
+      <p className="text-gray-500 mt-2 text-sm">Connect with peers in your class</p>
     </div>
-    <p className="text-gray-500 mt-2 text-sm">Connect with peers in your class</p>
-  </div>
-)
+  )
+}
 
 // ============ CLASSMATE CARD COMPONENT ============
-const ClassmateCard = ({ 
+function ClassmateCard({ 
   name, 
   followers,
   hasAssignments,
@@ -53,7 +55,8 @@ const ClassmateCard = ({
   connected,
   connectedTo,
   onConnect 
-}: ClassmateCardProps) => (
+}: ClassmateCardProps) {
+  return (
   <div className="bg-white rounded-xl border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all duration-300 overflow-hidden group relative">
     <div className="p-5 flex flex-col gap-4">
       {/* Connect button - top right rectangular */}
@@ -128,10 +131,11 @@ const ClassmateCard = ({
       )}
     </div>
   </div>
-)
+  )
+}
 
 // ============ CLASSMATES LIST COMPONENT ============
-const ClassmatesList = ({ connectedClassmates, setConnectedClassmates }: ClassmatesListProps) => {
+function ClassmatesList({ connectedClassmates, setConnectedClassmates }: ClassmatesListProps) {
   const classmates: Classmate[] = [
     { 
       id: 1, 

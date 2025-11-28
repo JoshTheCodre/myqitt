@@ -7,7 +7,6 @@ import { EditProfileModal } from '@/components/edit-profile-modal'
 import { useAuthStore } from '@/lib/store/authStore'
 import { Mail, Phone, GraduationCap, Building2, BookOpen, Calendar, LogOut, Edit } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import toast from 'react-hot-toast'
 import type { LucideIcon } from 'lucide-react'
 
 // ============ PROFILE CARD COMPONENT ============
@@ -43,10 +42,9 @@ export default function ProfilePage() {
     const handleLogout = async () => {
         try {
             await logout()
-            toast.success('Logged out successfully')
             router.push('/')
-        } catch {
-            toast.error('Failed to logout')
+        } catch (error) {
+            console.error('Logout error:', error)
         }
     }
 

@@ -34,68 +34,72 @@ interface AssignmentsListProps {
 }
 
 // ============ HEADER COMPONENT ============
-const Header = () => (
-  <div>
-    <div className="flex items-center gap-3">
-      <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-gray-900">Assignments</h1>
-      <div className="px-3 py-1 rounded-full text-sm font-semibold" style={{ backgroundColor: '#E8ECFF', color: '#0A32F8' }}>5</div>
+function Header() {
+  return (
+    <div>
+      <div className="flex items-center gap-3">
+        <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-gray-900">Assignments</h1>
+        <div className="px-3 py-1 rounded-full text-sm font-semibold" style={{ backgroundColor: '#E8ECFF', color: '#0A32F8' }}>5</div>
+      </div>
+      <div className="flex items-center gap-2 text-gray-500 mt-2 text-sm">
+        <FileText className="w-4 h-4" />
+        <p>Track your academic assignments and deadlines</p>
+      </div>
     </div>
-    <div className="flex items-center gap-2 text-gray-500 mt-2 text-sm">
-      <FileText className="w-4 h-4" />
-      <p>Track your academic assignments and deadlines</p>
-    </div>
-  </div>
-)
+  )
+}
 
 // ============ ASSIGNMENT CARD COMPONENT ============
-const AssignmentCard = ({ 
+function AssignmentCard({ 
   courseCode, 
   assignmentCount, 
   dates,
   onDateClick 
-}: AssignmentCardProps) => (
-  <div className="bg-white rounded-xl border border-gray-200 hover:shadow-md transition-all p-6">
-    <div className="rounded-full mb-4 h-2" style={{ background: 'linear-gradient(to right, #E8ECFF, #C8DBFF)' }} />
-    
-    <div className="flex items-start justify-between mb-4">
-      <div>
-        <h3 className="text-lg font-bold text-gray-900">{courseCode}</h3>
-        <p className="text-sm text-gray-600 mt-1">{assignmentCount} assignment{assignmentCount > 1 ? 's' : ''}</p>
+}: AssignmentCardProps) {
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 hover:shadow-md transition-all p-6">
+      <div className="rounded-full mb-4 h-2" style={{ background: 'linear-gradient(to right, #E8ECFF, #C8DBFF)' }} />
+      
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <h3 className="text-lg font-bold text-gray-900">{courseCode}</h3>
+          <p className="text-sm text-gray-600 mt-1">{assignmentCount} assignment{assignmentCount > 1 ? 's' : ''}</p>
+        </div>
       </div>
-    </div>
 
-    <div className="space-y-3">
-      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Due Dates</p>
-      <div className="flex flex-wrap gap-2">
-        {dates.map((item, idx) => (
-          <button
-            key={idx}
-            onClick={() => onDateClick(item.label)}
-            className="px-3 py-1.5 rounded-full text-xs font-medium inline-flex items-center gap-1 transition-colors"
-            style={{ 
-              backgroundColor: '#E8ECFF',
-              color: '#0A32F8',
-              border: '1px solid #C8DBFF'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#C8DBFF'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = '#E8ECFF'
-            }}
-          >
-            <Calendar className="w-3 h-3" />
-            <span>{item.label}</span>
-            <ChevronRight className="w-3 h-3" />
-          </button>
-        ))}
+      <div className="space-y-3">
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Due Dates</p>
+        <div className="flex flex-wrap gap-2">
+          {dates.map((item, idx) => (
+            <button
+              key={idx}
+              onClick={() => onDateClick(item.label)}
+              className="px-3 py-1.5 rounded-full text-xs font-medium inline-flex items-center gap-1 transition-colors"
+              style={{ 
+                backgroundColor: '#E8ECFF',
+                color: '#0A32F8',
+                border: '1px solid #C8DBFF'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#C8DBFF'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#E8ECFF'
+              }}
+            >
+              <Calendar className="w-3 h-3" />
+              <span>{item.label}</span>
+              <ChevronRight className="w-3 h-3" />
+            </button>
+          ))}
+        </div>
       </div>
     </div>
-  </div>
-)
+  )
+}
 
 // ============ ASSIGNMENTS LIST COMPONENT ============
-const AssignmentsList = ({ router }: AssignmentsListProps) => {
+function AssignmentsList({ router }: AssignmentsListProps) {
   const assignments: Assignment[] = [
     {
       id: 1,
