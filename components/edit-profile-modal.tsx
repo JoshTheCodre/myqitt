@@ -116,7 +116,15 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
       if (semester === '2') semester = 'second'
 
       // Prepare update data
-      const updateData: any = {
+      const updateData: {
+        name: string
+        phone_number: string | null
+        department: string | null
+        level: number
+        semester: string
+        bio: string | null
+        school?: string
+      } = {
         name: formData.name,
         phone_number: formData.phone_number || null,
         department: formData.department || null,
@@ -154,10 +162,11 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
       toast.success('Profile updated successfully!')
       setLoading(false)
       onClose()
-    } catch (error: any) {
+    } catch (error) {
       console.error('Submit error:', error)
       setLoading(false)
-      const msg = error?.message || 'Failed to update profile'
+      const err = error as Error
+      const msg = err?.message || 'Failed to update profile'
       toast.error(msg)
     }
   }

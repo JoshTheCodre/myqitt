@@ -1,12 +1,39 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { AppShell } from '@/components/layout/app-shell'
 import { EditProfileModal } from '@/components/edit-profile-modal'
 import { useAuthStore } from '@/lib/store/authStore'
-import { User, Mail, Phone, GraduationCap, Building2, BookOpen, Calendar, LogOut, Edit } from 'lucide-react'
+import { Mail, Phone, GraduationCap, Building2, BookOpen, Calendar, LogOut, Edit } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
+import type { LucideIcon } from 'lucide-react'
+
+// ============ PROFILE CARD COMPONENT ============
+function ProfileCard({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string | number | null | undefined }) {
+    return (
+        <div className="flex items-center gap-3 p-4 bg-white rounded-xl border border-gray-200">
+            <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Icon className="w-5 h-5 text-blue-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+                <p className="text-xs text-gray-500">{label}</p>
+                <p className="text-sm font-semibold text-gray-900 truncate">{value || 'Not set'}</p>
+            </div>
+        </div>
+    )
+}
+
+// Map school IDs to names
+function getSchoolName(schoolId: string | undefined) {
+    if (!schoolId) return 'Not set'
+    const schoolMap: Record<string, string> = {
+        '6c59c8d9-b5d3-4525-b5bd-4ad38ef65e57': 'University of Port Harcourt',
+        '426a9fce-3d64-4679-8178-5d0776990d4a': 'Rivers State University'
+    }
+    return schoolMap[schoolId] || schoolId
+}
 
 export default function ProfilePage() {
     const { user, profile, logout } = useAuthStore()
@@ -18,7 +45,7 @@ export default function ProfilePage() {
             await logout()
             toast.success('Logged out successfully')
             router.push('/')
-        } catch (error) {
+        } catch {
             toast.error('Failed to logout')
         }
     }
@@ -31,28 +58,6 @@ export default function ProfilePage() {
                 </div>
             </AppShell>
         )
-    }
-
-    const ProfileCard = ({ icon: Icon, label, value }: { icon: any; label: string; value: string | number | null | undefined }) => (
-        <div className="flex items-center gap-3 p-4 bg-white rounded-xl border border-gray-200">
-            <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                <Icon className="w-5 h-5 text-blue-600" />
-            </div>
-            <div className="flex-1 min-w-0">
-                <p className="text-xs text-gray-500">{label}</p>
-                <p className="text-sm font-semibold text-gray-900 truncate">{value || 'Not set'}</p>
-            </div>
-        </div>
-    )
-
-    // Map school IDs to names
-    const getSchoolName = (schoolId: string | undefined) => {
-        if (!schoolId) return 'Not set'
-        const schoolMap: Record<string, string> = {
-            '6c59c8d9-b5d3-4525-b5bd-4ad38ef65e57': 'University of Port Harcourt',
-            '426a9fce-3d64-4679-8178-5d0776990d4a': 'Rivers State University'
-        }
-        return schoolMap[schoolId] || schoolId
     }
 
     // Get initials for avatar
@@ -72,9 +77,11 @@ export default function ProfilePage() {
                         <div className="flex flex-col items-center text-center">
                             <div className="w-24 h-24 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-3xl font-bold mb-4">
                                 {profile?.avatar_url ? (
-                                    <img 
+                                    <Image 
                                         src={profile.avatar_url} 
                                         alt={profile.name || 'User'} 
+                                        width={96}
+                                        height={96}
                                         className="w-full h-full rounded-full object-cover"
                                     />
                                 ) : (

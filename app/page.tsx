@@ -11,8 +11,10 @@ export default function HomePage() {
   const router = useRouter()
 
   useEffect(() => {
-    setMounted(true)
     initAuth()
+    // Set mounted after a tick to avoid sync setState
+    const timer = setTimeout(() => setMounted(true), 0)
+    return () => clearTimeout(timer)
   }, [initAuth])
 
   useEffect(() => {

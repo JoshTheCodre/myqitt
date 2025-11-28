@@ -24,7 +24,7 @@ export function LoginForm() {
       await login(data.email, data.password)
       setData({ email: '', password: '' })
       if (rememberMe) localStorage.setItem('rememberMe', 'true')
-    } catch (err) {
+    } catch {
       // Error already handled by store
     }
   }

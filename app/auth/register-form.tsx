@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { ChevronDown, Check } from 'lucide-react'
-import Image from 'next/image'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '@/lib/store/authStore'
 import { supabase } from '@/lib/supabase/client'
@@ -39,7 +38,7 @@ export function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => v
                 
                 if (error) throw error
                 
-                const formattedSchools: SchoolOption[] = schoolsData.map((school: any) => ({
+                const formattedSchools: SchoolOption[] = schoolsData.map((school: { id: string; name: string }) => ({
                     id: school.id,
                     name: school.name,
                     logo: `/schools/${school.name.toLowerCase()}.png`,
@@ -101,7 +100,7 @@ export function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => v
             setSelectedSchool(null)
             setAgreedToTerms(false)
             onRegisterSuccess()
-        } catch (err) {
+        } catch {
             // Error already handled by store
         }
     }

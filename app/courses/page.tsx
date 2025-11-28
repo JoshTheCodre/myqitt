@@ -4,23 +4,12 @@ import { useEffect } from 'react'
 import { AppShell } from '@/components/layout/app-shell'
 import { GroupedCourseList } from '@/components/courses/course-list'
 import { useCourseStore, useCourseSelectors } from '@/lib/store/courseStore'
-import { useAuthStore } from '@/lib/store/authStore'
+import { useAuthStore, UserProfile } from '@/lib/store/authStore'
 import { BookOpen, Loader2 } from 'lucide-react'
 
-export default function CoursesPage() {
-    const { user, profile } = useAuthStore()
-    const { userCourses, loading, error, fetchUserCourses } = useCourseStore()
-    const { userTotalCount, hasUserCourses } = useCourseSelectors()
-
-    // Fetch user courses on mount or when user changes
-    useEffect(() => {
-        if (user?.id) {
-            fetchUserCourses(user.id)
-        }
-    }, [user?.id, fetchUserCourses])
-
-    // ============ HEADER COMPONENT ============
-    const Header = () => (
+// ============ HEADER COMPONENT ============
+function Header({ profile }: { profile: UserProfile | null }) {
+    return (
         <div>
             <h1 className="text-3xl lg:text-4xl font-bold tracking-tight text-gray-900">My Courses</h1>
             <p className="text-sm text-gray-500 mt-2">
@@ -30,13 +19,26 @@ export default function CoursesPage() {
             </p>
         </div>
     )
+}
+
+export default function CoursesPage() {
+    const { user, profile } = useAuthStore()
+    const { userCourses, loading, error, fetchUserCourses } = useCourseStore()
+    const { hasUserCourses } = useCourseSelectors()
+
+    // Fetch user courses on mount or when user changes
+    useEffect(() => {
+        if (user?.id) {
+            fetchUserCourses(user.id)
+        }
+    }, [user?.id, fetchUserCourses])
 
     // ============ MAIN RENDER ============
     return (
         <AppShell>
             <div className="h-full flex items-start justify-center">
                 <div className="w-full max-w-6xl px-4 py-8 pb-24 lg:pb-8">
-                    <Header />
+                    <Header profile={profile} />
                     
                     <div className="mt-8">
                         {loading && (

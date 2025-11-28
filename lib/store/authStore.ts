@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { supabase } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
+import type { User } from '@supabase/supabase-js'
 
 export interface UserProfile {
   id: string
@@ -18,7 +19,7 @@ export interface UserProfile {
 }
 
 interface AuthStore {
-  user: any
+  user: User | null
   profile: UserProfile | null
   loading: boolean
   register: (email: string, password: string, userData: Partial<UserProfile>) => Promise<void>
@@ -79,9 +80,10 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
       set({ user: authData.user, profile, loading: false })
       toast.success('Account created successfully!')
-    } catch (error: any) {
+    } catch (error) {
       set({ loading: false })
-      const msg = error?.message || 'Registration failed'
+      const err = error as Error
+      const msg = err?.message || 'Registration failed'
       toast.error(msg)
       throw error
     }
@@ -121,9 +123,10 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
       set({ user: authData.user, profile: profile || null, loading: false })
       toast.success('Logged in successfully!')
-    } catch (error: any) {
+    } catch (error) {
       set({ loading: false })
-      const msg = error?.message || 'Login failed'
+      const err = error as Error
+      const msg = err?.message || 'Login failed'
       if (!msg.includes('Email not confirmed')) {
         toast.error(msg)
       }
@@ -139,9 +142,10 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
       set({ user: null, profile: null, loading: false })
       toast.success('Logged out successfully!')
-    } catch (error: any) {
+    } catch (error) {
       set({ loading: false })
-      const msg = error?.message || 'Logout failed'
+      const err = error as Error
+      const msg = err?.message || 'Logout failed'
       toast.error(msg)
     }
   },
