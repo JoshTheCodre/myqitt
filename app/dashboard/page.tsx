@@ -182,8 +182,6 @@ export default function Page() {
   const [selectedItem, setSelectedItem] = useState<string | null>(null)
   const { profile } = useAuthStore()
 
-  const { profile } = useAuthStore()
-
   const handleItemClick = (item: string) => {
     setSelectedItem(item)
     setModalOpen(true)
