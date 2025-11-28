@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime'
 import { AppShell } from '@/components/layout/app-shell'
 import { FileText, Calendar, ChevronRight } from 'lucide-react'
 
@@ -29,7 +30,7 @@ interface AssignmentCardProps {
 }
 
 interface AssignmentsListProps {
-  router: ReturnType<typeof useRouter>
+  router: AppRouterInstance
 }
 
 // ============ HEADER COMPONENT ============
