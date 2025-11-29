@@ -169,7 +169,7 @@ export default function AddTimetablePage() {
               className="flex items-center gap-1 px-2 py-1 bg-green-50 text-green-600 rounded-md text-[11px] font-bold hover:bg-green-100 transition-colors border border-green-200 flex-shrink-0 whitespace-nowrap"
             >
               <MapPin className="w-3 h-3" />
-              <span className="hidden sm:inline">Venues</span>
+              <span>Venues</span>
             </button>
           </div>
 
