@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation'
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime'
 import { AppShell } from '@/components/layout/app-shell'
-import { FileText, Calendar, ChevronRight, Plus } from 'lucide-react'
+import { Calendar, ChevronRight, Plus } from 'lucide-react'
 
 // ============ TYPES ============
 interface AssignmentDate {
@@ -33,26 +33,36 @@ interface AssignmentsListProps {
   router: AppRouterInstance
 }
 
+// ============ STATS CARD COMPONENT ============
+function StatsCard() {
+  return (
+    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-3 shadow-sm hover:shadow-md transition-all">
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-blue-500 flex items-center justify-center flex-shrink-0">
+          <Calendar className="w-4 h-4 text-white" />
+        </div>
+        <div className="flex-1">
+          <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide">Total</p>
+          <p className="text-2xl font-bold text-blue-900">5 </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ============ HEADER COMPONENT ============
 function Header({ onAddClick }: { onAddClick: () => void }) {
   return (
     <div className="flex items-start justify-between gap-4">
       <div>
-        <div className="flex items-center gap-3">
-          <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-gray-900">Assignments</h1>
-          <div className="px-3 py-1 rounded-full text-sm font-semibold" style={{ backgroundColor: '#E8ECFF', color: '#0A32F8' }}>5</div>
-        </div>
-        <div className="flex items-center gap-2 text-gray-500 mt-2 text-sm">
-          <FileText className="w-4 h-4" />
-          <p>Track your academic assignments and deadlines</p>
-        </div>
+        <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-gray-900">Assignments</h1>
       </div>
       <button
         onClick={onAddClick}
-        className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-sm flex-shrink-0"
+        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl font-bold text-sm hover:from-blue-700 hover:to-blue-600 transition-all shadow-md hover:shadow-lg flex-shrink-0"
       >
-        <Plus className="w-5 h-5" />
-        <span className="hidden sm:inline">Add Assignment</span>
+        <Plus className="w-4 h-4" />
+        <span>Add</span>
       </button>
     </div>
   )
@@ -261,8 +271,12 @@ export default function AssignmentPage() {
       <div className="h-full flex items-start justify-center overflow-hidden">
         <div className="w-full px-4 py-8 pb-24 lg:pb-8 overflow-x-hidden">
           <Header onAddClick={() => router.push('/assignment/add')} />
+{/*           
+          <div className="mt-6">
+            <StatsCard />
+          </div> */}
           
-          <div className="mt-12">
+          <div className="mt-4">
             <AssignmentsList router={router} />
           </div>
         </div>

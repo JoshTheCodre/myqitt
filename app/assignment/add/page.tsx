@@ -3,19 +3,21 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { AppShell } from '@/components/layout/app-shell'
-import { ArrowLeft, Calendar, FileText, Save, BookOpen } from 'lucide-react'
+import { ArrowLeft, Calendar, FileText, Save, BookOpen, Upload, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useCourseStore } from '@/lib/store/courseStore'
+import { useAuthStore } from '@/lib/store/authStore'
 
 export default function AddAssignmentPage() {
   const router = useRouter()
+  const { user } = useAuthStore()
   const { userCourses, fetchUserCourses } = useCourseStore()
   const [formData, setFormData] = useState({
     courseCode: '',
-    title: '',
     description: '',
     dueDate: '',
   })
+  const [attachments, setAttachments] = useState<File[]>([])
   
   // Get all courses for dropdown
   const allCourses = userCourses 
@@ -23,13 +25,14 @@ export default function AddAssignmentPage() {
     : []
   
   // Check if there are any changes
-  const hasChanges = formData.courseCode || formData.title || formData.description || formData.dueDate
+  const hasChanges = formData.courseCode || formData.description || formData.dueDate || attachments.length > 0
   
   // Fetch user courses
   useEffect(() => {
-    // TODO: Get actual user ID from auth
-    fetchUserCourses('user-id')
-  }, [fetchUserCourses])
+    if (user?.id) {
+      fetchUserCourses(user.id)
+    }
+  }, [user?.id, fetchUserCourses])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -37,7 +40,7 @@ export default function AddAssignmentPage() {
     if (!hasChanges) return
     
     // Validation
-    if (!formData.courseCode || !formData.title || !formData.description || !formData.dueDate) {
+    if (!formData.courseCode || !formData.description || !formData.dueDate) {
       toast.error('Please fill in all fields')
       return
     }
@@ -51,23 +54,38 @@ export default function AddAssignmentPage() {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    const validFiles = files.filter(file => {
+      const isImage = file.type.startsWith('image/')
+      const isPDF = file.type === 'application/pdf'
+      return isImage || isPDF
+    })
+    
+    if (validFiles.length !== files.length) {
+      toast.error('Only images and PDF files are allowed')
+    }
+    
+    setAttachments(prev => [...prev, ...validFiles])
+  }
+
+  const removeAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index))
+  }
+
   return (
     <AppShell>
       <div className="h-full flex items-start justify-center overflow-hidden">
         <div className="w-full max-w-3xl px-4 py-6 pb-24 lg:pb-8 overflow-y-auto">
-          {/* Back Button */}
-          <button
-            onClick={() => router.back()}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span className="font-medium">Back</span>
-          </button>
-
           {/* Header */}
-          <div className="mb-4">
-            <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-0.5">Add Assignment</h1>
-            <p className="text-gray-600 text-xs">Create a new assignment with details and deadline</p>
+          <div className="mb-4 flex items-center gap-3">
+            <button
+              onClick={() => router.back()}
+              className="text-gray-600 hover:text-gray-900 transition-colors flex-shrink-0"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Add Assignment</h1>
           </div>
 
           {/* Form */}
@@ -75,77 +93,44 @@ export default function AddAssignmentPage() {
             {/* Course Code and Due Date Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="bg-white rounded-lg p-3 border border-gray-200">
-                <label className="block text-[10px] font-bold text-gray-600 mb-2">
-                  <BookOpen className="w-2.5 h-2.5 inline mr-0.5" />
+                <label className="block text-xs font-bold text-gray-700 mb-2">
+                  <BookOpen className="w-3 h-3 inline mr-0.5" />
                   Course
                 </label>
-                {allCourses.length > 0 ? (
-                  <select
-                    value={formData.courseCode}
-                    onChange={(e) => {
-                      const selectedCourse = allCourses.find(c => c.code === e.target.value)
-                      if (selectedCourse) {
-                        handleChange('courseCode', selectedCourse.code)
-                        handleChange('title', selectedCourse.title)
-                      }
-                    }}
-                    className="w-full px-2 py-1.5 text-xs font-semibold border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
-                    required
-                  >
-                    <option value="">Select course</option>
-                    {allCourses.map((course) => (
-                      <option key={course.id} value={course.code}>
-                        {course.code} - {course.title}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <input
-                    type="text"
-                    value={formData.courseCode}
-                    onChange={(e) => handleChange('courseCode', e.target.value.toUpperCase())}
-                    placeholder="CSC 301"
-                    className="w-full px-2 py-1.5 text-xs font-semibold border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                    required
-                  />
-                )}
+                <select
+                  value={formData.courseCode}
+                  onChange={(e) => handleChange('courseCode', e.target.value)}
+                  className="w-full px-3 py-2 text-sm font-semibold border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+                  required
+                >
+                  <option value="">Select course</option>
+                  {allCourses.map((course) => (
+                    <option key={course.id} value={course.code}>
+                      {course.code} - {course.title}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="bg-white rounded-lg p-3 border border-gray-200">
-                <label className="block text-[10px] font-bold text-gray-600 mb-2">
-                  <Calendar className="w-2.5 h-2.5 inline mr-0.5" />
+                <label className="block text-xs font-bold text-gray-700 mb-2">
+                  <Calendar className="w-3 h-3 inline mr-0.5" />
                   Due Date
                 </label>
                 <input
                   type="date"
                   value={formData.dueDate}
                   onChange={(e) => handleChange('dueDate', e.target.value)}
-                  className="w-full px-2 py-1.5 text-xs font-semibold border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  className="w-full px-3 py-2 text-sm font-semibold border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                   required
                 />
               </div>
             </div>
 
-            {/* Assignment Title */}
-            <div className="bg-white rounded-lg p-3 border border-gray-200">
-              <label className="block text-[10px] font-bold text-gray-600 mb-2">
-                <FileText className="w-2.5 h-2.5 inline mr-0.5" />
-                Assignment Title
-              </label>
-              <input
-                type="text"
-                value={formData.title}
-                onChange={(e) => handleChange('title', e.target.value)}
-                placeholder="Data Structures Project"
-                className="w-full px-2 py-1.5 text-xs font-semibold border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                required
-              />
-            </div>
-
             {/* Description */}
             <div className="bg-white rounded-lg p-3 border border-gray-200">
-              <label className="block text-[10px] font-bold text-gray-600 mb-2">
-                <FileText className="w-2.5 h-2.5 inline mr-0.5" />
+              <label className="block text-xs font-bold text-gray-700 mb-2">
+                <FileText className="w-3 h-3 inline mr-0.5" />
                 Description
               </label>
               <textarea
@@ -153,9 +138,53 @@ export default function AddAssignmentPage() {
                 onChange={(e) => handleChange('description', e.target.value)}
                 placeholder="Enter assignment details and requirements..."
                 rows={8}
-                className="w-full px-2 py-1.5 text-xs font-semibold border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
+                className="w-full px-3 py-2 text-sm font-semibold border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
                 required
               />
+            </div>
+
+            {/* File Attachments */}
+            <div className="bg-white rounded-lg p-3 border border-gray-200">
+              <label className="block text-xs font-bold text-gray-700 mb-2">
+                <Upload className="w-3 h-3 inline mr-0.5" />
+                Attachments (Images & PDFs)
+              </label>
+              <input
+                type="file"
+                multiple
+                accept="image/*,.pdf"
+                onChange={handleFileChange}
+                className="hidden"
+                id="file-upload"
+              />
+              <label
+                htmlFor="file-upload"
+                className="flex items-center justify-center gap-2 w-full px-3 py-2 text-sm font-semibold border-2 border-dashed border-gray-300 rounded-md hover:border-blue-500 hover:bg-blue-50 transition-colors cursor-pointer"
+              >
+                <Upload className="w-4 h-4 text-gray-500" />
+                <span className="text-gray-600">Click to upload files</span>
+              </label>
+              
+              {attachments.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {attachments.map((file, index) => (
+                    <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-md border border-gray-200">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <FileText className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                        <span className="text-xs font-medium text-gray-700 truncate">{file.name}</span>
+                        <span className="text-xs text-gray-500 flex-shrink-0">({(file.size / 1024).toFixed(1)} KB)</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeAttachment(index)}
+                        className="text-gray-400 hover:text-red-500 transition-colors p-1 hover:bg-red-50 rounded flex-shrink-0"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Submit Buttons */}
@@ -163,20 +192,20 @@ export default function AddAssignmentPage() {
               <button
                 type="button"
                 onClick={() => router.back()}
-                className="flex-1 py-2 px-3 bg-white text-gray-700 rounded-lg font-bold text-xs hover:bg-gray-50 transition-colors border border-gray-300"
+                className="flex-1 py-1.5 px-2 bg-white text-gray-700 rounded-lg font-bold text-xs hover:bg-gray-50 transition-colors border border-gray-300"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={!hasChanges}
-                className={`flex-1 py-2 px-3 rounded-lg font-bold text-xs transition-colors shadow-sm flex items-center justify-center gap-1.5 ${
+                className={`flex-1 py-1.5 px-2 rounded-lg font-bold text-xs transition-colors shadow-sm flex items-center justify-center gap-1 ${
                   hasChanges
                     ? 'bg-red-600 text-white hover:bg-red-700'
                     : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 }`}
               >
-                <Save className="w-3.5 h-3.5" />
+                <Save className="w-3 h-3" />
                 Save
               </button>
             </div>
