@@ -11,7 +11,7 @@ import { useAuthStore } from '@/lib/store/authStore'
 export default function AddAssignmentPage() {
   const router = useRouter()
   const { user } = useAuthStore()
-  const { userCourses, fetchUserCourses } = useCourseStore()
+  const { userCourses, fetchUserCourses, loading } = useCourseStore()
   const [formData, setFormData] = useState({
     courseCode: '',
     description: '',
@@ -23,6 +23,21 @@ export default function AddAssignmentPage() {
   const allCourses = userCourses 
     ? [...(userCourses.compulsory || []), ...(userCourses.elective || [])]
     : []
+  
+  // Debug logging
+  useEffect(() => {
+    console.log('Assignment - User:', user)
+    console.log('Assignment - User Courses:', userCourses)
+    console.log('Assignment - All Courses:', allCourses)
+    console.log('Assignment - Loading:', loading)
+    
+    if (!loading && allCourses.length === 0 && user) {
+      toast('Complete your profile to see courses', {
+        icon: 'ℹ️',
+        duration: 4000
+      })
+    }
+  }, [user, userCourses, allCourses, loading])
   
   // Check if there are any changes
   const hasChanges = formData.courseCode || formData.description || formData.dueDate || attachments.length > 0
@@ -103,7 +118,7 @@ export default function AddAssignmentPage() {
                   className="w-full px-3 py-2 text-sm font-semibold border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
                   required
                 >
-                  <option value="">Select course</option>
+                  <option value="">{loading ? 'Loading courses...' : allCourses.length === 0 ? 'No courses found' : 'Select course'}</option>
                   {allCourses.map((course) => (
                     <option key={course.id} value={course.code}>
                       {course.code} - {course.title}

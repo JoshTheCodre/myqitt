@@ -148,6 +148,7 @@ export function GroupedCourseList({
   const totalCompulsoryCredits = compulsory.reduce((sum, c) => sum + c.credits, 0)
   const totalElectiveCredits = elective.reduce((sum, c) => sum + c.credits, 0)
   const totalCredits = totalCompulsoryCredits + totalElectiveCredits
+  const totalCourses = compulsory.length + elective.length
 
   return (
     <div className="space-y-6">
@@ -156,15 +157,19 @@ export function GroupedCourseList({
           <div className="flex items-center justify-between">
             <div className="flex-1">
               <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Total Credits</p>
-              <p className="text-xl font-bold text-gray-900">{totalCredits}</p>
+              <p className="text-xl font-bold text-gray-900">{totalCredits} units</p>
             </div>
-            <div className="flex gap-6 text-right">
+            <div className="flex gap-4 text-right">
               <div>
-                <p className="text-sm font-bold text-gray-900">{totalCompulsoryCredits}</p>
+                <p className="text-sm font-bold text-gray-900">{totalCourses}</p>
+                <p className="text-xs text-gray-500">Courses</p>
+              </div>
+              <div>
+                <p className="text-sm font-bold text-gray-900">{compulsory.length}</p>
                 <p className="text-xs text-gray-500">Compulsory</p>
               </div>
               <div>
-                <p className="text-sm font-bold text-gray-900">{totalElectiveCredits}</p>
+                <p className="text-sm font-bold text-gray-900">{elective.length}</p>
                 <p className="text-xs text-gray-500">Elective</p>
               </div>
             </div>

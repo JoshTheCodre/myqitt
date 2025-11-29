@@ -195,8 +195,16 @@ export class CourseService {
 
       // Check if profile has required fields
       if (!profile || !profile.level || !profile.semester) {
-        console.warn('User profile missing required fields (level, semester)', profile)
-        return { compulsory: [], elective: [] }
+        console.warn('User profile missing required fields (level, semester). Fetching all courses instead.', profile)
+        // Fetch all courses if profile is incomplete
+        const allCourses = await this.getCourses({
+          school: profile?.school,
+          department: profile?.department
+        })
+        return {
+          compulsory: allCourses.filter(course => course.tags?.includes('compulsory')),
+          elective: allCourses.filter(course => course.tags?.includes('elective'))
+        }
       }
 
       console.log('Fetching courses with filters:', {

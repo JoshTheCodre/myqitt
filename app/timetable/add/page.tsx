@@ -23,7 +23,7 @@ interface DayClasses {
 export default function AddTimetablePage() {
   const router = useRouter()
   const { user } = useAuthStore()
-  const { userCourses, fetchUserCourses } = useCourseStore()
+  const { userCourses, fetchUserCourses, loading } = useCourseStore()
   const [selectedDay, setSelectedDay] = useState('Monday')
   const [dayClasses, setDayClasses] = useState<DayClasses>({
     Monday: [{ id: '1', startTime: '', endTime: '', title: '', location: '' }],
@@ -48,6 +48,21 @@ export default function AddTimetablePage() {
   const allCourses = userCourses 
     ? [...(userCourses.compulsory || []), ...(userCourses.elective || [])]
     : []
+  
+  // Debug logging
+  useEffect(() => {
+    console.log('User:', user)
+    console.log('User Courses:', userCourses)
+    console.log('All Courses:', allCourses)
+    console.log('Loading:', loading)
+    
+    if (!loading && allCourses.length === 0 && user) {
+      toast('Complete your profile to see courses', {
+        icon: 'ℹ️',
+        duration: 4000
+      })
+    }
+  }, [user, userCourses, allCourses, loading])
   
   // Check if there are any changes
   const hasChanges = Object.values(dayClasses).some(classes => 
@@ -284,7 +299,7 @@ export default function AddTimetablePage() {
                           onChange={(e) => updateClassEntry(classEntry.id, 'title', e.target.value)}
                           className="w-full px-3 py-2 text-sm font-semibold border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
                         >
-                          <option value="">Select course</option>
+                          <option value="">{loading ? 'Loading courses...' : allCourses.length === 0 ? 'No courses found' : 'Select course'}</option>
                           {allCourses.map((course) => (
                             <option key={course.id} value={course.title}>
                               {course.code}

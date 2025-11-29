@@ -31,7 +31,8 @@ export default function CoursesPage() {
         if (user?.id) {
             fetchUserCourses(user.id)
         }
-    }, [user?.id, fetchUserCourses])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user?.id])
 
     // ============ MAIN RENDER ============
     return (
