@@ -145,31 +145,7 @@ function TodaysClasses({ userId }: { userId?: string }) {
       if (userId && mounted) {
         await fetchTodaysClasses()
       } else if (mounted) {
-        // Use dummy data if no user
-        setClasses([
-          {
-            id: '1',
-            code: 'CSC 215',
-            program: 'CS 2',
-            time: '9:00 AM - 12:00 PM',
-            status: 'Upcoming',
-            borderColor: 'border-l-blue-500',
-            badgeBg: 'bg-blue-50',
-            badgeText: 'text-blue-600',
-            dot: 'bg-blue-600',
-          },
-          {
-            id: '2',
-            code: 'CSC 345',
-            program: 'MBA 2',
-            time: '2:00 PM - 5:00 PM',
-            status: 'Ongoing',
-            borderColor: 'border-l-amber-400',
-            badgeBg: 'bg-amber-50',
-            badgeText: 'text-amber-400',
-            dot: 'bg-amber-400',
-          },
-        ])
+        setClasses([])
         setLoading(false)
       }
     }
