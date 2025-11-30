@@ -7,6 +7,7 @@ import { ArrowLeft, Calendar, FileText, Save, BookOpen, Upload, X } from 'lucide
 import toast from 'react-hot-toast'
 import { useCourseStore } from '@/lib/store/courseStore'
 import { useAuthStore } from '@/lib/store/authStore'
+import { supabase } from '@/lib/supabase/client'
 
 export default function AddAssignmentPage() {
   const router = useRouter()
@@ -60,9 +61,64 @@ export default function AddAssignmentPage() {
       return
     }
 
-    // TODO: Save to database
-    toast.success('Assignment added successfully!')
-    router.push('/assignment')
+    if (!user) {
+      toast.error('You must be logged in')
+      return
+    }
+
+    try {
+      // Create new assignment object
+      const newAssignment = {
+        id: crypto.randomUUID(),
+        course_code: formData.courseCode,
+        title: `${formData.courseCode} Assignment`,
+        description: formData.description,
+        due_date: formData.dueDate,
+        created_at: new Date().toISOString()
+      }
+
+      // Check if user already has assignments
+      const { data: existing } = await supabase
+        .from('assignments')
+        .select('assignments_data')
+        .eq('user_id', user.id)
+        .single()
+
+      let error
+
+      if (existing && existing.assignments_data) {
+        // Add to existing assignments array
+        const currentAssignments = existing.assignments_data as any[]
+        const updatedAssignments = [...currentAssignments, newAssignment]
+        
+        const result = await supabase
+          .from('assignments')
+          .update({ assignments_data: updatedAssignments })
+          .eq('user_id', user.id)
+        error = result.error
+      } else {
+        // Create new assignments array
+        const result = await supabase
+          .from('assignments')
+          .insert({
+            user_id: user.id,
+            assignments_data: [newAssignment]
+          })
+        error = result.error
+      }
+
+      if (error) {
+        console.error('Error creating assignment:', error)
+        toast.error('Failed to create assignment')
+        return
+      }
+
+      toast.success('Assignment added successfully!')
+      router.push('/assignment')
+    } catch (error) {
+      console.error('Failed to create assignment:', error)
+      toast.error('Failed to create assignment')
+    }
   }
 
   const handleChange = (field: string, value: string) => {

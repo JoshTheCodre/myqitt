@@ -1,17 +1,19 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { AppShell } from '@/components/layout/app-shell'
-import { Users, FileText, Clock } from 'lucide-react'
+import { Users, FileText, Clock, Loader2 } from 'lucide-react'
+import { useAuthStore } from '@/lib/store/authStore'
+import { supabase } from '@/lib/supabase/client'
 
 // ============ TYPES ============
 interface Classmate {
-  id: number
+  id: string
   name: string
   followers: number
   hasAssignments: boolean
   hasTimetable: boolean
-  connectedTo?: string
+  isConnected: boolean
 }
 
 interface HeaderProps {
@@ -23,14 +25,14 @@ interface ClassmateCardProps {
   followers: number
   hasAssignments: boolean
   hasTimetable: boolean
-  connected: boolean
-  connectedTo?: string
-  onConnect: (name: string) => void
+  isConnected: boolean
+  onConnect: (id: string) => void
+  classmateId: string
+  isLoading?: boolean
 }
 
 interface ClassmatesListProps {
-  connectedClassmates: Record<string, boolean>
-  setConnectedClassmates: React.Dispatch<React.SetStateAction<Record<string, boolean>>>
+  onConnectionChange: () => void
 }
 
 // ============ HEADER COMPONENT ============
@@ -52,23 +54,25 @@ function ClassmateCard({
   followers,
   hasAssignments,
   hasTimetable,
-  connected,
-  connectedTo,
-  onConnect 
+  isConnected,
+  onConnect,
+  classmateId,
+  isLoading = false
 }: ClassmateCardProps) {
   return (
   <div className="bg-white rounded-xl border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all duration-300 overflow-hidden group relative">
     <div className="p-5 flex flex-col gap-4">
       {/* Connect button - top right rectangular */}
       <button
-        onClick={() => onConnect(name)}
-        className={`absolute top-4 right-4 px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 border ${
-          connected
+        onClick={() => onConnect(classmateId)}
+        disabled={isLoading}
+        className={`absolute top-4 right-4 px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 border disabled:opacity-50 disabled:cursor-not-allowed ${
+          isConnected
             ? 'bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100'
             : 'bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100'
         }`}
       >
-        {connected ? '✓ Connected' : 'Connect'}
+        {isLoading ? '...' : isConnected ? '✓ Connected' : 'Connect'}
       </button>
 
       {/* Avatar and header */}
@@ -85,124 +89,225 @@ function ClassmateCard({
         </div>
       </div>
 
-      {/* Connection status badge - cute social style */}
-      {connected && connectedTo && (
-        <div className="bg-gradient-to-r from-emerald-50 to-cyan-50 border border-emerald-200 rounded-lg px-4 py-3">
-          <p className="text-xs font-medium text-emerald-700 mb-1">💚 Connected With</p>
-          <p className="text-sm font-bold text-emerald-900">{connectedTo}</p>
-        </div>
-      )}
-
-      {/* Status items - only show if not connected */}
-      {!connected && (
-        <div className="space-y-2">
-          {/* Assignments */}
-          <div className="flex items-center gap-2.5">
-            <FileText className={`w-4 h-4 flex-shrink-0 ${
-              hasAssignments ? 'text-blue-600' : 'text-gray-300'
-            }`} />
-            <div className="min-w-0 flex-1">
-              <p className="text-xs text-gray-600">
-                <span className="font-semibold text-gray-700">Assignments</span>
-                <span className="text-gray-500 mx-1.5">•</span>
-                <span className={hasAssignments ? 'font-medium text-gray-700' : 'text-gray-400'}>
-                  {hasAssignments ? 'Shared' : 'None'}
-                </span>
-              </p>
-            </div>
-          </div>
-
-          {/* Timetable */}
-          <div className="flex items-center gap-2.5">
-            <Clock className={`w-4 h-4 flex-shrink-0 ${
-              hasTimetable ? 'text-blue-600' : 'text-gray-300'
-            }`} />
-            <div className="min-w-0 flex-1">
-              <p className="text-xs text-gray-600">
-                <span className="font-semibold text-gray-700">Timetable</span>
-                <span className="text-gray-500 mx-1.5">•</span>
-                <span className={hasTimetable ? 'font-medium text-gray-700' : 'text-gray-400'}>
-                  {hasTimetable ? 'Shared' : 'None'}
-                </span>
-              </p>
-            </div>
+      {/* Status items */}
+      <div className="space-y-2">
+        {/* Assignments */}
+        <div className="flex items-center gap-2.5">
+          <FileText className={`w-4 h-4 flex-shrink-0 ${
+            hasAssignments ? 'text-blue-600' : 'text-gray-300'
+          }`} />
+          <div className="min-w-0 flex-1">
+            <p className="text-xs text-gray-600">
+              <span className="font-semibold text-gray-700">Assignments</span>
+              <span className="text-gray-500 mx-1.5">•</span>
+              <span className={hasAssignments ? 'font-medium text-gray-700' : 'text-gray-400'}>
+                {hasAssignments ? 'Shared' : 'None'}
+              </span>
+            </p>
           </div>
         </div>
-      )}
+
+        {/* Timetable */}
+        <div className="flex items-center gap-2.5">
+          <Clock className={`w-4 h-4 flex-shrink-0 ${
+            hasTimetable ? 'text-blue-600' : 'text-gray-300'
+          }`} />
+          <div className="min-w-0 flex-1">
+            <p className="text-xs text-gray-600">
+              <span className="font-semibold text-gray-700">Timetable</span>
+              <span className="text-gray-500 mx-1.5">•</span>
+              <span className={hasTimetable ? 'font-medium text-gray-700' : 'text-gray-400'}>
+                {hasTimetable ? 'Shared' : 'None'}
+              </span>
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
   )
 }
 
 // ============ CLASSMATES LIST COMPONENT ============
-function ClassmatesList({ connectedClassmates, setConnectedClassmates }: ClassmatesListProps) {
-  const classmates: Classmate[] = [
-    { 
-      id: 1, 
-      name: 'Adekunle Ade',
-      followers: 24,
-      hasAssignments: true,
-      hasTimetable: true,
-      connectedTo: 'Blessing Grace',
-    },
-    { 
-      id: 2, 
-      name: 'Chioma Uche',
-      followers: 18,
-      hasAssignments: true,
-      hasTimetable: false,
-    },
-    { 
-      id: 3, 
-      name: 'Tunde Adeyemi',
-      followers: 32,
-      hasAssignments: false,
-      hasTimetable: true,
-      connectedTo: 'Adekunle Ade',
-    },
-    { 
-      id: 4, 
-      name: 'Zainab Ahmed',
-      followers: 15,
-      hasAssignments: true,
-      hasTimetable: true,
-    },
-    { 
-      id: 5, 
-      name: 'Oluwaseun Bello',
-      followers: 27,
-      hasAssignments: false,
-      hasTimetable: false,
-    },
-    { 
-      id: 6, 
-      name: 'Blessing Okonkwo',
-      followers: 21,
-      hasAssignments: true,
-      hasTimetable: true,
-      connectedTo: 'Zainab Ahmed',
-    },
-    { 
-      id: 7, 
-      name: 'David Okafor',
-      followers: 14,
-      hasAssignments: true,
-      hasTimetable: false,
-    },
-    { 
-      id: 8, 
-      name: 'Gloria Nnamdi',
-      followers: 19,
-      hasAssignments: false,
-      hasTimetable: true,
-    },
-  ]
+function ClassmatesList({ onConnectionChange }: ClassmatesListProps) {
+  const { user } = useAuthStore()
+  const [classmates, setClassmates] = useState<Classmate[]>([])
+  const [loading, setLoading] = useState(true)
+  const [connectingId, setConnectingId] = useState<string | null>(null)
 
-  const toggleConnect = (name: string) => {
-    setConnectedClassmates((prev) => ({
-      ...prev,
-      [name]: !prev[name],
-    }))
+  useEffect(() => {
+    let mounted = true
+    
+    const loadClassmates = async () => {
+      if (user && mounted) {
+        await fetchClassmates()
+      } else if (mounted) {
+        setLoading(false)
+      }
+    }
+    
+    setLoading(true)
+    loadClassmates()
+    
+    return () => {
+      mounted = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id])
+
+  const fetchClassmates = async () => {
+    if (!user) return
+
+    try {
+      // Fetch current user's profile
+      const { data: profile } = await supabase
+        .from('users')
+        .select('school, department, level')
+        .eq('id', user.id)
+        .single()
+
+      if (!profile) {
+        setLoading(false)
+        return
+      }
+
+      // Fetch all users in the same school, department, and level (excluding current user)
+      const { data: users, error: usersError } = await supabase
+        .from('users')
+        .select('id, name, followers_count')
+        .eq('school', profile.school)
+        .eq('department', profile.department)
+        .eq('level', profile.level)
+        .neq('id', user.id)
+
+      if (usersError) {
+        console.error('Users fetch error:', usersError)
+        setClassmates([])
+        setLoading(false)
+        return
+      }
+
+      if (!users || users.length === 0) {
+        setClassmates([])
+        setLoading(false)
+        return
+      }
+
+      // Get current user's connections
+      const { data: connections } = await supabase
+        .from('connections')
+        .select('following_id')
+        .eq('follower_id', user.id)
+
+      const connectedIds = new Set(connections?.map(c => c.following_id) || [])
+
+      // For each user, check if they have assignments and timetable
+      const classmatesWithData = await Promise.all(
+        users.map(async (classmate) => {
+          // Check for assignments from this specific user
+          const { count: assignmentCount } = await supabase
+            .from('assignments')
+            .select('*', { count: 'exact', head: true })
+            .eq('created_by', classmate.id)
+
+          // Check for timetable from this specific user
+          const { count: timetableCount } = await supabase
+            .from('timetable')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', classmate.id)
+
+          return {
+            id: classmate.id,
+            name: classmate.name || 'Unknown',
+            followers: classmate.followers_count || 0,
+            hasAssignments: (assignmentCount || 0) > 0,
+            hasTimetable: (timetableCount || 0) > 0,
+            isConnected: connectedIds.has(classmate.id),
+          }
+        })
+      )
+
+      setClassmates(classmatesWithData)
+      setLoading(false)
+    } catch (error) {
+      console.error('Failed to fetch classmates:', error)
+      setClassmates([])
+      setLoading(false)
+    }
+  }
+
+  const toggleConnect = async (classmateId: string) => {
+    if (!user || connectingId) return
+
+    setConnectingId(classmateId)
+
+    try {
+      const classmate = classmates.find(c => c.id === classmateId)
+      if (!classmate) return
+
+      if (classmate.isConnected) {
+        // Unfollow - delete connection
+        const { error } = await supabase
+          .from('connections')
+          .delete()
+          .eq('follower_id', user.id)
+          .eq('following_id', classmateId)
+
+        if (error) throw error
+
+        // Update local state
+        setClassmates(prev =>
+          prev.map(c =>
+            c.id === classmateId
+              ? { ...c, isConnected: false, followers: Math.max(0, c.followers - 1) }
+              : c
+          )
+        )
+      } else {
+        // Follow - create connection
+        const { error } = await supabase
+          .from('connections')
+          .insert({
+            follower_id: user.id,
+            following_id: classmateId,
+          })
+
+        if (error) throw error
+
+        // Update local state
+        setClassmates(prev =>
+          prev.map(c =>
+            c.id === classmateId
+              ? { ...c, isConnected: true, followers: c.followers + 1 }
+              : c
+          )
+        )
+      }
+
+      // Notify parent to update count
+      onConnectionChange()
+    } catch (error) {
+      console.error('Failed to toggle connection:', error)
+    } finally {
+      setConnectingId(null)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    )
+  }
+
+  if (classmates.length === 0) {
+    return (
+      <div className="bg-gray-50 border border-gray-200 rounded-xl p-8 text-center">
+        <Users className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+        <p className="text-gray-600 text-sm">No classmates found in your class</p>
+      </div>
+    )
   }
 
   return (
@@ -210,13 +315,14 @@ function ClassmatesList({ connectedClassmates, setConnectedClassmates }: Classma
       {classmates.map((classmate) => (
         <ClassmateCard
           key={classmate.id}
+          classmateId={classmate.id}
           name={classmate.name}
           followers={classmate.followers}
           hasAssignments={classmate.hasAssignments}
           hasTimetable={classmate.hasTimetable}
-          connected={connectedClassmates[classmate.name] || !!classmate.connectedTo}
-          connectedTo={connectedClassmates[classmate.name] ? classmate.name : classmate.connectedTo}
+          isConnected={classmate.isConnected}
           onConnect={toggleConnect}
+          isLoading={connectingId === classmate.id}
         />
       ))}
     </div>
@@ -225,18 +331,59 @@ function ClassmatesList({ connectedClassmates, setConnectedClassmates }: Classma
 
 // ============ MAIN COMPONENT ============
 export default function ClassmatesPage() {
-  const [connectedClassmates, setConnectedClassmates] = useState<Record<string, boolean>>({})
+  const { user } = useAuthStore()
+  const [classmateCount, setClassmateCount] = useState(0)
+
+  useEffect(() => {
+    let mounted = true
+    
+    const loadCount = async () => {
+      if (user && mounted) {
+        await fetchClassmateCount()
+      }
+    }
+    
+    loadCount()
+    
+    return () => {
+      mounted = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id])
+
+  const fetchClassmateCount = async () => {
+    if (!user) return
+
+    try {
+      const { data: profile } = await supabase
+        .from('users')
+        .select('school, department, level')
+        .eq('id', user.id)
+        .single()
+
+      if (!profile) return
+
+      const { count } = await supabase
+        .from('users')
+        .select('*', { count: 'exact', head: true })
+        .eq('school', profile.school)
+        .eq('department', profile.department)
+        .eq('level', profile.level)
+        .neq('id', user.id)
+
+      setClassmateCount(count || 0)
+    } catch (error) {
+      console.error('Failed to fetch classmate count:', error)
+    }
+  }
 
   return (
     <AppShell>
       <div className="h-full flex items-start justify-center">
         <div className="w-full max-w-7xl px-4 py-8 pb-24 lg:pb-8">
-          <Header classmateCount={8} />
+          <Header classmateCount={classmateCount} />
           <div className="mt-12">
-            <ClassmatesList 
-              connectedClassmates={connectedClassmates}
-              setConnectedClassmates={setConnectedClassmates}
-            />
+            <ClassmatesList onConnectionChange={fetchClassmateCount} />
           </div>
         </div>
       </div>

@@ -31,7 +31,7 @@ interface AuthStore {
 export const useAuthStore = create<AuthStore>((set) => ({
   user: null,
   profile: null,
-  loading: false,
+  loading: true, // Start with true to prevent flash of auth page
 
   register: async (email: string, password: string, userData: Partial<UserProfile>) => {
     set({ loading: true })
@@ -151,8 +151,31 @@ export const useAuthStore = create<AuthStore>((set) => ({
   },
 
   initAuth: () => {
+    // Check for existing session first
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        // Fetch user profile
+        supabase
+          .from('users')
+          .select('*')
+          .eq('id', session.user.id)
+          .single()
+          .then(({ data: profileData, error }) => {
+            if (error && error.code !== 'PGRST116') {
+              console.error('Profile fetch error:', error)
+            }
+            const profile = profileData as UserProfile
+            set({ user: session.user, profile: profile || null, loading: false })
+          })
+      } else {
+        set({ user: null, profile: null, loading: false })
+      }
+    })
+
     const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
       try {
+        console.log('Auth state change:', event, session?.user?.id)
+        
         if (session?.user) {
           // Fetch user profile
           const { data: profileData, error } = await supabase
@@ -166,12 +189,13 @@ export const useAuthStore = create<AuthStore>((set) => ({
           }
 
           const profile = profileData as UserProfile
-          set({ user: session.user, profile: profile || null })
+          set({ user: session.user, profile: profile || null, loading: false })
         } else {
-          set({ user: null, profile: null })
+          set({ user: null, profile: null, loading: false })
         }
       } catch (error) {
         console.error('Auth state change error:', error)
+        set({ loading: false })
       }
     })
 

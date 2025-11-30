@@ -7,6 +7,7 @@ import { ArrowLeft, Clock, MapPin, BookOpen, Save, Plus, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useCourseStore } from '@/lib/store/courseStore'
 import { useAuthStore } from '@/lib/store/authStore'
+import { supabase } from '@/lib/supabase/client'
 
 interface ClassEntry {
   id: string
@@ -25,6 +26,8 @@ export default function AddTimetablePage() {
   const { user } = useAuthStore()
   const { userCourses, fetchUserCourses, loading } = useCourseStore()
   const [selectedDay, setSelectedDay] = useState('Monday')
+  const [isUpdateMode, setIsUpdateMode] = useState(false)
+  const [existingIds, setExistingIds] = useState<Record<string, string[]>>({})
   const [dayClasses, setDayClasses] = useState<DayClasses>({
     Monday: [{ id: '1', startTime: '', endTime: '', title: '', location: '' }],
     Tuesday: [{ id: '2', startTime: '', endTime: '', title: '', location: '' }],
@@ -75,6 +78,88 @@ export default function AddTimetablePage() {
       fetchUserCourses(user.id)
     }
   }, [user?.id, fetchUserCourses])
+
+  // Fetch existing timetable
+  useEffect(() => {
+    if (user?.id) {
+      fetchExistingTimetable()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id])
+
+  const fetchExistingTimetable = async () => {
+    if (!user) return
+
+    try {
+      const { data: timetableRecord, error } = await supabase
+        .from('timetable')
+        .select('timetable_data')
+        .eq('user_id', user.id)
+        .single()
+
+      if (error) {
+        if (error.code !== 'PGRST116') {
+          console.error('Error fetching timetable:', error)
+        }
+        return
+      }
+
+      if (timetableRecord && timetableRecord.timetable_data) {
+        setIsUpdateMode(true)
+        const jsonData = timetableRecord.timetable_data as Record<string, Array<{ time: string; course: string; venue: string }>>
+        
+        const groupedClasses: DayClasses = {
+          Monday: [],
+          Tuesday: [],
+          Wednesday: [],
+          Thursday: [],
+          Friday: [],
+        }
+
+        // Parse the JSON data back to form format
+        Object.entries(jsonData).forEach(([day, classes]) => {
+          if (day in groupedClasses) {
+            classes.forEach((classItem, index) => {
+              // Parse time string like "8am-10am" back to "08:00" - "10:00"
+              const [startStr, endStr] = classItem.time.split('-')
+              
+              const parseTimeToInput = (timeStr: string) => {
+                const match = timeStr.match(/(\d+)(am|pm)/)
+                if (!match) return '00:00'
+                let hour = parseInt(match[1])
+                const period = match[2]
+                
+                if (period === 'pm' && hour !== 12) hour += 12
+                if (period === 'am' && hour === 12) hour = 0
+                
+                return `${hour.toString().padStart(2, '0')}:00`
+              }
+
+              groupedClasses[day].push({
+                id: `${day}-${index}`,
+                startTime: parseTimeToInput(startStr),
+                endTime: parseTimeToInput(endStr),
+                title: classItem.course,
+                location: classItem.venue
+              })
+            })
+          }
+        })
+
+        // Add empty entry for days with no classes
+        Object.keys(groupedClasses).forEach((day, index) => {
+          if (groupedClasses[day].length === 0) {
+            groupedClasses[day] = [{ id: `${day}-0`, startTime: '', endTime: '', title: '', location: '' }]
+          }
+        })
+
+        setDayClasses(groupedClasses)
+        console.log('✅ Loaded existing timetable for update')
+      }
+    } catch (error) {
+      console.error('Failed to fetch existing timetable:', error)
+    }
+  }
 
   const addClassEntry = () => {
     setDayClasses(prev => ({
@@ -128,6 +213,11 @@ export default function AddTimetablePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    if (!user) {
+      toast.error('Please log in to save timetable')
+      return
+    }
+
     // Get all classes from all days
     const allClasses = Object.entries(dayClasses).flatMap(([day, classes]) => 
       classes.map(c => ({ ...c, day }))
@@ -152,9 +242,74 @@ export default function AddTimetablePage() {
       return
     }
 
-    // TODO: Save to database
-    toast.success(`${filledClasses.length} class(es) added successfully!`)
-    router.push('/timetable')
+    try {
+      // Format time helper
+      const formatTime = (time: string) => {
+        const [hours, minutes] = time.split(':')
+        const hour = parseInt(hours)
+        const period = hour >= 12 ? 'pm' : 'am'
+        const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour
+        return `${displayHour}${period}`
+      }
+
+      // Build timetable data in JSON format
+      const timetableData: Record<string, Array<{ time: string; course: string; venue: string }>> = {
+        Monday: [],
+        Tuesday: [],
+        Wednesday: [],
+        Thursday: [],
+        Friday: []
+      }
+
+      filledClasses.forEach(c => {
+        if (c.day in timetableData) {
+          timetableData[c.day].push({
+            time: `${formatTime(c.startTime)}-${formatTime(c.endTime)}`,
+            course: c.title,
+            venue: c.location
+          })
+        }
+      })
+
+      // Check if user already has a timetable
+      const { data: existing } = await supabase
+        .from('timetable')
+        .select('id')
+        .eq('user_id', user.id)
+        .single()
+
+      let error
+
+      if (existing) {
+        // Update existing timetable
+        const result = await supabase
+          .from('timetable')
+          .update({ timetable_data: timetableData })
+          .eq('user_id', user.id)
+        error = result.error
+      } else {
+        // Insert new timetable
+        const result = await supabase
+          .from('timetable')
+          .insert({
+            user_id: user.id,
+            timetable_data: timetableData
+          })
+        error = result.error
+      }
+
+      if (error) {
+        console.error('Error saving timetable:', error)
+        toast.error('Failed to save timetable')
+        return
+      }
+
+      toast.success(`${filledClasses.length} class(es) ${existing ? 'updated' : 'added'} successfully!`)
+      router.push('/timetable')
+    } catch (error) {
+      console.error('Error saving timetable:', error)
+      toast.error('Failed to save timetable')
+    }
   }
 
   const getTotalClasses = () => {
@@ -176,7 +331,7 @@ export default function AddTimetablePage() {
               >
                 <ArrowLeft className="w-5 h-5" />
               </button>
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Add Classes</h1>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{isUpdateMode ? 'Update' : 'Add'} Classes</h1>
             </div>
             <button
               type="button"

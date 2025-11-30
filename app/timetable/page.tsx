@@ -1,21 +1,26 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { AppShell } from '@/components/layout/app-shell'
 import { Clock, MapPin, Plus } from 'lucide-react'
+import { supabase } from '@/lib/supabase/client'
+import { useAuthStore } from '@/lib/store/authStore'
+import toast from 'react-hot-toast'
 
 // ============ TYPES ============
 interface ClassInfo {
   time: string
   title: string
   location: string
+  isOwner?: boolean
 }
 
 interface ClassCardProps {
   time: string
   title: string
   location: string
+  isOwner?: boolean
 }
 
 interface DaySelectorProps {
@@ -30,18 +35,23 @@ interface ClassScheduleProps {
 }
 
 // ============ HEADER COMPONENT ============
-function Header({ onAddClick }: { onAddClick: () => void }) {
+function Header({ onAddClick, hasTimetable }: { onAddClick: () => void; hasTimetable: boolean }) {
   return (
     <div className="flex items-start justify-between gap-4">
       <div>
-        <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-gray-900">Timetable</h1>
+        <div className="flex items-center gap-3 mb-2">
+          <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-gray-900">Timetable</h1>
+          <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-md">
+            Owner
+          </span>
+        </div>
       </div>
       <button
         onClick={onAddClick}
         className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl font-bold text-sm hover:from-blue-700 hover:to-blue-600 transition-all shadow-md hover:shadow-lg flex-shrink-0"
       >
         <Plus className="w-4 h-4" />
-        <span>Add</span>
+        <span>{hasTimetable ? 'Update' : 'Add'}</span>
       </button>
     </div>
   )
@@ -83,10 +93,10 @@ function DaySelector({ days, selectedDay, setSelectedDay }: DaySelectorProps) {
 // ============ CLASS CARD COMPONENT ============
 function ClassCard({ time, title, location }: ClassCardProps) {
   return (
-    <div className="bg-white rounded-lg p-5 border-r border-t border-b border-gray-200 hover:shadow-md transition-all" style={{ borderLeft: '2px solid #0A32F8' }}>
+    <div className="bg-white rounded-lg p-5 border-l-2 border-r border-t border-b border-gray-200 hover:shadow-md transition-all" style={{ borderLeftColor: '#0A32F8' }}>
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
-          <h3 className="text-lg font-bold text-gray-900">{title}</h3>
+          <h3 className="text-lg font-bold text-gray-900 mb-1">{title}</h3>
         </div>
         <div className="text-right flex-shrink-0">
           <p className="font-semibold text-sm mb-2">{time}</p>
@@ -123,45 +133,116 @@ function ClassSchedule({ classesForDay, selectedDay }: ClassScheduleProps) {
   )
 }
 
-// ============ TIMETABLE DATA ============
-const timetableData: Record<string, ClassInfo[]> = {
-  Monday: [
-    { time: '8:00 AM - 9:00 AM', title: 'Data Structures', location: 'Room 101' },
-    { time: '10:00 AM - 11:30 AM', title: 'Calculus II', location: 'Room 205' },
-    { time: '2:00 PM - 3:30 PM', title: 'Database Systems', location: 'Room 301' },
-  ],
-  Tuesday: [
-    { time: '8:00 AM - 9:00 AM', title: 'Statistics', location: 'Room 102' },
-    { time: '10:00 AM - 11:30 AM', title: 'English Composition', location: 'Room 215' },
-    { time: '1:00 PM - 2:30 PM', title: 'Physics Lab', location: 'Lab 05' },
-  ],
-  Wednesday: [
-    { time: '9:00 AM - 10:30 AM', title: 'Web Development', location: 'Room 303' },
-    { time: '11:00 AM - 12:30 PM', title: 'Mechanics', location: 'Room 105' },
-  ],
-  Thursday: [
-    { time: '8:00 AM - 9:00 AM', title: 'Programming', location: 'Lab 02' },
-    { time: '10:00 AM - 11:30 AM', title: 'Calculus II', location: 'Room 205' },
-    { time: '2:00 PM - 3:00 PM', title: 'Course Registration', location: 'Portal' },
-  ],
-  Friday: [
-    { time: '9:00 AM - 10:00 AM', title: 'Seminar', location: 'Auditorium' },
-    { time: '11:00 AM - 12:00 PM', title: 'Project Review', location: 'Room 401' },
-  ],
-}
-
 // ============ MAIN COMPONENT ============
 export default function TimetablePage() {
   const router = useRouter()
+  const { user } = useAuthStore()
   const [selectedDay, setSelectedDay] = useState('Monday')
+  const [timetable, setTimetable] = useState<Record<string, ClassInfo[]>>({
+    Monday: [],
+    Tuesday: [],
+    Wednesday: [],
+    Thursday: [],
+    Friday: []
+  })
+  const [loading, setLoading] = useState(true)
+  const [hasTimetable, setHasTimetable] = useState(false)
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
-  const classesForDay = timetableData[selectedDay] || []
+  const classesForDay = timetable[selectedDay] || []
+
+  useEffect(() => {
+    let mounted = true
+    
+    const loadData = async () => {
+      if (user && mounted) {
+        await fetchTimetable()
+      } else if (mounted) {
+        setLoading(false)
+      }
+    }
+    
+    loadData()
+    
+    return () => {
+      mounted = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id])
+
+  const fetchTimetable = async () => {
+    if (!user) {
+      console.log('❌ No user found, skipping timetable fetch')
+      return
+    }
+
+    try {
+      setLoading(true)
+      console.log('🔍 Fetching timetable for user:', user.id)
+
+      // Fetch own timetable from timetable table (JSON structure)
+      const { data: timetableRecord, error: ownError } = await supabase
+        .from('timetable')
+        .select('timetable_data')
+        .eq('user_id', user.id)
+        .single()
+
+      if (ownError) {
+        if (ownError.code === 'PGRST116') {
+          console.log('📋 No timetable found for user')
+        } else {
+          console.error('❌ Error fetching timetable:', ownError)
+        }
+      }
+
+      console.log('📊 Timetable data:', timetableRecord)
+
+      if (timetableRecord && timetableRecord.timetable_data) {
+        // timetable_data is already in the format we need
+        const jsonData = timetableRecord.timetable_data as Record<string, Array<{ time: string; course: string; venue: string }>>
+        
+        // Transform to component format
+        const groupedData: Record<string, ClassInfo[]> = {
+          Monday: [],
+          Tuesday: [],
+          Wednesday: [],
+          Thursday: [],
+          Friday: [],
+        }
+
+        Object.entries(jsonData).forEach(([day, classes]) => {
+          if (day in groupedData) {
+            classes.forEach(classItem => {
+              groupedData[day].push({
+                time: classItem.time,
+                title: classItem.course,
+                location: classItem.venue,
+                isOwner: true
+              })
+            })
+          }
+        })
+
+        setTimetable(groupedData)
+        setHasTimetable(true)
+        console.log('✅ Timetable loaded from database')
+      } else {
+        setHasTimetable(false)
+        console.log('📋 No timetable found')
+      }
+
+      setLoading(false)
+    } catch (error) {
+      console.error('Failed to fetch timetable:', error)
+      toast.error('Failed to load timetable')
+      setLoading(false)
+    }
+  }
 
   return (
     <AppShell>
       <div className="h-full flex items-start justify-center overflow-hidden">
-        <div className="w-full px-4 py-8 pb-24 lg:pb-8 overflow-x-hidden">
-          <Header onAddClick={() => router.push('/timetable/add')} />
+        <div className="w-full lg:w-3/4 px-4 py-8 pb-24 lg:pb-8 overflow-x-hidden">
+          <Header onAddClick={() => router.push('/timetable/add')} hasTimetable={hasTimetable} />
           
           <div className="mt-8">
             <DaySelector 
@@ -171,10 +252,16 @@ export default function TimetablePage() {
             />
           </div>
 
-          <ClassSchedule 
-            classesForDay={classesForDay}
-            selectedDay={selectedDay}
-          />
+          {loading ? (
+            <div className="mt-8 flex justify-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            </div>
+          ) : (
+            <ClassSchedule 
+              classesForDay={classesForDay}
+              selectedDay={selectedDay}
+            />
+          )}
         </div>
       </div>
     </AppShell>

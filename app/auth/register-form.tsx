@@ -32,6 +32,20 @@ export function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => v
     useEffect(() => {
         const fetchSchools = async () => {
             try {
+                // Check if schools are cached in localStorage
+                const cachedSchools = localStorage.getItem('schools_cache')
+                const cacheTimestamp = localStorage.getItem('schools_cache_timestamp')
+                const now = Date.now()
+                const ONE_HOUR = 60 * 60 * 1000
+
+                // Use cache if it's less than 1 hour old
+                if (cachedSchools && cacheTimestamp && (now - parseInt(cacheTimestamp)) < ONE_HOUR) {
+                    const formattedSchools: SchoolOption[] = JSON.parse(cachedSchools)
+                    setSchools(formattedSchools)
+                    setLoadingSchools(false)
+                    return
+                }
+
                 const { data: schoolsData, error } = await supabase
                     .from('schools')
                     .select('id, name')
@@ -45,10 +59,14 @@ export function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => v
                     initials: school.name.substring(0, 1),
                 }))
                 
+                // Cache the schools data
+                localStorage.setItem('schools_cache', JSON.stringify(formattedSchools))
+                localStorage.setItem('schools_cache_timestamp', now.toString())
+                
                 setSchools(formattedSchools)
             } catch (error) {
                 console.error('Failed to fetch schools:', error)
-                toast.error('Failed to load schools')
+                toast.error('Failed to load schools. Please refresh the page.')
             } finally {
                 setLoadingSchools(false)
             }

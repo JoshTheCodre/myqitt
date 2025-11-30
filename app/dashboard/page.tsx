@@ -1,12 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { HeadsetIcon, BookIcon, Users, ArrowRight } from 'lucide-react'
+import { HeadsetIcon, BookIcon, Users, ArrowRight, Clock, Plus } from 'lucide-react'
 import { useAuthStore, UserProfile } from '@/lib/store/authStore'
 import { AppShell } from '@/components/layout/app-shell'
 import { CatchUpModal } from '@/components/catch-up-modal'
+import { supabase } from '@/lib/supabase/client'
+import toast from 'react-hot-toast'
 
 // ============ HELPER FUNCTIONS ============
 const getInitials = (name?: string) => {
@@ -121,56 +123,233 @@ function ActionCards() {
 }
 
 // ============ TODAY'S CLASSES COMPONENT ============
-function TodaysClasses() {
-  const classes = [
-    {
-      id: 1,
-      code: 'CSC 215',
-      program: 'CS 2',
-      time: '9:00 AM - 12:00 PM',
-      status: 'Upcoming',
-      borderColor: 'border-l-blue-500',
-      badgeBg: 'bg-blue-50',
-      badgeText: 'text-blue-600',
-      dot: 'bg-blue-600',
-    },
-    {
-      id: 2,
-      code: 'CSC 345',
-      program: 'MBA 2',
-      time: '2:00 PM - 5:00 PM',
-      status: 'Ongoing',
-      borderColor: 'border-l-amber-400',
-      badgeBg: 'bg-amber-50',
-      badgeText: 'text-amber-400',
-      dot: 'bg-amber-400',
-    },
-  ]
+function TodaysClasses({ userId }: { userId?: string }) {
+  const [classes, setClasses] = useState<Array<{
+    id: string
+    code: string
+    program: string
+    time: string
+    status: string
+    borderColor: string
+    badgeBg: string
+    badgeText: string
+    dot: string
+    connectedTo?: string
+  }>>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let mounted = true
+    
+    const loadData = async () => {
+      if (userId && mounted) {
+        await fetchTodaysClasses()
+      } else if (mounted) {
+        // Use dummy data if no user
+        setClasses([
+          {
+            id: '1',
+            code: 'CSC 215',
+            program: 'CS 2',
+            time: '9:00 AM - 12:00 PM',
+            status: 'Upcoming',
+            borderColor: 'border-l-blue-500',
+            badgeBg: 'bg-blue-50',
+            badgeText: 'text-blue-600',
+            dot: 'bg-blue-600',
+          },
+          {
+            id: '2',
+            code: 'CSC 345',
+            program: 'MBA 2',
+            time: '2:00 PM - 5:00 PM',
+            status: 'Ongoing',
+            borderColor: 'border-l-amber-400',
+            badgeBg: 'bg-amber-50',
+            badgeText: 'text-amber-400',
+            dot: 'bg-amber-400',
+          },
+        ])
+        setLoading(false)
+      }
+    }
+    
+    setLoading(true)
+    loadData()
+    
+    return () => {
+      mounted = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId])
+
+  const fetchTodaysClasses = async () => {
+    if (!userId) return
+
+    try {
+      setLoading(true)
+
+      // Get current day
+      const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+      const today = days[new Date().getDay()]
+
+      // Check if today is a weekend (no classes)
+      if (today === 'Sunday' || today === 'Saturday') {
+        console.log(`📋 No classes scheduled for ${today} (Weekend)`)
+        setClasses([])
+        setLoading(false)
+        return
+      }
+
+      // Fetch user's timetable (JSON structure)
+      const { data: timetableRecord, error: ownError } = await supabase
+        .from('timetable')
+        .select('timetable_data')
+        .eq('user_id', userId)
+        .single()
+
+      // Only log error if it's not a "no rows found" error
+      if (ownError && ownError.code !== 'PGRST116') {
+        console.error('Error fetching today\'s classes:', ownError)
+      }
+
+      let todaysClasses: Array<{ time: string; course: string; venue: string }> = []
+
+      if (timetableRecord && timetableRecord.timetable_data) {
+        const jsonData = timetableRecord.timetable_data as Record<string, Array<{ time: string; course: string; venue: string }>>
+        todaysClasses = jsonData[today] || []
+      }
+
+      if (todaysClasses && todaysClasses.length > 0) {
+        const currentTime = new Date()
+        const currentHour = currentTime.getHours()
+        const currentMinute = currentTime.getMinutes()
+
+        const formattedClasses = todaysClasses.map((item, index) => {
+          // Parse time string like "8am-10am"
+          const [startTimeStr, endTimeStr] = item.time.split('-')
+          
+          const parseTime = (timeStr: string) => {
+            const match = timeStr.match(/(\d+)(am|pm)/)
+            if (!match) return { hour: 0, minute: 0 }
+            let hour = parseInt(match[1])
+            const period = match[2]
+            
+            if (period === 'pm' && hour !== 12) {
+              hour += 12
+            } else if (period === 'am' && hour === 12) {
+              hour = 0
+            }
+            
+            return { hour, minute: 0 }
+          }
+
+          const startTime = parseTime(startTimeStr)
+          const endTime = parseTime(endTimeStr)
+
+          // Determine status
+          let status = 'Upcoming'
+          let borderColor = 'border-l-blue-500'
+          let badgeBg = 'bg-blue-50'
+          let badgeText = 'text-blue-600'
+          let dot = 'bg-blue-600'
+
+          const currentTotalMinutes = currentHour * 60 + currentMinute
+          const startTotalMinutes = startTime.hour * 60 + startTime.minute
+          const endTotalMinutes = endTime.hour * 60 + endTime.minute
+
+          if (currentTotalMinutes >= startTotalMinutes && currentTotalMinutes < endTotalMinutes) {
+            status = 'Ongoing'
+            borderColor = 'border-l-amber-400'
+            badgeBg = 'bg-amber-50'
+            badgeText = 'text-amber-400'
+            dot = 'bg-amber-400'
+          } else if (currentTotalMinutes >= endTotalMinutes) {
+            status = 'Completed'
+            borderColor = 'border-l-gray-400'
+            badgeBg = 'bg-gray-50'
+            badgeText = 'text-gray-600'
+            dot = 'bg-gray-600'
+          }
+
+          return {
+            id: `${today}-${index}`,
+            code: item.course,
+            program: item.venue || 'TBA',
+            time: item.time,
+            status,
+            borderColor,
+            badgeBg,
+            badgeText,
+            dot
+          }
+        })
+
+        setClasses(formattedClasses)
+        console.log(`✅ Loaded ${formattedClasses.length} classes for ${today}`)
+      } else {
+        console.log(`📋 No classes scheduled for ${today}`)
+        setClasses([])
+      }
+
+      setLoading(false)
+    } catch (error) {
+      console.error('Failed to fetch today\'s classes:', error)
+      setLoading(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <section>
+        <h2 className="text-lg md:text-2xl font-bold mb-4 md:mb-6">Today&apos;s Classes</h2>
+        <div className="flex justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section>
       <h2 className="text-lg md:text-2xl font-bold mb-4 md:mb-6">Today&apos;s Classes</h2>
       <div className="space-y-2 md:space-y-4">
-        {classes.map((cls) => (
-          <div
-            key={cls.id}
-            className={`border-l-4 ${cls.borderColor} bg-white rounded-lg md:rounded-xl p-5 md:p-6 border-r border-t border-b border-gray-200`}
-          >
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex-1 min-w-0">
-                <h3 className="text-lg  md:text-xl font-bold">{cls.code}</h3>
-                <p className="text-muted-foreground text-xs md:text-sm">{cls.program}</p>
-              </div>
-              <div className="text-right flex-shrink-0">
-                <p className="font-semibold mb-1 md:mb-3 text-sm">{cls.time}</p>
-                <div className={`${cls.badgeBg} ${cls.badgeText} rounded-full px-2 md:px-3 py-1 md:py-1.5 text-xs md:text-sm font-medium inline-flex items-center gap-1.5 md:gap-2`}>
-                  <span className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full ${cls.dot || cls.badgeText}`}></span>
-                  <span className="hidden sm:inline">{cls.status}</span>
+        {classes.length > 0 ? (
+          classes.map((cls) => (
+            <div
+              key={cls.id}
+              className={`border-l-4 ${cls.borderColor} bg-white rounded-lg md:rounded-xl p-5 md:p-6 border-r border-t border-b border-gray-200`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-lg  md:text-xl font-bold">{cls.code}</h3>
+                  <p className="text-muted-foreground text-xs md:text-sm">{cls.program}</p>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <p className="font-semibold mb-1 md:mb-3 text-sm">{cls.time}</p>
+                  <div className={`${cls.badgeBg} ${cls.badgeText} rounded-full px-2 md:px-3 py-1 md:py-1.5 text-xs md:text-sm font-medium inline-flex items-center gap-1.5 md:gap-2`}>
+                    <span className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full ${cls.dot || cls.badgeText}`}></span>
+                    <span className="hidden sm:inline">{cls.status}</span>
+                  </div>
                 </div>
               </div>
             </div>
+          ))
+        ) : (
+          <div className="text-center py-8 bg-gradient-to-br from-gray-50 to-blue-50 rounded-xl border-2 border-dashed border-gray-300">
+            <Clock className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+            <h3 className="text-base font-semibold text-gray-900 mb-1">No classes today</h3>
+            <p className="text-xs text-gray-600 mb-4">You haven&apos;t added any classes yet</p>
+            <div className="flex justify-center">
+              <Link href="/timetable">
+                <button className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg font-semibold text-xs hover:from-blue-700 hover:to-blue-600 transition-all shadow-md hover:shadow-lg flex items-center gap-2">
+                  <Plus className="w-3.5 h-3.5" />
+                  Add Timetable
+                </button>
+              </Link>
+            </div>
           </div>
-        ))}
+        )}
       </div>
     </section>
   )
@@ -180,7 +359,7 @@ function TodaysClasses() {
 export default function Page() {
   const [modalOpen, setModalOpen] = useState(false)
   const [selectedItem, setSelectedItem] = useState<string | null>(null)
-  const { profile } = useAuthStore()
+  const { profile, user } = useAuthStore()
 
   const handleItemClick = (item: string) => {
     setSelectedItem(item)
@@ -199,7 +378,7 @@ export default function Page() {
             <ActionCards />
           </div>
           <div className="mt-5 md:mt-12">
-            <TodaysClasses />
+            <TodaysClasses userId={user?.id} />
           </div>
         </div>
       </div>

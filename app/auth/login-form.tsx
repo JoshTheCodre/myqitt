@@ -1,10 +1,12 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '@/lib/store/authStore'
 
 export function LoginForm() {
+  const router = useRouter()
   const { login, loading } = useAuthStore()
   const [data, setData] = useState({ email: '', password: '' })
   const [rememberMe, setRememberMe] = useState(false)
@@ -24,8 +26,14 @@ export function LoginForm() {
       await login(data.email, data.password)
       setData({ email: '', password: '' })
       if (rememberMe) localStorage.setItem('rememberMe', 'true')
-    } catch {
+      
+      // Small delay to ensure auth state is updated
+      setTimeout(() => {
+        router.push('/dashboard')
+      }, 100)
+    } catch (error) {
       // Error already handled by store
+      console.error('Login error:', error)
     }
   }
 

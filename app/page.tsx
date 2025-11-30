@@ -7,15 +7,14 @@ import { RegistrationForm } from './auth/registration-form'
 
 export default function HomePage() {
   const [mounted, setMounted] = useState(false)
-  const { user, initAuth } = useAuthStore()
+  const { user } = useAuthStore()
   const router = useRouter()
 
   useEffect(() => {
-    initAuth()
     // Set mounted after a tick to avoid sync setState
     const timer = setTimeout(() => setMounted(true), 0)
     return () => clearTimeout(timer)
-  }, [initAuth])
+  }, [])
 
   useEffect(() => {
     if (mounted && user) {

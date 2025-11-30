@@ -28,8 +28,18 @@ export default function CoursesPage() {
 
     // Fetch user courses on mount or when user changes
     useEffect(() => {
-        if (user?.id) {
-            fetchUserCourses(user.id)
+        let mounted = true
+        
+        const loadData = async () => {
+            if (user?.id && mounted) {
+                await fetchUserCourses(user.id)
+            }
+        }
+        
+        loadData()
+        
+        return () => {
+            mounted = false
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user?.id])

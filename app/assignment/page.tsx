@@ -4,6 +4,10 @@ import { useRouter } from 'next/navigation'
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime'
 import { AppShell } from '@/components/layout/app-shell'
 import { Calendar, ChevronRight, Plus } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { supabase } from '@/lib/supabase/client'
+import { useAuthStore } from '@/lib/store/authStore'
+import toast from 'react-hot-toast'
 
 // ============ TYPES ============
 interface AssignmentDate {
@@ -13,10 +17,11 @@ interface AssignmentDate {
   description: string
   submissionType: string
   lecturer: string
+  id: string
 }
 
 interface Assignment {
-  id: number
+  id: string
   courseCode: string
   assignmentCount: number
   dates: AssignmentDate[]
@@ -34,7 +39,7 @@ interface AssignmentsListProps {
 }
 
 // ============ STATS CARD COMPONENT ============
-function StatsCard() {
+function StatsCard({ total }: { total: number }) {
   return (
     <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-3 shadow-sm hover:shadow-md transition-all">
       <div className="flex items-center gap-3">
@@ -43,7 +48,7 @@ function StatsCard() {
         </div>
         <div className="flex-1">
           <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide">Total</p>
-          <p className="text-2xl font-bold text-blue-900">5 </p>
+          <p className="text-2xl font-bold text-blue-900">{total}</p>
         </div>
       </div>
     </div>
@@ -77,6 +82,7 @@ function AssignmentCard({
 }: AssignmentCardProps) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 hover:shadow-md transition-all p-6">
+      {/* Top gradient bar */}
       <div className="rounded-full mb-4 h-2" style={{ background: 'linear-gradient(to right, #E8ECFF, #C8DBFF)' }} />
       
       <div className="flex items-start justify-between mb-4">
@@ -119,127 +125,146 @@ function AssignmentCard({
 
 // ============ ASSIGNMENTS LIST COMPONENT ============
 function AssignmentsList({ router }: AssignmentsListProps) {
-  const assignments: Assignment[] = [
-    {
-      id: 1,
-      courseCode: 'STAT 180',
-      assignmentCount: 2,
-      dates: [
-        { 
-          date: '2025-12-25', 
-          label: 'Dec 25',
-          title: 'Statistical Analysis Project',
-          description: 'Complete a comprehensive statistical analysis of the provided dataset using SPSS or R. Include hypothesis testing, correlation analysis, and regression modeling.',
-          submissionType: 'PDF Report',
-          lecturer: 'Dr. Adewale Johnson'
-        },
-        { 
-          date: '2025-12-30', 
-          label: 'Dec 30',
-          title: 'Probability Theory Assignment',
-          description: 'Solve problems 1-20 from Chapter 5. Show all working and provide detailed explanations for each solution.',
-          submissionType: 'Handwritten/PDF',
-          lecturer: 'Dr. Adewale Johnson'
-        },
-      ],
-    },
-    {
-      id: 2,
-      courseCode: 'CSC 310',
-      assignmentCount: 1,
-      dates: [
-        { 
-          date: '2025-12-28', 
-          label: 'Dec 28',
-          title: 'Web Application Development',
-          description: 'Build a full-stack web application using React and Node.js. Must include authentication, CRUD operations, and responsive design.',
-          submissionType: 'GitHub Repository Link',
-          lecturer: 'Engr. Sarah Okonkwo'
-        },
-      ],
-    },
-    {
-      id: 3,
-      courseCode: 'MATH 250',
-      assignmentCount: 3,
-      dates: [
-        { 
-          date: '2025-12-22', 
-          label: 'Dec 22',
-          title: 'Linear Algebra Problems',
-          description: 'Complete exercises 10-25 from the textbook. Focus on matrix operations, eigenvalues, and vector spaces.',
-          submissionType: 'PDF',
-          lecturer: 'Prof. Michael Eze'
-        },
-        { 
-          date: '2025-12-26', 
-          label: 'Dec 26',
-          title: 'Calculus Applications',
-          description: 'Solve real-world problems using integration and differentiation techniques learned in class.',
-          submissionType: 'Handwritten',
-          lecturer: 'Prof. Michael Eze'
-        },
-        { 
-          date: '2025-12-31', 
-          label: 'Dec 31',
-          title: 'Differential Equations',
-          description: 'Solve first and second-order differential equations. Include boundary value problems.',
-          submissionType: 'PDF',
-          lecturer: 'Prof. Michael Eze'
-        },
-      ],
-    },
-    {
-      id: 4,
-      courseCode: 'PHY 240',
-      assignmentCount: 2,
-      dates: [
-        { 
-          date: '2025-12-24', 
-          label: 'Dec 24',
-          title: 'Quantum Mechanics Lab Report',
-          description: 'Write a detailed lab report on the photoelectric effect experiment conducted in class. Include data analysis and conclusions.',
-          submissionType: 'PDF Report',
-          lecturer: 'Dr. Chukwuemeka Nnamdi'
-        },
-        { 
-          date: '2025-12-29', 
-          label: 'Dec 29',
-          title: 'Thermodynamics Problems',
-          description: 'Solve problems related to the laws of thermodynamics, heat engines, and entropy.',
-          submissionType: 'Handwritten/PDF',
-          lecturer: 'Dr. Chukwuemeka Nnamdi'
-        },
-      ],
-    },
-    {
-      id: 5,
-      courseCode: 'ENG 260',
-      assignmentCount: 1,
-      dates: [
-        { 
-          date: '2025-12-27', 
-          label: 'Dec 27',
-          title: 'Research Paper on Nigerian Literature',
-          description: 'Write a 2000-word research paper analyzing the themes and literary devices in Chinua Achebe\'s "Things Fall Apart".',
-          submissionType: 'Word Document',
-          lecturer: 'Dr. Fatima Bello'
-        },
-      ],
-    },
-  ]
+  const [assignments, setAssignments] = useState<Assignment[]>([])
+  const [loading, setLoading] = useState(true)
+  const { user } = useAuthStore()
+
+  useEffect(() => {
+    let mounted = true
+    
+    const loadData = async () => {
+      if (user && mounted) {
+        await fetchAssignments()
+      } else if (mounted) {
+        setAssignments([])
+        setLoading(false)
+      }
+    }
+    
+    setLoading(true)
+    loadData()
+    
+    return () => {
+      mounted = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id])
+
+  const fetchAssignments = async () => {
+    if (!user) {
+      console.log('❌ No user found, skipping assignments fetch')
+      return
+    }
+
+    try {
+      setLoading(true)
+      console.log('🔍 Fetching assignments for user:', user.id)
+
+      // Fetch user's assignments (JSON structure)
+      const { data: assignmentRecord, error: assignmentError } = await supabase
+        .from('assignments')
+        .select('assignments_data')
+        .eq('user_id', user.id)
+        .single()
+
+      if (assignmentError) {
+        if (assignmentError.code === 'PGRST116') {
+          console.log('📋 No assignments found for user')
+        } else {
+          console.error('❌ Error fetching assignments:', assignmentError)
+        }
+      }
+
+      console.log('📊 Assignment data:', assignmentRecord)
+
+      let allItems: Array<{
+        id: string
+        course_code: string
+        title: string
+        description: string
+        due_date: string
+        created_at: string
+      }> = []
+
+      if (assignmentRecord && assignmentRecord.assignments_data) {
+        allItems = assignmentRecord.assignments_data as any
+      }
+
+      if (allItems && allItems.length > 0) {
+        const groupedAssignments = allItems.reduce((acc, item) => {
+          const existing = acc.find(a => a.courseCode === item.course_code)
+          const dueDate = new Date(item.due_date)
+          const dateLabel = dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+          
+          const assignmentDate: AssignmentDate = {
+            id: item.id,
+            date: item.due_date,
+            label: dateLabel,
+            title: item.title,
+            description: item.description || '',
+            submissionType: 'PDF Report',
+            lecturer: 'TBA'
+          }
+
+          if (existing) {
+            existing.dates.push(assignmentDate)
+            existing.assignmentCount++
+          } else {
+            acc.push({
+              id: item.id,
+              courseCode: item.course_code,
+              assignmentCount: 1,
+              dates: [assignmentDate]
+            })
+          }
+
+          return acc
+        }, [] as Assignment[])
+
+        setAssignments(groupedAssignments)
+        console.log('✅ Assignments loaded from database:', allItems.length, 'assignments')
+      } else {
+        console.log('📋 No assignments found')
+        setAssignments([])
+      }
+
+      setLoading(false)
+    } catch (error) {
+      console.error('Failed to fetch assignments:', error)
+      toast.error('Failed to load assignments')
+      setAssignments([])
+      setLoading(false)
+    }
+  }
 
   const handleDateClick = (assignmentData: AssignmentDate & { courseCode: string }) => {
-    // Navigate to assignment detail page with query params
     const params = new URLSearchParams({
+      id: assignmentData.id,
       courseCode: assignmentData.courseCode,
       title: assignmentData.title,
       description: assignmentData.description,
-      dueDate: assignmentData.label,
-      submissionType: assignmentData.submissionType,
-      lecturer: assignmentData.lecturer,
+      dueDate: assignmentData.label
     })
     router.push(`/assignment/detail?${params.toString()}`)
+  }
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    )
+  }
+
+  if (assignments.length === 0) {
+    return (
+      <div className="flex justify-center py-12">
+        <div className="text-center">
+          <p className="text-gray-500 text-lg">No assignments yet</p>
+          <p className="text-gray-400 text-sm mt-2">Assignments you create will appear here</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -265,16 +290,57 @@ function AssignmentsList({ router }: AssignmentsListProps) {
 // ============ MAIN COMPONENT ============
 export default function AssignmentPage() {
   const router = useRouter()
+  const { user } = useAuthStore()
+  const [totalAssignments, setTotalAssignments] = useState(0)
+
+  useEffect(() => {
+    let mounted = true
+    
+    const loadData = async () => {
+      if (user && mounted) {
+        await fetchTotalAssignments()
+      }
+    }
+    
+    loadData()
+    
+    return () => {
+      mounted = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id])
+
+  const fetchTotalAssignments = async () => {
+    if (!user) return
+
+    try {
+      const { data: assignmentRecord } = await supabase
+        .from('assignments')
+        .select('assignments_data')
+        .eq('user_id', user.id)
+        .single()
+
+      if (assignmentRecord && assignmentRecord.assignments_data) {
+        const assignments = assignmentRecord.assignments_data as any[]
+        setTotalAssignments(assignments.length)
+      } else {
+        setTotalAssignments(0)
+      }
+    } catch (error) {
+      console.error('Failed to fetch assignment count:', error)
+      setTotalAssignments(0)
+    }
+  }
 
   return (
     <AppShell>
       <div className="h-full flex items-start justify-center overflow-hidden">
-        <div className="w-full px-4 py-8 pb-24 lg:pb-8 overflow-x-hidden">
+        <div className="w-full lg:w-3/4 px-4 py-8 pb-24 lg:pb-8 overflow-x-hidden">
           <Header onAddClick={() => router.push('/assignment/add')} />
-{/*           
+          
           <div className="mt-6">
-            <StatsCard />
-          </div> */}
+            <StatsCard total={totalAssignments} />
+          </div>
           
           <div className="mt-4">
             <AssignmentsList router={router} />
