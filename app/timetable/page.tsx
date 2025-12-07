@@ -49,7 +49,7 @@ function Header({ onAddClick, hasTimetable, connectedUsers }: { onAddClick: () =
           <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-gray-900">Timetable</h1>
           {hasConnectedUsers && (
             <div className="absolute -top-2 -right-20 ">
-              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-400 to-teal-400 rounded-full shadow-lg">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-500 to-gray-500 rounded-full shadow-lg">
                 <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                 </svg>
@@ -62,7 +62,7 @@ function Header({ onAddClick, hasTimetable, connectedUsers }: { onAddClick: () =
           <div className="relative">
             <button
               onClick={() => setShowInfoPopup(true)}
-              className="flex items-center justify-center w-10 h-10 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-xl font-bold text-sm transition-all shadow-sm hover:shadow-md flex-shrink-0"
+              className="flex items-center justify-center w-10 h-10 text-gray-400 hover:text-gray-600 rounded-xl font-bold text-sm transition-all flex-shrink-0"
             >
               <Info className="w-5 h-5" />
             </button>
@@ -169,6 +169,8 @@ function ClassCard({ time, title, location, isOwner, ownerName }: ClassCardProps
 
 // ============ CLASS SCHEDULE COMPONENT ============
 function ClassSchedule({ classesForDay, selectedDay }: ClassScheduleProps) {
+  const router = useRouter()
+  
   return (
     <div className="mt-8">
       <div className="space-y-4">
@@ -183,8 +185,19 @@ function ClassSchedule({ classesForDay, selectedDay }: ClassScheduleProps) {
           />
         ))}
         {classesForDay.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-500">No classes scheduled for {selectedDay}</p>
+          <div className="bg-gray-50 border border-gray-200 rounded-xl p-12 text-center">
+            <Clock className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+            <p className="text-gray-600 text-base font-medium">No classes on {selectedDay}</p>
+            <p className="text-gray-500 text-sm mt-2">Add your schedule or connect with a classmate to see theirs</p>
+            <button
+              onClick={() => router.push('/classmates')}
+              className="mt-4 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl font-semibold text-sm hover:from-emerald-600 hover:to-teal-600 transition-all shadow-md hover:shadow-lg inline-flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              </svg>
+              <span>Connect with Classmates</span>
+            </button>
           </div>
         )}
       </div>
