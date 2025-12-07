@@ -33,6 +33,7 @@ interface ClassmateCardProps {
 
 interface ClassmatesListProps {
   onConnectionChange: () => void
+  onCountUpdate: (count: number) => void
 }
 
 // ============ HEADER COMPONENT ============
@@ -201,37 +202,53 @@ function ClassmatesList({ onConnectionChange }: ClassmatesListProps) {
 
       const connectedIds = new Set(connections?.map(c => c.following_id) || [])
 
-      // For each user, check if they have assignments and timetable
-      const classmatesWithData = await Promise.all(
-        users.map(async (classmate) => {
-          // Check for assignments from this specific user
-          const { count: assignmentCount } = await supabase
-            .from('assignments')
-            .select('*', { count: 'exact', head: true })
-            .eq('created_by', classmate.id)
+      // Get all user IDs
+      const userIds = users.map(u => u.id)
 
-          // Check for timetable from this specific user
-          const { count: timetableCount } = await supabase
-            .from('timetable')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', classmate.id)
+      // Batch fetch assignments for all users
+      const { data: allAssignments } = await supabase
+        .from('assignments')
+        .select('user_id, assignments_data')
+        .in('user_id', userIds)
 
-          return {
-            id: classmate.id,
-            name: classmate.name || 'Unknown',
-            followers: classmate.followers_count || 0,
-            hasAssignments: (assignmentCount || 0) > 0,
-            hasTimetable: (timetableCount || 0) > 0,
-            isConnected: connectedIds.has(classmate.id),
-          }
-        })
+      // Batch fetch timetables for all users
+      const { data: allTimetables } = await supabase
+        .from('timetable')
+        .select('user_id, timetable_data')
+        .in('user_id', userIds)
+
+      // Create maps for quick lookup
+      const assignmentsMap = new Map(
+        allAssignments?.map(a => [
+          a.user_id,
+          Array.isArray(a.assignments_data) && a.assignments_data.length > 0
+        ]) || []
       )
 
+      const timetablesMap = new Map(
+        allTimetables?.map(t => [
+          t.user_id,
+          t.timetable_data && Object.keys(t.timetable_data).length > 0
+        ]) || []
+      )
+
+      // Map classmates with their data
+      const classmatesWithData = users.map(classmate => ({
+        id: classmate.id,
+        name: classmate.name || 'Unknown',
+        followers: classmate.followers_count || 0,
+        hasAssignments: assignmentsMap.get(classmate.id) || false,
+        hasTimetable: timetablesMap.get(classmate.id) || false,
+        isConnected: connectedIds.has(classmate.id),
+      }))
+
       setClassmates(classmatesWithData)
+      onCountUpdate(classmatesWithData.length)
       setLoading(false)
     } catch (error) {
       console.error('Failed to fetch classmates:', error)
       setClassmates([])
+      onCountUpdate(0)
       setLoading(false)
     }
   }
@@ -239,12 +256,21 @@ function ClassmatesList({ onConnectionChange }: ClassmatesListProps) {
   const toggleConnect = async (classmateId: string) => {
     if (!user || connectingId) return
 
+    const classmate = classmates.find(c => c.id === classmateId)
+    if (!classmate) return
+
+    // Prevent connecting if already connected to someone else
+    if (!classmate.isConnected) {
+      const hasConnection = classmates.some(c => c.isConnected)
+      if (hasConnection) {
+        alert('You can only connect to one classmate at a time. Please disconnect from your current connection first.')
+        return
+      }
+    }
+
     setConnectingId(classmateId)
 
     try {
-      const classmate = classmates.find(c => c.id === classmateId)
-      if (!classmate) return
-
       if (classmate.isConnected) {
         // Unfollow - delete connection
         const { error } = await supabase
@@ -331,51 +357,7 @@ function ClassmatesList({ onConnectionChange }: ClassmatesListProps) {
 
 // ============ MAIN COMPONENT ============
 export default function ClassmatesPage() {
-  const { user } = useAuthStore()
   const [classmateCount, setClassmateCount] = useState(0)
-
-  useEffect(() => {
-    let mounted = true
-    
-    const loadCount = async () => {
-      if (user && mounted) {
-        await fetchClassmateCount()
-      }
-    }
-    
-    loadCount()
-    
-    return () => {
-      mounted = false
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id])
-
-  const fetchClassmateCount = async () => {
-    if (!user) return
-
-    try {
-      const { data: profile } = await supabase
-        .from('users')
-        .select('school, department, level')
-        .eq('id', user.id)
-        .single()
-
-      if (!profile) return
-
-      const { count } = await supabase
-        .from('users')
-        .select('*', { count: 'exact', head: true })
-        .eq('school', profile.school)
-        .eq('department', profile.department)
-        .eq('level', profile.level)
-        .neq('id', user.id)
-
-      setClassmateCount(count || 0)
-    } catch (error) {
-      console.error('Failed to fetch classmate count:', error)
-    }
-  }
 
   return (
     <AppShell>
@@ -383,7 +365,10 @@ export default function ClassmatesPage() {
         <div className="w-full max-w-7xl px-4 py-8 pb-24 lg:pb-8">
           <Header classmateCount={classmateCount} />
           <div className="mt-12">
-            <ClassmatesList onConnectionChange={fetchClassmateCount} />
+            <ClassmatesList 
+              onConnectionChange={() => {}} 
+              onCountUpdate={setClassmateCount}
+            />
           </div>
         </div>
       </div>

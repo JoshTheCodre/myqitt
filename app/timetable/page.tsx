@@ -39,12 +39,7 @@ function Header({ onAddClick, hasTimetable }: { onAddClick: () => void; hasTimet
   return (
     <div className="flex items-start justify-between gap-4">
       <div>
-        <div className="flex items-center gap-3 mb-2">
-          <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-gray-900">Timetable</h1>
-          <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-md">
-            Owner
-          </span>
-        </div>
+        <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-gray-900">Timetable</h1>
       </div>
       <button
         onClick={onAddClick}
@@ -176,7 +171,6 @@ export default function TimetablePage() {
     }
 
     try {
-      setLoading(true)
       console.log('🔍 Fetching timetable for user:', user.id)
 
       // Fetch own timetable from timetable table (JSON structure)

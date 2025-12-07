@@ -157,7 +157,6 @@ function AssignmentsList({ router }: AssignmentsListProps) {
     }
 
     try {
-      setLoading(true)
       console.log('🔍 Fetching assignments for user:', user.id)
 
       // Fetch user's assignments (JSON structure)

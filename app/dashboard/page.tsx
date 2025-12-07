@@ -163,8 +163,6 @@ function TodaysClasses({ userId }: { userId?: string }) {
     if (!userId) return
 
     try {
-      setLoading(true)
-
       // Get current day
       const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
       const today = days[new Date().getDay()]
@@ -312,18 +310,24 @@ function TodaysClasses({ userId }: { userId?: string }) {
             </div>
           ))
         ) : (
-          <div className="text-center py-8 bg-gradient-to-br from-gray-50 to-blue-50 rounded-xl border-2 border-dashed border-gray-300">
+          <div className="bg-white rounded-xl p-6 md:p-8 text-center border-2 border-dashed border-gray-300">
             <Clock className="w-10 h-10 text-gray-400 mx-auto mb-3" />
             <h3 className="text-base font-semibold text-gray-900 mb-1">No classes today</h3>
-            <p className="text-xs text-gray-600 mb-4">You haven&apos;t added any classes yet</p>
-            <div className="flex justify-center">
-              <Link href="/timetable">
-                <button className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg font-semibold text-xs hover:from-blue-700 hover:to-blue-600 transition-all shadow-md hover:shadow-lg flex items-center gap-2">
-                  <Plus className="w-3.5 h-3.5" />
-                  Add Timetable
-                </button>
-              </Link>
-            </div>
+            <p className="text-xs text-gray-600 mb-4">
+              {new Date().getDay() === 0 || new Date().getDay() === 6 
+                ? "It's the weekend! Enjoy your day off."
+                : "You haven't added any classes for today"}
+            </p>
+            {(new Date().getDay() !== 0 && new Date().getDay() !== 6) && (
+              <div className="flex justify-center">
+                <Link href="/timetable">
+                  <button className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg font-semibold text-xs hover:from-blue-700 hover:to-blue-600 transition-all shadow-md hover:shadow-lg flex items-center gap-2">
+                    <Plus className="w-3.5 h-3.5" />
+                    Add Timetable
+                  </button>
+                </Link>
+              </div>
+            )}
           </div>
         )}
       </div>
