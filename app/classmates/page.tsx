@@ -35,8 +35,7 @@ interface ClassmatesListProps {
   onConnectionChange: () => void
   onCountUpdate: (count: number) => void
 }
-  onCountUpdate: (count: number) => void
-}
+
 
 // ============ HEADER COMPONENT ============
 function Header({ classmateCount }: HeaderProps) {
