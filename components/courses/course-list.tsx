@@ -161,15 +161,11 @@ export function GroupedCourseList({
             </div>
             <div className="flex gap-4 text-right">
               <div>
-                <p className="text-sm font-bold text-gray-900">{totalCourses}</p>
-                <p className="text-xs text-gray-500">Courses</p>
-              </div>
-              <div>
-                <p className="text-sm font-bold text-gray-900">{compulsory.length}</p>
+                <p className="text-sm font-bold text-gray-900">{totalCompulsoryCredits}</p>
                 <p className="text-xs text-gray-500">Compulsory</p>
               </div>
               <div>
-                <p className="text-sm font-bold text-gray-900">{elective.length}</p>
+                <p className="text-sm font-bold text-gray-900">{totalElectiveCredits}</p>
                 <p className="text-xs text-gray-500">Elective</p>
               </div>
             </div>
@@ -181,8 +177,8 @@ export function GroupedCourseList({
         <div>
           <div className="flex items-center gap-2 mb-3">
             <h3 className="font-semibold text-gray-900">Compulsory Courses</h3>
-            <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full font-medium">
-              {compulsory.length} courses
+            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full font-medium">
+              {compulsory.length}
             </span>
           </div>
           <CourseList
@@ -198,8 +194,8 @@ export function GroupedCourseList({
         <div>
           <div className="flex items-center gap-2 mb-3">
             <h3 className="font-semibold text-gray-900">Elective Courses</h3>
-            <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
-              {elective.length} courses
+            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full font-medium">
+              {elective.length}
             </span>
           </div>
           <CourseList
