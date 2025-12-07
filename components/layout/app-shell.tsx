@@ -1,46 +1,30 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/store/authStore'
 import { Sidebar } from './sidebar'
 import { BottomNav } from './bottom-nav'
 
+// ✅ FIXED: AppShell no longer initializes auth - that's AuthProvider's job
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { user, initAuth } = useAuthStore()
+  const { user, loading } = useAuthStore()
   const router = useRouter()
-  const [isAuthChecking, setIsAuthChecking] = useState(true)
 
   useEffect(() => {
-    // Initialize auth listener
-    const unsubscribe = initAuth()
-    
-    // Set auth checking to false immediately after init
-    setIsAuthChecking(false)
-    
-    return () => {
-      if (typeof unsubscribe === 'function') {
-        unsubscribe()
-      }
-    }
-  }, [initAuth])
-
-  useEffect(() => {
-    // Only redirect after auth has been checked
-    if (!isAuthChecking && !user) {
+    // ✅ FIXED: Only redirect after loading is complete
+    if (!loading && !user) {
+      console.log('🔒 AppShell: No user, redirecting to home')
       router.push('/')
     }
-  }, [user, router, isAuthChecking])
+  }, [user, loading, router])
 
-  // Show content immediately if user exists
-  if (!user && isAuthChecking) {
+  // ✅ FIXED: Show nothing while loading or if no user
+  if (loading || !user) {
     return null
   }
 
-  if (!user) {
-    return null
-  }
-
+  // ✅ Only render shell when user is authenticated
   return (
     <div className="flex min-h-screen bg-background">
       {/* Sidebar (desktop only) */}

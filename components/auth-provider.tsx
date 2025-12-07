@@ -3,20 +3,22 @@
 import { useEffect } from 'react'
 import { useAuthStore } from '@/lib/store/authStore'
 
+// ✅ FIXED: Single point of auth initialization
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { initAuth } = useAuthStore()
+  const initAuth = useAuthStore((state) => state.initAuth)
 
   useEffect(() => {
-    // Initialize auth state and listen for changes
+    // ✅ Initialize auth ONCE on app mount
     const unsubscribe = initAuth()
     
-    // Cleanup subscription on unmount
+    // ✅ Cleanup on unmount
     return () => {
-      if (unsubscribe) {
+      if (typeof unsubscribe === 'function') {
         unsubscribe()
       }
     }
   }, [initAuth])
 
+  // ✅ FIXED: No loading UI here - let children handle it
   return <>{children}</>
 }

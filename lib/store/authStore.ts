@@ -22,16 +22,18 @@ interface AuthStore {
   user: User | null
   profile: UserProfile | null
   loading: boolean
+  initialized: boolean  // ✅ NEW: Track if auth has been initialized
   register: (email: string, password: string, userData: Partial<UserProfile>) => Promise<void>
   login: (email: string, password: string) => Promise<void>
   logout: () => Promise<void>
   initAuth: () => (() => void) | void
 }
 
-export const useAuthStore = create<AuthStore>((set) => ({
+export const useAuthStore = create<AuthStore>((set, get) => ({
   user: null,
   profile: null,
-  loading: true, // Start with true to prevent flash of auth page
+  loading: true,
+  initialized: false,  // ✅ Start as false
 
   register: async (email: string, password: string, userData: Partial<UserProfile>) => {
     set({ loading: true })
@@ -151,33 +153,58 @@ export const useAuthStore = create<AuthStore>((set) => ({
   },
 
   initAuth: () => {
-    // Check for existing session first
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // ✅ FIXED: Prevent multiple initializations
+    if (get().initialized) {
+      console.log('⚠️ Auth already initialized, skipping')
+      return
+    }
+
+    console.log('🔐 Initializing auth...')
+    set({ initialized: true })
+
+    // ✅ FIXED: Wait for session restore to complete before setting state
+    supabase.auth.getSession().then(async ({ data: { session }, error }) => {
+      if (error) {
+        console.error('❌ Session restore error:', error)
+        set({ user: null, profile: null, loading: false })
+        return
+      }
+
       if (session?.user) {
-        // Fetch user profile
-        supabase
+        console.log('✅ Session restored for user:', session.user.id)
+        
+        // Fetch profile synchronously before updating state
+        const { data: profileData, error: profileError } = await supabase
           .from('users')
           .select('*')
           .eq('id', session.user.id)
           .single()
-          .then(({ data: profileData, error }) => {
-            if (error && error.code !== 'PGRST116') {
-              console.error('Profile fetch error:', error)
-            }
-            const profile = profileData as UserProfile
-            set({ user: session.user, profile: profile || null, loading: false })
-          })
+
+        if (profileError && profileError.code !== 'PGRST116') {
+          console.error('❌ Profile fetch error:', profileError)
+        }
+
+        const profile = profileData as UserProfile
+        
+        // ✅ FIXED: Set user and profile together atomically
+        set({ 
+          user: session.user, 
+          profile: profile || null, 
+          loading: false 
+        })
+        console.log('✅ Auth state ready with profile')
       } else {
+        console.log('ℹ️ No active session')
         set({ user: null, profile: null, loading: false })
       }
     })
 
-    const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      try {
-        console.log('Auth state change:', event, session?.user?.id)
-        
+    // ✅ FIXED: Listen for auth changes (login/logout/token refresh)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('🔄 Auth event:', event)
+
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
         if (session?.user) {
-          // Fetch user profile
           const { data: profileData, error } = await supabase
             .from('users')
             .select('*')
@@ -185,22 +212,21 @@ export const useAuthStore = create<AuthStore>((set) => ({
             .single()
 
           if (error && error.code !== 'PGRST116') {
-            console.error('Profile fetch error:', error)
+            console.error('❌ Profile fetch error:', error)
           }
 
           const profile = profileData as UserProfile
           set({ user: session.user, profile: profile || null, loading: false })
-        } else {
-          set({ user: null, profile: null, loading: false })
         }
-      } catch (error) {
-        console.error('Auth state change error:', error)
-        set({ loading: false })
+      } else if (event === 'SIGNED_OUT') {
+        set({ user: null, profile: null, loading: false })
       }
     })
 
+    // ✅ FIXED: Return cleanup function
     return () => {
-      listener?.subscription.unsubscribe()
+      console.log('🔌 Unsubscribing from auth changes')
+      subscription.unsubscribe()
     }
   },
 }))
