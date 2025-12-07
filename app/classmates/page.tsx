@@ -5,6 +5,7 @@ import { AppShell } from '@/components/layout/app-shell'
 import { Users, FileText, Clock, Loader2 } from 'lucide-react'
 import { useAuthStore } from '@/lib/store/authStore'
 import { supabase } from '@/lib/supabase/client'
+import { checkConnection, connectToUser, disconnectFromUser } from '@/lib/connections/connectionService'
 
 // ============ TYPES ============
 interface Classmate {
@@ -205,25 +206,31 @@ function ClassmatesList({ onConnectionChange, onCountUpdate }: ClassmatesListPro
 
       // Get all user IDs
       const userIds = users.map(u => u.id)
+      console.log('👥 Fetching data for user IDs:', userIds)
 
       // Batch fetch assignments for all users
-      const { data: allAssignments } = await supabase
+      const { data: allAssignments, error: assignmentsError } = await supabase
         .from('assignments')
         .select('user_id, assignments_data')
         .in('user_id', userIds)
 
+      console.log('📊 Assignments query result:', { allAssignments, assignmentsError })
+
       // Batch fetch timetables for all users
-      const { data: allTimetables } = await supabase
+      const { data: allTimetables, error: timetablesError } = await supabase
         .from('timetable')
         .select('user_id, timetable_data')
         .in('user_id', userIds)
 
+      console.log('📅 Timetables query result:', { allTimetables, timetablesError })
+
       // Create maps for quick lookup
       const assignmentsMap = new Map(
-        allAssignments?.map(a => [
-          a.user_id,
-          Array.isArray(a.assignments_data) && a.assignments_data.length > 0
-        ]) || []
+        allAssignments?.map(a => {
+          const hasData = Array.isArray(a.assignments_data) && a.assignments_data.length > 0
+          console.log(`📋 User ${a.user_id.substring(0, 8)}...: has ${Array.isArray(a.assignments_data) ? a.assignments_data.length : 0} assignments`)
+          return [a.user_id, hasData]
+        }) || []
       )
 
       const timetablesMap = new Map(
@@ -234,9 +241,19 @@ function ClassmatesList({ onConnectionChange, onCountUpdate }: ClassmatesListPro
             Object.values(t.timetable_data).some((day: any) => 
               Array.isArray(day) && day.length > 0
             )
+          const totalClasses = t.timetable_data ? 
+            Object.values(t.timetable_data).reduce((sum: number, day: any) => 
+              sum + (Array.isArray(day) ? day.length : 0), 0
+            ) : 0
+          console.log(`📆 User ${t.user_id.substring(0, 8)}...: has ${totalClasses} classes, hasData=${hasData}`)
           return [t.user_id, hasData]
         }) || []
       )
+
+      console.log('🗺️ Final maps:', {
+        assignmentsMap: Array.from(assignmentsMap.entries()),
+        timetablesMap: Array.from(timetablesMap.entries())
+      })
 
       // Map classmates with their data
       const classmatesWithData = users.map(classmate => ({
@@ -278,14 +295,12 @@ function ClassmatesList({ onConnectionChange, onCountUpdate }: ClassmatesListPro
 
     try {
       if (classmate.isConnected) {
-        // Unfollow - delete connection
-        const { error } = await supabase
-          .from('connections')
-          .delete()
-          .eq('follower_id', user.id)
-          .eq('following_id', classmateId)
-
-        if (error) throw error
+        // Disconnect from user
+        const result = await disconnectFromUser(user.id, classmateId)
+        
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to disconnect')
+        }
 
         // Update local state
         setClassmates(prev =>
@@ -296,15 +311,12 @@ function ClassmatesList({ onConnectionChange, onCountUpdate }: ClassmatesListPro
           )
         )
       } else {
-        // Follow - create connection
-        const { error } = await supabase
-          .from('connections')
-          .insert({
-            follower_id: user.id,
-            following_id: classmateId,
-          })
-
-        if (error) throw error
+        // Connect to user
+        const result = await connectToUser(user.id, classmateId)
+        
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to connect')
+        }
 
         // Update local state
         setClassmates(prev =>
@@ -320,6 +332,7 @@ function ClassmatesList({ onConnectionChange, onCountUpdate }: ClassmatesListPro
       onConnectionChange()
     } catch (error) {
       console.error('Failed to toggle connection:', error)
+      alert(error instanceof Error ? error.message : 'Failed to update connection')
     } finally {
       setConnectingId(null)
     }

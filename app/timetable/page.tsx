@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { AppShell } from '@/components/layout/app-shell'
-import { Clock, MapPin, Plus } from 'lucide-react'
+import { Clock, MapPin, Plus, Info, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import { useAuthStore } from '@/lib/store/authStore'
 import toast from 'react-hot-toast'
@@ -14,6 +14,7 @@ interface ClassInfo {
   title: string
   location: string
   isOwner?: boolean
+  ownerName?: string  // ✅ NEW: Name of the connected classmate
 }
 
 interface ClassCardProps {
@@ -21,6 +22,7 @@ interface ClassCardProps {
   title: string
   location: string
   isOwner?: boolean
+  ownerName?: string  // ✅ NEW
 }
 
 interface DaySelectorProps {
@@ -35,19 +37,77 @@ interface ClassScheduleProps {
 }
 
 // ============ HEADER COMPONENT ============
-function Header({ onAddClick, hasTimetable }: { onAddClick: () => void; hasTimetable: boolean }) {
+function Header({ onAddClick, hasTimetable, connectedUsers }: { onAddClick: () => void; hasTimetable: boolean; connectedUsers?: string[] }) {
+  const [showInfoPopup, setShowInfoPopup] = useState(false)
+  const router = useRouter()
+  const hasConnectedUsers = connectedUsers && connectedUsers.length > 0
+
   return (
-    <div className="flex items-start justify-between gap-4">
-      <div>
-        <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-gray-900">Timetable</h1>
+    <div>
+      <div className="flex items-start justify-between gap-4">
+        <div className="relative">
+          <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-gray-900">Timetable</h1>
+          {hasConnectedUsers && (
+            <div className="absolute -top-2 -right-20 ">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-400 to-teal-400 rounded-full shadow-lg">
+                <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                </svg>
+                <span className="text-xs font-bold text-white">{connectedUsers[0]}</span>
+              </div>
+            </div>
+          )}
+        </div>
+        {hasConnectedUsers ? (
+          <div className="relative">
+            <button
+              onClick={() => setShowInfoPopup(true)}
+              className="flex items-center justify-center w-10 h-10 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-xl font-bold text-sm transition-all shadow-sm hover:shadow-md flex-shrink-0"
+            >
+              <Info className="w-5 h-5" />
+            </button>
+            {showInfoPopup && (
+              <>
+                <div className="fixed inset-0 bg-black/20 z-40" onClick={() => setShowInfoPopup(false)} />
+                <div className="absolute right-0 top-12 z-50 w-80 bg-white rounded-2xl shadow-2xl border border-gray-200 p-5 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <button
+                    onClick={() => setShowInfoPopup(false)}
+                    className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <Info className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-gray-900 text-base mb-1">Connected to {connectedUsers[0]}</h3>
+                      <p className="text-sm text-gray-600 leading-relaxed">To add or update your own timetable, you need to disconnect from {connectedUsers[0]} first.</p>
+                    </div>
+                  </div>
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <button
+                      onClick={() => router.push('/classmates')}
+                      className="w-full px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl font-semibold text-sm hover:from-blue-700 hover:to-blue-600 transition-all shadow-md hover:shadow-lg"
+                    >
+                      Go to Classmates
+                    </button>
+                    <p className="text-xs text-center text-gray-500 mt-3">Need help? Contact support</p>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        ) : (
+          <button
+            onClick={onAddClick}
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl font-bold text-sm hover:from-blue-700 hover:to-blue-600 transition-all shadow-md hover:shadow-lg flex-shrink-0"
+          >
+            <Plus className="w-4 h-4" />
+            <span>{hasTimetable ? 'Update' : 'Add'}</span>
+          </button>
+        )}
       </div>
-      <button
-        onClick={onAddClick}
-        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl font-bold text-sm hover:from-blue-700 hover:to-blue-600 transition-all shadow-md hover:shadow-lg flex-shrink-0"
-      >
-        <Plus className="w-4 h-4" />
-        <span>{hasTimetable ? 'Update' : 'Add'}</span>
-      </button>
     </div>
   )
 }
@@ -86,16 +146,18 @@ function DaySelector({ days, selectedDay, setSelectedDay }: DaySelectorProps) {
 }
 
 // ============ CLASS CARD COMPONENT ============
-function ClassCard({ time, title, location }: ClassCardProps) {
+function ClassCard({ time, title, location, isOwner, ownerName }: ClassCardProps) {
   return (
-    <div className="bg-white rounded-lg p-5 border-l-2 border-r border-t border-b border-gray-200 hover:shadow-md transition-all" style={{ borderLeftColor: '#0A32F8' }}>
+    <div className="bg-white rounded-lg p-5 border-l-2 border-r border-t border-b border-gray-200 hover:shadow-md transition-all" style={{ borderLeftColor: isOwner ? '#0A32F8' : '#10b981' }}>
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
-          <h3 className="text-lg font-bold text-gray-900 mb-1">{title}</h3>
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className="text-lg font-bold text-gray-900">{title}</h3>
+          </div>
         </div>
         <div className="text-right flex-shrink-0">
           <p className="font-semibold text-sm mb-2">{time}</p>
-          <div className="rounded-full px-3 py-1 text-xs font-medium inline-flex items-center gap-1" style={{ backgroundColor: '#E8ECFF', color: '#0A32F8' }}>
+          <div className="rounded-full px-3 py-1 text-xs font-medium inline-flex items-center gap-1" style={{ backgroundColor: isOwner ? '#E8ECFF' : '#d1fae5', color: isOwner ? '#0A32F8' : '#047857' }}>
             <MapPin className="w-3 h-3" />
             <span>{location}</span>
           </div>
@@ -116,6 +178,8 @@ function ClassSchedule({ classesForDay, selectedDay }: ClassScheduleProps) {
             time={cls.time}
             title={cls.title}
             location={cls.location}
+            isOwner={cls.isOwner}
+            ownerName={cls.ownerName}
           />
         ))}
         {classesForDay.length === 0 && (
@@ -142,6 +206,7 @@ export default function TimetablePage() {
   })
   const [loading, setLoading] = useState(true)
   const [hasTimetable, setHasTimetable] = useState(false)
+  const [connectedUsers, setConnectedUsers] = useState<string[]>([])
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
   const classesForDay = timetable[selectedDay] || []
 
@@ -173,36 +238,32 @@ export default function TimetablePage() {
     try {
       console.log('🔍 Fetching timetable for user:', user.id)
 
-      // Fetch own timetable from timetable table (JSON structure)
+      // Initialize grouped data
+      const groupedData: Record<string, ClassInfo[]> = {
+        Monday: [],
+        Tuesday: [],
+        Wednesday: [],
+        Thursday: [],
+        Friday: [],
+      }
+
+      // ✅ 1. Fetch own timetable
       const { data: timetableRecord, error: ownError } = await supabase
         .from('timetable')
         .select('timetable_data')
         .eq('user_id', user.id)
         .single()
 
-      if (ownError) {
-        if (ownError.code === 'PGRST116') {
-          console.log('📋 No timetable found for user')
-        } else {
-          console.error('❌ Error fetching timetable:', ownError)
-        }
+      if (ownError && ownError.code !== 'PGRST116') {
+        console.error('❌ Error fetching timetable:', ownError)
       }
 
-      console.log('📊 Timetable data:', timetableRecord)
+      console.log('📊 Own timetable data:', timetableRecord)
 
+      // Add own timetable
       if (timetableRecord && timetableRecord.timetable_data) {
-        // timetable_data is already in the format we need
         const jsonData = timetableRecord.timetable_data as Record<string, Array<{ time: string; course: string; venue: string }>>
         
-        // Transform to component format
-        const groupedData: Record<string, ClassInfo[]> = {
-          Monday: [],
-          Tuesday: [],
-          Wednesday: [],
-          Thursday: [],
-          Friday: [],
-        }
-
         Object.entries(jsonData).forEach(([day, classes]) => {
           if (day in groupedData) {
             classes.forEach(classItem => {
@@ -215,14 +276,66 @@ export default function TimetablePage() {
             })
           }
         })
-
-        setTimetable(groupedData)
         setHasTimetable(true)
-        console.log('✅ Timetable loaded from database')
-      } else {
-        setHasTimetable(false)
-        console.log('📋 No timetable found')
       }
+
+      // ✅ 2. Fetch connected classmates' timetables
+      const { data: connections } = await supabase
+        .from('connections')
+        .select('following_id')
+        .eq('follower_id', user.id)
+
+      if (connections && connections.length > 0) {
+        const connectedUserIds = connections.map(c => c.following_id)
+        console.log('👥 Fetching timetables for connected users:', connectedUserIds)
+
+        // Fetch connected users' names and timetables
+        const { data: connectedUsersData } = await supabase
+          .from('users')
+          .select('id, name')
+          .in('id', connectedUserIds)
+
+        const { data: connectedTimetables } = await supabase
+          .from('timetable')
+          .select('user_id, timetable_data')
+          .in('user_id', connectedUserIds)
+
+        // Create a map of user IDs to names
+        const userNamesMap = new Map(
+          connectedUsersData?.map(u => [u.id, u.name]) || []
+        )
+
+        // Store connected users' names for header display
+        setConnectedUsers(connectedUsersData?.map(u => u.name) || [])
+
+        // Add connected users' timetables
+        connectedTimetables?.forEach(tt => {
+          if (tt.timetable_data) {
+            const jsonData = tt.timetable_data as Record<string, Array<{ time: string; course: string; venue: string }>>
+            const ownerName = userNamesMap.get(tt.user_id) || 'Classmate'
+
+            Object.entries(jsonData).forEach(([day, classes]) => {
+              if (day in groupedData) {
+                classes.forEach(classItem => {
+                  groupedData[day].push({
+                    time: classItem.time,
+                    title: classItem.course,
+                    location: classItem.venue,
+                    isOwner: false,
+                    ownerName
+                  })
+                })
+              }
+            })
+          }
+        })
+
+        console.log('✅ Added timetables from', connectedTimetables?.length || 0, 'connected users')
+      }
+
+      setTimetable(groupedData)
+      setHasTimetable(true)
+      console.log('✅ Timetable loaded from database')
 
       setLoading(false)
     } catch (error) {
@@ -236,7 +349,7 @@ export default function TimetablePage() {
     <AppShell>
       <div className="h-full flex items-start justify-center overflow-hidden">
         <div className="w-full lg:w-3/4 px-4 py-8 pb-24 lg:pb-8 overflow-x-hidden">
-          <Header onAddClick={() => router.push('/timetable/add')} hasTimetable={hasTimetable} />
+          <Header onAddClick={() => router.push('/timetable/add')} hasTimetable={hasTimetable} connectedUsers={connectedUsers} />
           
           <div className="mt-8">
             <DaySelector 
