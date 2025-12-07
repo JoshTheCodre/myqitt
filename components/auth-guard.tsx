@@ -28,9 +28,13 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     }
   }, [user, loading, pathname, router])
 
-  // ✅ FIXED: Show nothing while loading (no spinner flash)
+  // ✅ FIXED: Show minimal skeleton while loading (prevents blank screen)
   if (loading) {
-    return null
+    return (
+      <div className="min-h-screen bg-background">
+        {/* Minimal loading without visible spinner */}
+      </div>
+    )
   }
 
   return <>{children}</>

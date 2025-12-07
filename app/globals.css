@@ -75,3 +75,13 @@ body {
   color: var(--foreground);
   font-family: var(--font-text);
 }
+
+/* Shimmer animation for skeleton loaders */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}

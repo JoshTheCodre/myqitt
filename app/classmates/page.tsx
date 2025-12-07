@@ -227,10 +227,15 @@ function ClassmatesList({ onConnectionChange, onCountUpdate }: ClassmatesListPro
       )
 
       const timetablesMap = new Map(
-        allTimetables?.map(t => [
-          t.user_id,
-          t.timetable_data && Object.keys(t.timetable_data).length > 0
-        ]) || []
+        allTimetables?.map(t => {
+          // Check if timetable_data exists and has at least one day with classes
+          const hasData = t.timetable_data && 
+            typeof t.timetable_data === 'object' &&
+            Object.values(t.timetable_data).some((day: any) => 
+              Array.isArray(day) && day.length > 0
+            )
+          return [t.user_id, hasData]
+        }) || []
       )
 
       // Map classmates with their data
@@ -324,21 +329,33 @@ function ClassmatesList({ onConnectionChange, onCountUpdate }: ClassmatesListPro
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="bg-white rounded-xl p-6 border border-gray-200 animate-pulse">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
-                <div>
-                  <div className="h-5 bg-gray-200 rounded w-32 mb-2"></div>
-                  <div className="h-4 bg-gray-200 rounded w-24"></div>
-                </div>
+          <div key={i} className="bg-white rounded-xl p-5 border border-gray-200 overflow-hidden relative">
+            {/* Shimmer effect */}
+            <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/60 to-transparent"></div>
+            
+            {/* Connect button skeleton */}
+            <div className="absolute top-4 right-4 h-7 w-24 bg-gradient-to-r from-gray-100 to-gray-200 rounded-full"></div>
+            
+            {/* Avatar and header */}
+            <div className="flex items-center gap-3 pr-20 mb-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg flex-shrink-0"></div>
+              <div className="flex-1">
+                <div className="h-4 bg-gradient-to-r from-gray-200 to-gray-300 rounded-md w-28 mb-2"></div>
+                <div className="h-3 bg-gradient-to-r from-gray-100 to-gray-200 rounded-md w-20"></div>
               </div>
             </div>
-            <div className="flex gap-2 mb-4">
-              <div className="h-8 bg-gray-200 rounded w-20"></div>
-              <div className="h-8 bg-gray-200 rounded w-20"></div>
+            
+            {/* Status items */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2.5">
+                <div className="w-4 h-4 bg-gray-200 rounded flex-shrink-0"></div>
+                <div className="h-3 bg-gradient-to-r from-gray-100 to-gray-200 rounded w-32"></div>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <div className="w-4 h-4 bg-gray-200 rounded flex-shrink-0"></div>
+                <div className="h-3 bg-gradient-to-r from-gray-100 to-gray-200 rounded w-28"></div>
+              </div>
             </div>
-            <div className="h-10 bg-gray-200 rounded-lg w-full"></div>
           </div>
         ))}
       </div>

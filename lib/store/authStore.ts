@@ -163,63 +163,89 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     set({ initialized: true })
 
     // ✅ FIXED: Wait for session restore to complete before setting state
-    supabase.auth.getSession().then(async ({ data: { session }, error }) => {
-      if (error) {
-        console.error('❌ Session restore error:', error)
-        set({ user: null, profile: null, loading: false })
-        return
-      }
-
-      if (session?.user) {
-        console.log('✅ Session restored for user:', session.user.id)
-        
-        // Fetch profile synchronously before updating state
-        const { data: profileData, error: profileError } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', session.user.id)
-          .single()
-
-        if (profileError && profileError.code !== 'PGRST116') {
-          console.error('❌ Profile fetch error:', profileError)
+    supabase.auth.getSession()
+      .then(async ({ data: { session }, error }) => {
+        if (error) {
+          console.error('❌ Session restore error:', error)
+          set({ user: null, profile: null, loading: false })
+          return
         }
 
-        const profile = profileData as UserProfile
-        
-        // ✅ FIXED: Set user and profile together atomically
-        set({ 
-          user: session.user, 
-          profile: profile || null, 
-          loading: false 
-        })
-        console.log('✅ Auth state ready with profile')
-      } else {
-        console.log('ℹ️ No active session')
+        if (session?.user) {
+          console.log('✅ Session restored for user:', session.user.id)
+          
+          try {
+            // Fetch profile synchronously before updating state
+            const { data: profileData, error: profileError } = await supabase
+              .from('users')
+              .select('*')
+              .eq('id', session.user.id)
+              .single()
+
+            if (profileError && profileError.code !== 'PGRST116') {
+              console.error('❌ Profile fetch error:', profileError)
+            }
+
+            const profile = profileData as UserProfile
+            
+            // ✅ FIXED: Set user and profile together atomically
+            set({ 
+              user: session.user, 
+              profile: profile || null, 
+              loading: false 
+            })
+            console.log('✅ Auth state ready with profile')
+          } catch (err) {
+            console.error('❌ Error fetching profile:', err)
+            // Still set user even if profile fetch fails
+            set({ 
+              user: session.user, 
+              profile: null, 
+              loading: false 
+            })
+          }
+        } else {
+          console.log('ℹ️ No active session')
+          set({ user: null, profile: null, loading: false })
+        }
+      })
+      .catch((err) => {
+        console.error('❌ Fatal error in getSession:', err)
         set({ user: null, profile: null, loading: false })
-      }
-    })
+      })
 
     // ✅ FIXED: Listen for auth changes (login/logout/token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('🔄 Auth event:', event)
 
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
-        if (session?.user) {
-          const { data: profileData, error } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', session.user.id)
-            .single()
+      try {
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+          if (session?.user) {
+            console.log('🔄 Fetching profile for event:', event)
+            
+            const { data: profileData, error } = await supabase
+              .from('users')
+              .select('*')
+              .eq('id', session.user.id)
+              .single()
 
-          if (error && error.code !== 'PGRST116') {
-            console.error('❌ Profile fetch error:', error)
+            if (error && error.code !== 'PGRST116') {
+              console.error('❌ Profile fetch error:', error)
+            }
+
+            const profile = profileData as UserProfile
+            set({ user: session.user, profile: profile || null, loading: false })
+            console.log('✅ Profile updated for event:', event)
           }
-
-          const profile = profileData as UserProfile
-          set({ user: session.user, profile: profile || null, loading: false })
+        } else if (event === 'SIGNED_OUT') {
+          console.log('👋 User signed out')
+          set({ user: null, profile: null, loading: false })
+        } else if (event === 'INITIAL_SESSION') {
+          console.log('ℹ️ Initial session event (already handled by getSession)')
         }
-      } else if (event === 'SIGNED_OUT') {
-        set({ user: null, profile: null, loading: false })
+      } catch (err) {
+        console.error('❌ Error in auth state change handler:', err)
+        // Don't set loading to false here - might be transient error
       }
     })
 
