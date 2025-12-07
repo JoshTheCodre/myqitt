@@ -47,14 +47,14 @@ interface AssignmentsListProps {
 // ============ STATS CARD COMPONENT ============
 function StatsCard({ total, hasConnectedUsers }: { total: number; hasConnectedUsers?: boolean }) {
   return (
-    <div className={`bg-gradient-to-br ${hasConnectedUsers ? 'from-emerald-50 to-teal-50 border-emerald-200' : 'from-blue-50 to-indigo-50 border-blue-200'} border rounded-xl p-3 shadow-sm hover:shadow-md transition-all`}>
+    <div className={`bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-300 rounded-xl p-3 shadow-sm hover:shadow-md transition-all`}>
       <div className="flex items-center gap-3">
-        <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${hasConnectedUsers ? 'from-emerald-500 to-teal-500' : 'from-blue-600 to-blue-500'} flex items-center justify-center flex-shrink-0`}>
+        <div className={`w-8 h-8 rounded-lg bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center flex-shrink-0`}>
           <Calendar className="w-4 h-4 text-white" />
         </div>
         <div className="flex-1">
-          <p className={`text-xs font-semibold ${hasConnectedUsers ? 'text-emerald-600' : 'text-blue-600'} uppercase tracking-wide`}>Total</p>
-          <p className={`text-2xl font-bold ${hasConnectedUsers ? 'text-emerald-900' : 'text-blue-900'}`}>{total}</p>
+          <p className={`text-xs font-semibold text-gray-700 uppercase tracking-wide`}>Total</p>
+          <p className={`text-2xl font-bold text-gray-900`}>{total}</p>
         </div>
       </div>
     </div>
@@ -149,7 +149,7 @@ function AssignmentCard({
   return (
     <div className="bg-white rounded-xl border border-gray-200 hover:shadow-md transition-all p-6">
       {/* Top gradient bar */}
-      <div className="rounded-full mb-4 h-2" style={{ background: isOwner ? 'linear-gradient(to right, #E8ECFF, #C8DBFF)' : 'linear-gradient(to right, #d1fae5, #a7f3d0)' }} />
+      <div className="rounded-full mb-4 h-2 bg-gradient-to-r from-gray-300 to-gray-200" />
       
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
@@ -449,6 +449,9 @@ export default function AssignmentPage() {
     if (!user) return
 
     try {
+      let totalCount = 0
+
+      // Count user's own assignments
       const { data: assignmentRecord } = await supabase
         .from('assignments')
         .select('assignments_data')
@@ -457,10 +460,31 @@ export default function AssignmentPage() {
 
       if (assignmentRecord && assignmentRecord.assignments_data) {
         const assignments = assignmentRecord.assignments_data as any[]
-        setTotalAssignments(assignments.length)
-      } else {
-        setTotalAssignments(0)
+        totalCount += assignments.length
       }
+
+      // Count connected users' assignments
+      const { data: connections } = await supabase
+        .from('connections')
+        .select('following_id')
+        .eq('follower_id', user.id)
+
+      if (connections && connections.length > 0) {
+        const connectedUserIds = connections.map(c => c.following_id)
+
+        const { data: connectedAssignments } = await supabase
+          .from('assignments')
+          .select('assignments_data')
+          .in('user_id', connectedUserIds)
+
+        connectedAssignments?.forEach(record => {
+          if (record.assignments_data && Array.isArray(record.assignments_data)) {
+            totalCount += record.assignments_data.length
+          }
+        })
+      }
+
+      setTotalAssignments(totalCount)
     } catch (error) {
       console.error('Failed to fetch assignment count:', error)
       setTotalAssignments(0)
