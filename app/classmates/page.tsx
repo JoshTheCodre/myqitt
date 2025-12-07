@@ -35,6 +35,8 @@ interface ClassmatesListProps {
   onConnectionChange: () => void
   onCountUpdate: (count: number) => void
 }
+  onCountUpdate: (count: number) => void
+}
 
 // ============ HEADER COMPONENT ============
 function Header({ classmateCount }: HeaderProps) {
@@ -130,7 +132,7 @@ function ClassmateCard({
 }
 
 // ============ CLASSMATES LIST COMPONENT ============
-function ClassmatesList({ onConnectionChange }: ClassmatesListProps) {
+function ClassmatesList({ onConnectionChange, onCountUpdate }: ClassmatesListProps) {
   const { user } = useAuthStore()
   const [classmates, setClassmates] = useState<Classmate[]>([])
   const [loading, setLoading] = useState(true)
@@ -321,8 +323,25 @@ function ClassmatesList({ onConnectionChange }: ClassmatesListProps) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="bg-white rounded-xl p-6 border border-gray-200 animate-pulse">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
+                <div>
+                  <div className="h-5 bg-gray-200 rounded w-32 mb-2"></div>
+                  <div className="h-4 bg-gray-200 rounded w-24"></div>
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-2 mb-4">
+              <div className="h-8 bg-gray-200 rounded w-20"></div>
+              <div className="h-8 bg-gray-200 rounded w-20"></div>
+            </div>
+            <div className="h-10 bg-gray-200 rounded-lg w-full"></div>
+          </div>
+        ))}
       </div>
     )
   }

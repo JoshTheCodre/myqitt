@@ -247,8 +247,18 @@ export default function TimetablePage() {
           </div>
 
           {loading ? (
-            <div className="mt-8 flex justify-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <div className="mt-8 space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-white rounded-xl p-6 border border-gray-200 animate-pulse">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="h-6 bg-gray-200 rounded w-32 mb-2"></div>
+                      <div className="h-4 bg-gray-200 rounded w-24"></div>
+                    </div>
+                    <div className="h-5 bg-gray-200 rounded w-20"></div>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
             <ClassSchedule 

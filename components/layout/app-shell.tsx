@@ -15,13 +15,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     // Initialize auth listener
     const unsubscribe = initAuth()
     
-    // Give auth time to initialize
-    const timer = setTimeout(() => {
-      setIsAuthChecking(false)
-    }, 1000)
+    // Set auth checking to false immediately after init
+    setIsAuthChecking(false)
     
     return () => {
-      clearTimeout(timer)
       if (typeof unsubscribe === 'function') {
         unsubscribe()
       }
@@ -35,16 +32,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
   }, [user, router, isAuthChecking])
 
-  // Show loading while auth is being checked
-  if (isAuthChecking || !user) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
-        </div>
-      </div>
-    )
+  // Show content immediately if user exists
+  if (!user && isAuthChecking) {
+    return null
+  }
+
+  if (!user) {
+    return null
   }
 
   return (

@@ -249,19 +249,29 @@ function AssignmentsList({ router }: AssignmentsListProps) {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="bg-white rounded-xl p-6 border border-gray-200 animate-pulse">
+            <div className="flex items-center justify-between mb-4">
+              <div className="h-6 bg-gray-200 rounded w-24"></div>
+              <div className="h-8 w-8 bg-gray-200 rounded-lg"></div>
+            </div>
+            <div className="space-y-3">
+              <div className="h-4 bg-gray-200 rounded w-full"></div>
+              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+            </div>
+          </div>
+        ))}
       </div>
     )
   }
 
   if (assignments.length === 0) {
     return (
-      <div className="flex justify-center py-12">
-        <div className="text-center">
-          <p className="text-gray-500 text-lg">No assignments yet</p>
-          <p className="text-gray-400 text-sm mt-2">Assignments you create will appear here</p>
-        </div>
+      <div className="bg-gray-50 border border-gray-200 rounded-xl p-12 text-center">
+        <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+        <p className="text-gray-600 text-base font-medium">No assignments yet</p>
+        <p className="text-gray-500 text-sm mt-2">Assignments you create will appear here</p>
       </div>
     )
   }
