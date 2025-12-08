@@ -175,7 +175,9 @@ function TodaysClasses({ userId }: { userId?: string }) {
         return
       }
 
-      // Fetch user's timetable (JSON structure)
+      let todaysClasses: Array<{ time: string; course: string; venue: string; isOwner?: boolean; ownerName?: string }> = []
+
+      // ✅ 1. Fetch user's own timetable
       const { data: timetableRecord, error: ownError } = await supabase
         .from('timetable')
         .select('timetable_data')
@@ -187,11 +189,49 @@ function TodaysClasses({ userId }: { userId?: string }) {
         console.error('Error fetching today\'s classes:', ownError)
       }
 
-      let todaysClasses: Array<{ time: string; course: string; venue: string }> = []
-
       if (timetableRecord && timetableRecord.timetable_data) {
         const jsonData = timetableRecord.timetable_data as Record<string, Array<{ time: string; course: string; venue: string }>>
-        todaysClasses = jsonData[today] || []
+        const ownClasses = (jsonData[today] || []).map(c => ({ ...c, isOwner: true }))
+        todaysClasses.push(...ownClasses)
+      }
+
+      // ✅ 2. Fetch connected users' timetables
+      const { data: connections } = await supabase
+        .from('connections')
+        .select('following_id')
+        .eq('follower_id', userId)
+
+      if (connections && connections.length > 0) {
+        const connectedUserIds = connections.map(c => c.following_id)
+
+        // Fetch connected users' names
+        const { data: connectedUsers } = await supabase
+          .from('users')
+          .select('id, name')
+          .in('id', connectedUserIds)
+
+        const userNamesMap = new Map(
+          connectedUsers?.map(u => [u.id, u.name]) || []
+        )
+
+        // Fetch connected users' timetables
+        const { data: connectedTimetables } = await supabase
+          .from('timetable')
+          .select('user_id, timetable_data')
+          .in('user_id', connectedUserIds)
+
+        connectedTimetables?.forEach(tt => {
+          if (tt.timetable_data) {
+            const jsonData = tt.timetable_data as Record<string, Array<{ time: string; course: string; venue: string }>>
+            const ownerName = userNamesMap.get(tt.user_id) || 'Classmate'
+            const connectedClasses = (jsonData[today] || []).map(c => ({
+              ...c,
+              isOwner: false,
+              ownerName
+            }))
+            todaysClasses.push(...connectedClasses)
+          }
+        })
       }
 
       if (todaysClasses && todaysClasses.length > 0) {
@@ -223,10 +263,10 @@ function TodaysClasses({ userId }: { userId?: string }) {
 
           // Determine status
           let status = 'Upcoming'
-          let borderColor = 'border-l-blue-500'
-          let badgeBg = 'bg-blue-50'
-          let badgeText = 'text-blue-600'
-          let dot = 'bg-blue-600'
+          let borderColor = item.isOwner ? 'border-l-blue-500' : 'border-l-emerald-500'
+          let badgeBg = item.isOwner ? 'bg-blue-50' : 'bg-emerald-50'
+          let badgeText = item.isOwner ? 'text-blue-600' : 'text-emerald-600'
+          let dot = item.isOwner ? 'bg-blue-600' : 'bg-emerald-600'
 
           const currentTotalMinutes = currentHour * 60 + currentMinute
           const startTotalMinutes = startTime.hour * 60 + startTime.minute
@@ -329,14 +369,22 @@ function TodaysClasses({ userId }: { userId?: string }) {
             <p className="text-xs text-gray-600 mb-4">
               {new Date().getDay() === 0 || new Date().getDay() === 6 
                 ? "It's the weekend! Enjoy your day off."
-                : "You haven't added any classes for today"}
+                : "Add your timetable or connect with a classmate to see their schedule"}
             </p>
             {(new Date().getDay() !== 0 && new Date().getDay() !== 6) && (
-              <div className="flex justify-center">
+              <div className="flex justify-center gap-2">
                 <Link href="/timetable">
                   <button className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg font-semibold text-xs hover:from-blue-700 hover:to-blue-600 transition-all shadow-md hover:shadow-lg flex items-center gap-2">
                     <Plus className="w-3.5 h-3.5" />
                     Add Timetable
+                  </button>
+                </Link>
+                <Link href="/classmates">
+                  <button className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg font-semibold text-xs hover:from-emerald-600 hover:to-teal-600 transition-all shadow-md hover:shadow-lg flex items-center gap-2">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                    </svg>
+                    Connect
                   </button>
                 </Link>
               </div>
