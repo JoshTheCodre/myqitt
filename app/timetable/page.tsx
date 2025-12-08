@@ -54,7 +54,7 @@ function Header({ onAddClick, hasTimetable, connectedUsers }: { onAddClick: () =
               onClick={() => setShowInfoPopup(true)}
               className="relative flex items-center justify-center w-10 h-10 text-gray-400 hover:text-gray-600 rounded-xl font-bold text-sm transition-all flex-shrink-0"
             >
-              <span className="absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75 animate-ping"></span>
+              <span className="absolute inline-flex h-3 w-3 rounded-full bg-red-400 opacity-75 animate-ping"></span>
               <Unplug className="w-5 h-5 relative" />
             </button>
             {showInfoPopup && (

@@ -24,6 +24,7 @@ function AssignmentDetailContent() {
   const title = searchParams.get('title') || ''
   const description = searchParams.get('description') || ''
   const dueDate = searchParams.get('dueDate') || ''
+  const isOwner = searchParams.get('isOwner') === 'true'
 
   // Initialize form data when modal opens
   const handleOpenModal = () => {
@@ -162,23 +163,31 @@ function AssignmentDetailContent() {
           </div>
 
           {/* Action Buttons */}
-          <div className="mt-8 grid grid-cols-2 gap-4">
-            <button 
-              onClick={handleOpenModal}
-              className="flex items-center justify-center gap-2 px-6 py-4 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors shadow-md"
-            >
-              <Edit className="w-5 h-5" />
-              <span>Update</span>
-            </button>
-            <button 
-              onClick={handleDelete}
-              disabled={deleting}
-              className="flex items-center justify-center gap-2 px-6 py-4 bg-white border-2 border-red-300 text-red-600 rounded-xl font-semibold hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Trash2 className="w-5 h-5" />
-              <span>{deleting ? 'Deleting...' : 'Delete'}</span>
-            </button>
-          </div>
+          {isOwner ? (
+            <div className="mt-8 grid grid-cols-2 gap-4">
+              <button 
+                onClick={handleOpenModal}
+                className="flex items-center justify-center gap-2 px-6 py-4 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors shadow-md"
+              >
+                <Edit className="w-5 h-5" />
+                <span>Update</span>
+              </button>
+              <button 
+                onClick={handleDelete}
+                disabled={deleting}
+                className="flex items-center justify-center gap-2 px-6 py-4 bg-white border-2 border-red-300 text-red-600 rounded-xl font-semibold hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Trash2 className="w-5 h-5" />
+                <span>{deleting ? 'Deleting...' : 'Delete'}</span>
+              </button>
+            </div>
+          ) : (
+            <div className="mt-8 p-6 bg-blue-50 rounded-2xl border border-blue-200">
+              <p className="text-blue-800 font-medium text-center">
+                You can only edit or delete assignments you created. This assignment belongs to a connected classmate.
+              </p>
+            </div>
+          )}
         </div>
       </div>
 

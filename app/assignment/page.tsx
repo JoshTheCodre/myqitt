@@ -79,7 +79,7 @@ function Header({ onAddClick, connectedUsers }: { onAddClick: () => void; connec
               onClick={() => setShowInfoPopup(true)}
               className="relative flex items-center justify-center w-10 h-10 text-gray-400 hover:text-gray-600 rounded-xl font-bold text-sm transition-all flex-shrink-0"
             >
-              <span className="absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75 animate-ping"></span>
+              <span className="absolute inline-flex h-3 w-3 rounded-full bg-red-400 opacity-75 animate-ping"></span>
               <Unplug className="w-5 h-5 relative" />
             </button>
             {showInfoPopup && (
@@ -342,13 +342,14 @@ function AssignmentsList({ router, onConnectedUsersChange }: AssignmentsListProp
     }
   }
 
-  const handleDateClick = (assignmentData: AssignmentDate & { courseCode: string }) => {
+  const handleDateClick = (assignmentData: AssignmentDate & { courseCode: string; isOwner?: boolean }) => {
     const params = new URLSearchParams({
       id: assignmentData.id,
       courseCode: assignmentData.courseCode,
       title: assignmentData.title,
       description: assignmentData.description,
-      dueDate: assignmentData.label
+      dueDate: assignmentData.label,
+      isOwner: (assignmentData.isOwner ?? true).toString()
     })
     router.push(`/assignment/detail?${params.toString()}`)
   }
@@ -404,7 +405,7 @@ function AssignmentsList({ router, onConnectedUsersChange }: AssignmentsListProp
           onDateClick={(dateLabel) => {
             const dateData = assignment.dates.find(d => d.label === dateLabel)
             if (dateData) {
-              handleDateClick({ ...dateData, courseCode: assignment.courseCode })
+              handleDateClick({ ...dateData, courseCode: assignment.courseCode, isOwner: assignment.isOwner })
             }
           }}
         />
