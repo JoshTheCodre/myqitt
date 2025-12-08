@@ -1,13 +1,13 @@
 import { create } from 'zustand'
-import type { Course, CourseFilters, GroupedCourses } from '@/lib/types/course'
+import type { CourseItem, CourseFilters, GroupedCourses } from '@/lib/types/course'
 import { CourseService } from '@/lib/services/courseService'
 
 interface CourseState {
   // State
-  courses: Course[]
+  courses: CourseItem[]
   groupedCourses: GroupedCourses | null
   userCourses: GroupedCourses | null
-  searchResults: Course[]
+  searchResults: CourseItem[]
   selectedCourses: string[]
   loading: boolean
   error: string | null
@@ -23,7 +23,7 @@ interface CourseState {
   searchCourses: (searchTerm: string, filters?: CourseFilters) => Promise<void>
   setFilters: (filters: CourseFilters) => void
   setSearchTerm: (term: string) => void
-  toggleCourseSelection: (courseId: string) => void
+  toggleCourseSelection: (courseCode: string) => void
   clearSelection: () => void
   reset: () => void
 }
@@ -115,11 +115,11 @@ export const useCourseStore = create<CourseState>((set, get) => ({
     return () => clearTimeout(timeoutId)
   },
 
-  toggleCourseSelection: (courseId: string) => {
+  toggleCourseSelection: (courseCode: string) => {
     set(state => ({
-      selectedCourses: state.selectedCourses.includes(courseId)
-        ? state.selectedCourses.filter(id => id !== courseId)
-        : [...state.selectedCourses, courseId]
+      selectedCourses: state.selectedCourses.includes(courseCode)
+        ? state.selectedCourses.filter(code => code !== courseCode)
+        : [...state.selectedCourses, courseCode]
     }))
   },
 
@@ -146,18 +146,18 @@ export const useCourseSelectors = () => {
     userTotalCount: (store.userCourses?.compulsory.length || 0) + (store.userCourses?.elective.length || 0),
     
     // Total credits
-    totalCredits: store.courses.reduce((sum, c) => sum + c.credits, 0),
+    totalCredits: store.courses.reduce((sum, c) => sum + c.courseUnit, 0),
     userTotalCredits: [
       ...(store.userCourses?.compulsory || []),
       ...(store.userCourses?.elective || [])
-    ].reduce((sum, c) => sum + c.credits, 0),
+    ].reduce((sum, c) => sum + c.courseUnit, 0),
     
     // Selected courses info
     selectedCount: store.selectedCourses.length,
-    selectedCoursesData: store.courses.filter(c => store.selectedCourses.includes(c.id)),
+    selectedCoursesData: store.courses.filter(c => store.selectedCourses.includes(c.courseCode)),
     selectedCredits: store.courses
-      .filter(c => store.selectedCourses.includes(c.id))
-      .reduce((sum, c) => sum + c.credits, 0),
+      .filter(c => store.selectedCourses.includes(c.courseCode))
+      .reduce((sum, c) => sum + c.courseUnit, 0),
     
     // Has data
     hasUserCourses: !!store.userCourses && 

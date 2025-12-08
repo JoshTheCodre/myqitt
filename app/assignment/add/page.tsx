@@ -176,8 +176,8 @@ export default function AddAssignmentPage() {
                 >
                   <option value="">{loading ? 'Loading courses...' : allCourses.length === 0 ? 'No courses found' : 'Select course'}</option>
                   {allCourses.map((course) => (
-                    <option key={course.id} value={course.code}>
-                      {course.code} - {course.title}
+                    <option key={course.courseCode} value={course.courseCode}>
+                      {course.courseCode} - {course.courseTitle}
                     </option>
                   ))}
                 </select>

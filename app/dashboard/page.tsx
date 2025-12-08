@@ -20,13 +20,30 @@ const getInitials = (name?: string) => {
   return parts[0].substring(0, 2).toUpperCase()
 }
 
+const formatDepartmentDisplay = (dept?: string) => {
+  if (!dept) return 'N/A'
+  
+  // Convert snake_case to Title Case and remove underscores
+  const formatted = dept
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+  
+  // Limit to first 2 words, add ellipsis if longer
+  const words = formatted.split(' ')
+  if (words.length > 2) {
+    return words.slice(0, 2).join(' ') + '...'
+  }
+  return formatted
+}
+
 // ============ HEADER COMPONENT ============
 function Header({ profile }: { profile: UserProfile | null }) {
   return (
     <div className="flex items-start justify-between ">
       <div>
         <h1 className="text-2xl md:text-4xl font-extrabold tracking-tight">Hello, {profile?.name || 'Guest'}</h1>
-        <p className="text-xs font-semibold text-gray-700 mt-1 md:mt-2">{(profile?.department || 'CSC').toUpperCase()} <span className="text-green-500">•</span> {profile?.level ? `${profile.level}00 Level` : 'N/A'}</p>
+        <p className="text-xs font-semibold text-gray-700 mt-1 md:mt-2">{formatDepartmentDisplay(profile?.department)} <span className="text-green-500">•</span> {profile?.level ? `${profile.level}00 Level` : 'N/A'}</p>
       </div>
       <div className="flex items-center gap-3">
         <button 
@@ -190,8 +207,13 @@ function TodaysClasses({ userId }: { userId?: string }) {
       }
 
       if (timetableRecord && timetableRecord.timetable_data) {
-        const jsonData = timetableRecord.timetable_data as Record<string, Array<{ time: string; course: string; venue: string }>>
-        const ownClasses = (jsonData[today] || []).map(c => ({ ...c, isOwner: true }))
+        const jsonData = timetableRecord.timetable_data as Record<string, Array<{ time: string; course?: string; course_code?: string; course_title?: string; venue: string }>>
+        const ownClasses = (jsonData[today] || []).map(c => ({ 
+          time: c.time,
+          course: c.course_code || c.course || 'TBD',
+          venue: c.venue,
+          isOwner: true 
+        }))
         todaysClasses.push(...ownClasses)
       }
 
@@ -222,10 +244,12 @@ function TodaysClasses({ userId }: { userId?: string }) {
 
         connectedTimetables?.forEach(tt => {
           if (tt.timetable_data) {
-            const jsonData = tt.timetable_data as Record<string, Array<{ time: string; course: string; venue: string }>>
+            const jsonData = tt.timetable_data as Record<string, Array<{ time: string; course?: string; course_code?: string; course_title?: string; venue: string }>>
             const ownerName = userNamesMap.get(tt.user_id) || 'Classmate'
             const connectedClasses = (jsonData[today] || []).map(c => ({
-              ...c,
+              time: c.time,
+              course: c.course_code || c.course || 'TBD',
+              venue: c.venue,
               isOwner: false,
               ownerName
             }))

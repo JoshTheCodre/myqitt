@@ -8,6 +8,7 @@ import { useAuthStore } from '@/lib/store/authStore'
 import { Mail, Phone, GraduationCap, Building2, BookOpen, Calendar, LogOut, Edit } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import type { LucideIcon } from 'lucide-react'
+import { formatDepartmentName } from '@/lib/hooks/useDepartments'
 
 // ============ PROFILE CARD COMPONENT ============
 function ProfileCard({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string | number | null | undefined }) {
@@ -103,7 +104,7 @@ export default function ProfilePage() {
                         <ProfileCard icon={Mail} label="Email Address" value={profile?.email} />
                         <ProfileCard icon={Phone} label="Phone Number" value={profile?.phone_number} />
                         <ProfileCard icon={Building2} label="School" value={getSchoolName(profile?.school)} />
-                        <ProfileCard icon={GraduationCap} label="Department" value={profile?.department} />
+                        <ProfileCard icon={GraduationCap} label="Department" value={profile?.department ? formatDepartmentName(profile.department) : 'Not set'} />
                         
                         <div className="grid grid-cols-2 gap-3">
                             <ProfileCard icon={BookOpen} label="Level" value={profile?.level ? `${profile.level}00 Level` : undefined} />

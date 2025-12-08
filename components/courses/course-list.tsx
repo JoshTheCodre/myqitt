@@ -1,15 +1,15 @@
 'use client'
 
-import type { Course } from '@/lib/types/course'
+import type { CourseItem } from '@/lib/types/course'
 
 interface CourseCardProps {
-  course: Course
-  onClick?: (course: Course) => void
+  course: CourseItem
+  onClick?: (course: CourseItem) => void
   selected?: boolean
 }
 
 export function CourseCard({ course, onClick, selected }: CourseCardProps) {
-  const isCompulsory = course.tags?.includes('compulsory')
+  const isCompulsory = course.category === 'COMPULSORY'
   
   // Generate consistent color based on course code
   const getColorIndex = (code: string) => {
@@ -29,7 +29,7 @@ export function CourseCard({ course, onClick, selected }: CourseCardProps) {
     { bg: 'bg-gradient-to-br from-rose-50 to-rose-100', badge: 'bg-rose-50', code: 'text-rose-600', border: 'hover:border-rose-300' },
   ]
   
-  const color = colors[getColorIndex(course.code)]
+  const color = colors[getColorIndex(course.courseCode)]
   
   return (
     <div
@@ -48,40 +48,23 @@ export function CourseCard({ course, onClick, selected }: CourseCardProps) {
           <div>
             <div className="flex flex-col gap-2 mb-1">
               <div className='flex justify-between items-start'>
-                <p className={`text-md font-bold ${color.code} uppercase tracking-wider`}>{course.code}</p>
+                <p className={`text-md font-bold ${color.code} uppercase tracking-wider`}>{course.courseCode}</p>
                 <div className={`${color.badge} px-3 py-1.5 rounded-lg`}>
-                  <p className={`text-xs font-bold ${color.code}`}>{course.credits} units</p>
+                  <p className={`text-xs font-bold ${color.code}`}>{course.courseUnit} units</p>
                 </div>
               </div>
-              <p className="text-sm font-bold text-gray-900">{course.title}</p>
-              {course.description && (
-                <p className="text-xs text-gray-600 line-clamp-2">{course.description}</p>
-              )}
-              {isCompulsory !== undefined && (
-                <div className="pt-2">
-                  <span className={`text-xs font-medium px-2 py-1 rounded-full inline-block ${
-                    isCompulsory
-                      ? 'bg-gray-100 text-gray-600'
-                      : 'bg-gray-100 text-gray-600'
-                  }`}>
-                    {isCompulsory ? 'Compulsory' : 'Elective'}
-                  </span>
-                </div>
-              )}
+              <p className="text-sm font-bold text-gray-900">{course.courseTitle}</p>
+              <div className="pt-2">
+                <span className={`text-xs font-medium px-2 py-1 rounded-full inline-block ${
+                  isCompulsory
+                    ? 'bg-gray-100 text-gray-600'
+                    : 'bg-gray-100 text-gray-600'
+                }`}>
+                  {isCompulsory ? 'Compulsory' : 'Elective'}
+                </span>
+              </div>
             </div>
           </div>
-
-          {/* Lecturer */}
-          {course.lecturer && course.lecturer !== 'TBD' && (
-            <div className="pt-2 border-t border-gray-100">
-              <div className="flex items-center gap-1.5 text-xs text-gray-600">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-                <p className="truncate">{course.lecturer}</p>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>
@@ -89,10 +72,10 @@ export function CourseCard({ course, onClick, selected }: CourseCardProps) {
 }
 
 interface CourseListProps {
-  courses: Course[]
+  courses: CourseItem[]
   title?: string
   emptyMessage?: string
-  onCourseClick?: (course: Course) => void
+  onCourseClick?: (course: CourseItem) => void
   selectedCourses?: string[]
 }
 
@@ -119,10 +102,10 @@ export function CourseList({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {courses.map(course => (
           <CourseCard
-            key={course.id}
+            key={course.courseCode}
             course={course}
             onClick={onCourseClick}
-            selected={selectedCourses.includes(course.id)}
+            selected={selectedCourses.includes(course.courseCode)}
           />
         ))}
       </div>
@@ -131,9 +114,9 @@ export function CourseList({
 }
 
 interface GroupedCourseListProps {
-  compulsory: Course[]
-  elective: Course[]
-  onCourseClick?: (course: Course) => void
+  compulsory: CourseItem[]
+  elective: CourseItem[]
+  onCourseClick?: (course: CourseItem) => void
   selectedCourses?: string[]
   showCredits?: boolean
 }
@@ -145,8 +128,8 @@ export function GroupedCourseList({
   selectedCourses = [],
   showCredits = true
 }: GroupedCourseListProps) {
-  const totalCompulsoryCredits = compulsory.reduce((sum, c) => sum + c.credits, 0)
-  const totalElectiveCredits = elective.reduce((sum, c) => sum + c.credits, 0)
+  const totalCompulsoryCredits = compulsory.reduce((sum, c) => sum + c.courseUnit, 0)
+  const totalElectiveCredits = elective.reduce((sum, c) => sum + c.courseUnit, 0)
   const totalCredits = totalCompulsoryCredits + totalElectiveCredits
   const totalCourses = compulsory.length + elective.length
 

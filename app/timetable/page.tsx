@@ -263,18 +263,19 @@ export default function TimetablePage() {
         console.error('❌ Error fetching timetable:', ownError)
       }
 
-      console.log('📊 Own timetable data:', timetableRecord)
-
       // Add own timetable
       if (timetableRecord && timetableRecord.timetable_data) {
-        const jsonData = timetableRecord.timetable_data as Record<string, Array<{ time: string; course: string; venue: string }>>
+        const jsonData = timetableRecord.timetable_data as Record<string, Array<{ time: string; course?: string; course_code?: string; course_title?: string; venue: string }>>
         
         Object.entries(jsonData).forEach(([day, classes]) => {
           if (day in groupedData) {
             classes.forEach(classItem => {
+              // Display only course code
+              const courseDisplay = classItem.course_code || classItem.course || 'TBD'
+              
               groupedData[day].push({
                 time: classItem.time,
-                title: classItem.course,
+                title: courseDisplay,
                 location: classItem.venue,
                 isOwner: true
               })
@@ -316,15 +317,18 @@ export default function TimetablePage() {
         // Add connected users' timetables
         connectedTimetables?.forEach(tt => {
           if (tt.timetable_data) {
-            const jsonData = tt.timetable_data as Record<string, Array<{ time: string; course: string; venue: string }>>
+            const jsonData = tt.timetable_data as Record<string, Array<{ time: string; course?: string; course_code?: string; course_title?: string; venue: string }>>
             const ownerName = userNamesMap.get(tt.user_id) || 'Classmate'
 
             Object.entries(jsonData).forEach(([day, classes]) => {
               if (day in groupedData) {
                 classes.forEach(classItem => {
+                  // Display only course code
+                  const courseDisplay = classItem.course_code || classItem.course || 'TBD'
+                  
                   groupedData[day].push({
                     time: classItem.time,
-                    title: classItem.course,
+                    title: courseDisplay,
                     location: classItem.venue,
                     isOwner: false,
                     ownerName

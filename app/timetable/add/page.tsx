@@ -456,8 +456,8 @@ export default function AddTimetablePage() {
                         >
                           <option value="">{loading ? 'Loading courses...' : allCourses.length === 0 ? 'No courses found' : 'Select course'}</option>
                           {allCourses.map((course) => (
-                            <option key={course.id} value={course.title}>
-                              {course.code}
+                            <option key={course.courseCode} value={course.courseTitle}>
+                              {course.courseCode}
                             </option>
                           ))}
                         </select>

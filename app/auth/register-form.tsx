@@ -5,6 +5,7 @@ import { ChevronDown, Check } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '@/lib/store/authStore'
 import { supabase } from '@/lib/supabase/client'
+import { useDepartments, formatDepartmentName } from '@/lib/hooks/useDepartments'
 
 interface SchoolOption {
     id: string
@@ -28,6 +29,9 @@ export function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => v
     })
     const [selectedSchool, setSelectedSchool] = useState<string | null>(null)
     const [agreedToTerms, setAgreedToTerms] = useState(false)
+    
+    // Fetch departments based on selected school
+    const { departments, loading: loadingDepartments } = useDepartments(selectedSchool)
 
     useEffect(() => {
         const fetchSchools = async () => {
@@ -202,13 +206,18 @@ export function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => v
                         name="department"
                         value={data.department}
                         onChange={handleChange}
-                        disabled={loading}
+                        disabled={loading || loadingDepartments || !selectedSchool}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent appearance-none bg-white text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
                         style={{ '--tw-ring-color': '#4045EF' } as React.CSSProperties}
                     >
-                        <option value="">Select Department</option>
-                        <option value="Computer Science">Computer Science</option>
-                        <option value="Engineering">Engineering</option>
+                        <option value="">
+                            {!selectedSchool ? 'Select a school first' : loadingDepartments ? 'Loading departments...' : departments.length === 0 ? 'No departments available' : 'Select Department'}
+                        </option>
+                        {departments.map(dept => (
+                            <option key={dept.id} value={dept.department}>
+                                {formatDepartmentName(dept.department)}
+                            </option>
+                        ))}
                     </select>
                     <ChevronDown size={16} className="absolute right-4 top-4 text-gray-600 pointer-events-none" />
                 </div>

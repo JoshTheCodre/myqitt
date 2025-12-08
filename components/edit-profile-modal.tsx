@@ -5,6 +5,7 @@ import { X, ChevronDown, Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { supabase } from '@/lib/supabase/client'
 import { useAuthStore } from '@/lib/store/authStore'
+import { useDepartments, formatDepartmentName } from '@/lib/hooks/useDepartments'
 
 interface EditProfileModalProps {
   isOpen: boolean
@@ -30,6 +31,9 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
     semester: '',
     bio: '',
   })
+  
+  // Fetch departments based on selected school
+  const { departments, loading: loadingDepartments } = useDepartments(formData.school || null)
 
   // Load schools on mount
   useEffect(() => {
@@ -257,13 +261,18 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
                 name="department"
                 value={formData.department}
                 onChange={handleChange}
-                disabled={loading}
+                disabled={loading || loadingDepartments || !formData.school}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent appearance-none bg-white text-gray-900 disabled:opacity-50"
                 style={{ '--tw-ring-color': '#4045EF' } as React.CSSProperties}
               >
-                <option value="">Select Department</option>
-                <option value="Computer Science">Computer Science</option>
-                <option value="Engineering">Engineering</option>
+                <option value="">
+                  {!formData.school ? 'Select a school first' : loadingDepartments ? 'Loading departments...' : departments.length === 0 ? 'No departments available' : 'Select Department'}
+                </option>
+                {departments.map(dept => (
+                  <option key={dept.id} value={dept.department}>
+                    {formatDepartmentName(dept.department)}
+                  </option>
+                ))}
               </select>
               <ChevronDown size={16} className="absolute right-4 top-4 text-gray-600 pointer-events-none" />
             </div>

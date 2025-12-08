@@ -1,0 +1,346 @@
+{
+  "educational_psychology_guidance_and_counselling": {
+    "100": {
+      "1": [
+        {
+          "courseCode": "EDP100.1",
+          "courseTitle": "INTRODUCTION TO GUIDANCE AND COUNSELLING",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "EDP101.1",
+          "courseTitle": "INTRODUCTION TO PSYCHOLOGY",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "EDP102.1",
+          "courseTitle": "PSYCHOLOGY OF ADOLESCENCE",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "EDU100.1",
+          "courseTitle": "INTRODUCTION TO EDUCATION",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "EDU103.1",
+          "courseTitle": "PHYSICAL FITNESS ACTIVITIES AND WELLNESS I",
+          "courseUnit": 1,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "GES103.1",
+          "courseTitle": "NIGERIAN PEOPLE AND CULTURE I",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "GES104.1",
+          "courseTitle": "HISTORY AND PHILOSOPHY OF SCIENCE",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        }
+      ],
+      "2": [
+        {
+          "courseCode": "EDP100.2",
+          "courseTitle": "SOCIAL PSYCHOLOGY",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "EDU100.2",
+          "courseTitle": "THEORY AND PRACTICE OF PHYSICAL ACTIVITY SKILLS AND TECHNIQUES II",
+          "courseUnit": 1,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "EDU101.2",
+          "courseTitle": "INSTRUCTIONAL TECHNOLOGY",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "EDU103.2",
+          "courseTitle": "PHYSICAL FITNESS ACTIVITIES AND WELLNESS II",
+          "courseUnit": 1,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "GES100.2",
+          "courseTitle": "COMMUNICATION SKILLS IN ENGLISH LANGUAGE II",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "GES101.1",
+          "courseTitle": "COMPUTER APPRECIATION AND APPLICATIONS I",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "GES102.2",
+          "courseTitle": "INTRODUCTION TO LOGIC AND PHILOSOPHY II",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        }
+      ]
+    },
+    "200": {
+      "1": [
+        {
+          "courseCode": "EDP200.1",
+          "courseTitle": "THEORIES OF COUNSELLING AND PSYCHOTHERAPY",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "EDP201.1",
+          "courseTitle": "SOCIAL AND PSYCHOLOGICAL FOUNDATIONS OF COUNSELLING",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "EDP202.1",
+          "courseTitle": "PSYCHOLOGICAL TESTING",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "EDP203.1",
+          "courseTitle": "PERSONNEL PSYCHOLOGY",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "EDU200.1",
+          "courseTitle": "DEVELOPMENTAL PSYCHOLOGY",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "EDU201.1",
+          "courseTitle": "HISTORY OF EDUCATION",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        }
+      ],
+      "2": [
+        {
+          "courseCode": "EDP200.2",
+          "courseTitle": "PRINCIPLES AND TECHNIQUES OF BEHAVIOUR MODIFICATION",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "EDP201.2",
+          "courseTitle": "PRINCIPLES AND TECHNIQUES OF GUIDANCE AND COUNSELLING",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "EDP202.2",
+          "courseTitle": "INTRODUCTION TO HEALTH PSYCHOLOGY",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "EDP203.2",
+          "courseTitle": "SUPERVISED PRACTICUM IN GUIDANCE AND COUNSELLING",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "EDP204.2",
+          "courseTitle": "PSYCHOLOGY OF ADDITIVE BEHAVIOUR AND COUNSELLING",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "EDU202.2",
+          "courseTitle": "SOCIOLOGY OF EDUCATION",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "EDU2C1.2",
+          "courseTitle": "COMMUNITY SERVICE",
+          "courseUnit": 1,
+          "category": "COMPULSORY"
+        }
+      ]
+    },
+    "300": {
+      "1": [
+        {
+          "courseCode": "EDP300.1",
+          "courseTitle": "THEORIES OF PERSONALITY AND SOCIAL DEVELOPMENT",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "EDP301.1",
+          "courseTitle": "PRACTICUM IN GUIDANCE AND COUNSELLING",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "EDP302.1",
+          "courseTitle": "SPECIAL EDUCATION AND COUNSELLING PARENTS OF EXCEPTIONAL CHILDREN",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "EDP303.1",
+          "courseTitle": "GROUP DYNAMICS AND PROCEDURES IN GUIDANCE AND COUNSELLING",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "EDU300.1",
+          "courseTitle": "CURRICULUM DEVELOPMENT AND EVALUATION",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "EDU301.1",
+          "courseTitle": "PHILOSOPHY OF EDUCATION",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "EDU302.1",
+          "courseTitle": "PSYCHOLOGY OF LEARNING",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        }
+      ],
+      "2": [
+        {
+          "courseCode": "EDP300.2",
+          "courseTitle": "APPRAISAL METHODS IN PSYCHOLOGY, GUIDANCE AND COUNSELLING",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "EDP301.2",
+          "courseTitle": "SUPERVISED PRACTICUM/LABORATORY WORK PREPARATION FOR COUNSELLING INTERVIEWING TECHNIQUES",
+          "courseUnit": 4,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "EDP302.2",
+          "courseTitle": "SEXUALITY EDUCATION AND REPRODUCTIVE HEALTH COUNSELLING FOR ADOLESCENTS",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "EDP304.2",
+          "courseTitle": "PHYSIOLOGY OF BEHAVIOUR",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "EDU302.2",
+          "courseTitle": "METHOD COURSE",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "GES300.1",
+          "courseTitle": "FUNDAMENTALS OF ENTREPRENEURSHIP STUDIES",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        }
+      ]
+    },
+    "400": {
+      "1": [
+        {
+          "courseCode": "EDP400.1",
+          "courseTitle": "VOCATIONAL DEVELOPMENT AND CAREER INFORMATION",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "EDP402.1",
+          "courseTitle": "ABNORMAL PSYCHOLOGY AND CLINICAL COUNSELLING",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "EDP403.1",
+          "courseTitle": "PSYCHOLOGY OF STRESS MANAGEMENT AND CRISIS COUNSELLING",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "EDP404.1",
+          "courseTitle": "ANALYSIS OF CONTEMPORARY AND ETHICAL ISSUES IN GUIDANCE AND COUNSELLING",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "EDP405.1",
+          "courseTitle": "FAMILY PSYCHOLOGY AND COUNSELLING",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "EDU400.1",
+          "courseTitle": "MANAGEMENT IN EDUCATION",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "EDU401.1",
+          "courseTitle": "TEST AND MEASUREMENT",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        }
+      ],
+      "2": [
+        {
+          "courseCode": "EDP400.2",
+          "courseTitle": "ORGANIZATION AND ADMIN OF GUIDANCE AND COUNSELING IN SCHOOL AND NON SCHOOL SETTING",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "EDP402.2",
+          "courseTitle": "INDUSTRIAL PSYCHOLOGY AND ORGANISATIONAL BEHAVIOUR",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "EDP403.2",
+          "courseTitle": "EVALUATION OF GUIDANCE AND COUNSELLING PROGRAMME",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "EDP404.2",
+          "courseTitle": "TEST DEVELOPMENT AND ADMINISTRATION",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "EDU403.2",
+          "courseTitle": "RESEARCH PROJECT IN EDUCATION",
+          "courseUnit": 4,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "EDU405.2",
+          "courseTitle": "CONTINUOUS ASSESSMENT",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        }
+      ]
+    }
+  }
+}

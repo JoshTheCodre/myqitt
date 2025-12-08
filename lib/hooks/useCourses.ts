@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from 'react'
-import type { Course, CourseFilters, GroupedCourses } from '@/lib/types/course'
+import type { CourseItem, CourseFilters, GroupedCourses } from '@/lib/types/course'
 import { CourseService } from '@/lib/services/courseService'
 
 export function useCourses(filters?: CourseFilters) {
-  const [courses, setCourses] = useState<Course[]>([])
+  const [courses, setCourses] = useState<CourseItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -92,7 +92,7 @@ export function useUserCourses(userId?: string) {
 }
 
 export function useCourseSearch(searchTerm: string, filters?: CourseFilters) {
-  const [courses, setCourses] = useState<Course[]>([])
+  const [courses, setCourses] = useState<CourseItem[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
