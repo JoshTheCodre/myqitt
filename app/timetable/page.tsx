@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { AppShell } from '@/components/layout/app-shell'
-import { Clock, MapPin, Plus, Info, X } from 'lucide-react'
+import { Clock, MapPin, Plus, Unplug, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import { useAuthStore } from '@/lib/store/authStore'
 import toast from 'react-hot-toast'
@@ -47,24 +47,15 @@ function Header({ onAddClick, hasTimetable, connectedUsers }: { onAddClick: () =
       <div className="flex items-start justify-between gap-4">
         <div className="relative">
           <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-gray-900">Timetable</h1>
-          {hasConnectedUsers && (
-            <div className="absolute -top-2 -right-20 ">
-              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-500 to-gray-500 rounded-full shadow-lg">
-                <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                </svg>
-                <span className="text-xs font-bold text-white">{connectedUsers[0]}</span>
-              </div>
-            </div>
-          )}
         </div>
         {hasConnectedUsers ? (
           <div className="relative">
             <button
               onClick={() => setShowInfoPopup(true)}
-              className="flex items-center justify-center w-10 h-10 text-gray-400 hover:text-gray-600 rounded-xl font-bold text-sm transition-all flex-shrink-0"
+              className="relative flex items-center justify-center w-10 h-10 text-gray-400 hover:text-gray-600 rounded-xl font-bold text-sm transition-all flex-shrink-0"
             >
-              <Info className="w-5 h-5" />
+              <span className="absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75 animate-ping"></span>
+              <Unplug className="w-5 h-5 relative" />
             </button>
             {showInfoPopup && (
               <>
@@ -78,11 +69,12 @@ function Header({ onAddClick, hasTimetable, connectedUsers }: { onAddClick: () =
                   </button>
                   <div className="flex items-start gap-3 mb-3">
                     <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <Info className="w-4 h-4 text-blue-600" />
+                      <Unplug className="w-4 h-4 text-blue-600" />
                     </div>
                     <div>
                       <h3 className="font-bold text-gray-900 text-base mb-1">Connected to {connectedUsers[0]}</h3>
-                      <p className="text-sm text-gray-600 leading-relaxed">To add or update your own timetable, you need to disconnect from {connectedUsers[0]} first.</p>
+                      <p className="text-sm text-gray-600 leading-relaxed mb-2">You're viewing a combined timetable with {connectedUsers[0]}'s classes.</p>
+                      <p className="text-sm text-gray-600 leading-relaxed">To add or update your own timetable, disconnect from {connectedUsers[0]} first.</p>
                     </div>
                   </div>
                   <div className="mt-4 pt-4 border-t border-gray-100">
