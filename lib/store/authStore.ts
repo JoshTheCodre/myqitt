@@ -1,5 +1,4 @@
 import { create } from 'zustand'
-import { supabase } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
 import type { User } from '@supabase/supabase-js'
 
@@ -44,27 +43,14 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
   initialize: async () => {
     console.log('🔄 Initializing auth...')
     try {
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      const response = await fetch('/api/auth/session', {
+        cache: 'no-store',
+      })
+      const data = await response.json()
       
-      if (sessionError) {
-        console.error('❌ Session error:', sessionError)
-        set({ user: null, profile: null, loading: false, initialized: true })
-        return
-      }
-
-      if (session?.user) {
-        console.log('✅ User found:', session.user.id)
-        const { data: profile, error: profileError } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', session.user.id)
-          .single()
-
-        if (profileError) {
-          console.error('⚠️ Profile error:', profileError)
-        }
-
-        set({ user: session.user, profile: profile || null, loading: false, initialized: true })
+      if (data.user && data.profile) {
+        console.log('✅ User found:', data.user.id)
+        set({ user: data.user, profile: data.profile, loading: false, initialized: true })
         console.log('✅ Auth initialized with user')
       } else {
         console.log('ℹ️ No session found')
@@ -80,45 +66,26 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
   // Register new user
   register: async (email: string, password: string, userData: Partial<UserProfile>) => {
     try {
-      // Create auth user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, userData }),
+        cache: 'no-store',
       })
 
-      if (authError) throw authError
-      if (!authData.user) throw new Error('User creation failed')
+      const data = await response.json()
 
-      // Create profile
-      const { error: profileError } = await supabase
-        .from('users')
-        .insert({
-          id: authData.user.id,
-          email,
-          name: userData.name || '',
-          phone_number: userData.phone_number,
-          school: userData.school,
-          department: userData.department,
-          level: userData.level,
-          semester: userData.semester,
-          bio: userData.bio,
-        })
-
-      if (profileError) throw profileError
-
-      const profile: UserProfile = {
-        id: authData.user.id,
-        email,
-        name: userData.name || '',
-        phone_number: userData.phone_number,
-        school: userData.school,
-        department: userData.department,
-        level: userData.level,
-        semester: userData.semester,
+      if (!response.ok) {
+        throw new Error(data.error || 'Registration failed')
       }
 
-      set({ user: authData.user, profile })
+      set({ user: data.user, profile: data.profile })
       toast.success('Account created successfully!')
+      
+      // Trigger a router refresh to sync server state
+      if (typeof window !== 'undefined') {
+        window.location.href = '/dashboard'
+      }
     } catch (error: any) {
       toast.error(error.message || 'Registration failed')
       throw error
@@ -128,23 +95,26 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
   // Login user
   login: async (email: string, password: string) => {
     try {
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+        cache: 'no-store',
       })
 
-      if (authError) throw authError
-      if (!authData.user) throw new Error('Login failed')
+      const data = await response.json()
 
-      // Fetch profile
-      const { data: profile } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', authData.user.id)
-        .single()
+      if (!response.ok) {
+        throw new Error(data.error || 'Login failed')
+      }
 
-      set({ user: authData.user, profile })
+      set({ user: data.user, profile: data.profile })
       toast.success('Welcome back!')
+      
+      // Trigger a router refresh to sync server state
+      if (typeof window !== 'undefined') {
+        window.location.href = '/dashboard'
+      }
     } catch (error: any) {
       toast.error(error.message || 'Login failed')
       throw error
@@ -154,9 +124,17 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
   // Logout user
   logout: async () => {
     try {
-      await supabase.auth.signOut()
+      await fetch('/api/auth/logout', { 
+        method: 'POST',
+        cache: 'no-store',
+      })
       set({ user: null, profile: null })
       toast.success('Logged out successfully')
+      
+      // Trigger a router refresh to sync server state
+      if (typeof window !== 'undefined') {
+        window.location.href = '/'
+      }
     } catch (error: any) {
       toast.error(error.message || 'Logout failed')
       throw error

@@ -28,7 +28,7 @@ export function LoginForm() {
       await login(data.email, data.password)
       setData({ email: '', password: '' })
       if (rememberMe) localStorage.setItem('rememberMe', 'true')
-      router.push('/dashboard')
+      // Redirect is handled by the login action
     } catch (error) {
       // Error already handled by store
       console.error('Login error:', error)

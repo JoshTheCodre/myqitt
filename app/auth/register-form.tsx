@@ -123,7 +123,7 @@ export function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => v
             setData({ name: '', email: '', phone_number: '', department: '', level: '', semester: '', password: '' })
             setSelectedSchool(null)
             setAgreedToTerms(false)
-            onRegisterSuccess()
+            // Redirect is handled by the register action
         } catch {
             // Error already handled by store
         } finally {
