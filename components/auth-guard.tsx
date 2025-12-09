@@ -11,6 +11,8 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
 
+  console.log('🛡️ AuthGuard state:', { initialized, loading, hasUser: !!user, pathname })
+
   useEffect(() => {
     if (!initialized) return
 
