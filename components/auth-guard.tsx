@@ -4,27 +4,35 @@ import { useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore } from '@/lib/store/authStore'
 
+const PUBLIC_PATHS = ['/', '/auth']
+
 export function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { user, hydrated } = useAuthStore()
+  const { user, loading, initialized } = useAuthStore()
   const router = useRouter()
   const pathname = usePathname()
 
   useEffect(() => {
-    // CRITICAL: Only redirect after hydration completes
-    if (!hydrated) return
+    if (!initialized) return
 
-    const publicPaths = ['/', '/auth']
-    const isPublicPath = publicPaths.some(path => 
+    const isPublicPath = PUBLIC_PATHS.some(path => 
       pathname === path || pathname.startsWith(path + '/')
     )
 
+    // Redirect to home if not authenticated and accessing protected route
     if (!user && !isPublicPath) {
       router.push('/')
-    } else if (user && pathname === '/') {
+    }
+
+    // Redirect to dashboard if authenticated and on home page
+    if (user && pathname === '/') {
       router.push('/dashboard')
     }
-  }, [user, hydrated, pathname, router])
+  }, [user, initialized, pathname, router])
 
-  // Render immediately (no loading screen, no blank screen)
+  // Show nothing while initializing
+  if (!initialized) {
+    return null
+  }
+
   return <>{children}</>
 }

@@ -5,75 +5,37 @@ import { useAuthStore } from '@/lib/store/authStore'
 import { supabase } from '@/lib/supabase/client'
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { setAuth, setHydrated } = useAuthStore()
+  const { initialize, updateProfile } = useAuthStore()
 
   useEffect(() => {
-    let mounted = true
+    // Initialize auth state on mount
+    initialize()
 
-    // 1. Hydrate session synchronously on mount
-    const hydrateSession = async () => {
-      try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-        
-        if (sessionError || !session?.user) {
-          if (mounted) {
-            setAuth(null, null)
-            setHydrated(true)
-          }
-          return
-        }
-
-        // Fetch profile before setting hydrated
-        const { data: profile } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', session.user.id)
-          .single()
-
-        if (mounted) {
-          setAuth(session.user, profile)
-          setHydrated(true)
-        }
-      } catch (error) {
-        console.error('Hydration error:', error)
-        if (mounted) {
-          setAuth(null, null)
-          setHydrated(true)
-        }
-      }
-    }
-
-    // 2. Subscribe to auth changes
+    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (!mounted) return
+        if (event === 'SIGNED_IN' && session?.user) {
+          const { data: profile } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', session.user.id)
+            .single()
 
-        if (event === 'SIGNED_OUT') {
-          setAuth(null, null)
-          return
+          if (profile) {
+            updateProfile(profile)
+          }
         }
 
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
-          if (session?.user) {
-            const { data: profile } = await supabase
-              .from('users')
-              .select('*')
-              .eq('id', session.user.id)
-              .single()
-
-            setAuth(session.user, profile)
-          }
+        if (event === 'SIGNED_OUT') {
+          useAuthStore.setState({ user: null, profile: null })
         }
       }
     )
 
-    hydrateSession()
-
     return () => {
-      mounted = false
       subscription.unsubscribe()
     }
-  }, [setAuth, setHydrated])
+  }, [initialize, updateProfile])
 
   return <>{children}</>
 }

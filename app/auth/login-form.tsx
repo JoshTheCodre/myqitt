@@ -7,7 +7,8 @@ import { useAuthStore } from '@/lib/store/authStore'
 
 export function LoginForm() {
   const router = useRouter()
-  const { login, loading } = useAuthStore()
+  const { login } = useAuthStore()
+  const [loading, setLoading] = useState(false)
   const [data, setData] = useState({ email: '', password: '' })
   const [rememberMe, setRememberMe] = useState(false)
 
@@ -22,18 +23,17 @@ export function LoginForm() {
     if (!data.email.trim()) return toast.error('Email is required')
     if (!data.password.trim()) return toast.error('Password is required')
 
+    setLoading(true)
     try {
       await login(data.email, data.password)
       setData({ email: '', password: '' })
       if (rememberMe) localStorage.setItem('rememberMe', 'true')
-      
-      // Small delay to ensure auth state is updated
-      setTimeout(() => {
-        router.push('/dashboard')
-      }, 100)
+      router.push('/dashboard')
     } catch (error) {
       // Error already handled by store
       console.error('Login error:', error)
+    } finally {
+      setLoading(false)
     }
   }
 

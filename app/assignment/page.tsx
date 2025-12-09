@@ -187,6 +187,8 @@ function AssignmentCard({
 function AssignmentsList({ router, onConnectedUsersChange }: AssignmentsListProps) {
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [loading, setLoading] = useState(true)
+  const [usersWithoutData, setUsersWithoutData] = useState<string[]>([])
+  const [hasConnections, setHasConnections] = useState(false)
   const { user } = useAuthStore()
 
   useEffect(() => {
@@ -256,6 +258,7 @@ function AssignmentsList({ router, onConnectedUsersChange }: AssignmentsListProp
         .eq('follower_id', user.id)
 
       if (connections && connections.length > 0) {
+        setHasConnections(true)
         const connectedUserIds = connections.map(c => c.following_id)
         console.log('👥 Fetching assignments for connected users:', connectedUserIds)
 
@@ -300,13 +303,9 @@ function AssignmentsList({ router, onConnectedUsersChange }: AssignmentsListProp
           return !hasData
         })
 
-        if (usersWithNoAssignments.length > 0 && allItems.length === 0) {
-          const userNames = usersWithNoAssignments
-            .map(id => userNamesMap.get(id) || 'Classmate')
-            .join(', ')
-          toast(`${userNames} ${usersWithNoAssignments.length === 1 ? 'has' : 'have'} not added any assignments yet`, {
-            icon: 'ℹ️',
-          })
+        if (usersWithNoAssignments.length > 0) {
+          const userNames = usersWithNoAssignments.map(id => userNamesMap.get(id) || 'Classmate')
+          setUsersWithoutData(userNames)
         }
 
         console.log('✅ Added assignments from', connectedAssignments?.length || 0, 'connected users')
@@ -392,7 +391,7 @@ function AssignmentsList({ router, onConnectedUsersChange }: AssignmentsListProp
     )
   }
 
-  if (assignments.length === 0) {
+  if (assignments.length === 0 && usersWithoutData.length === 0) {
     return (
       <div className="bg-gray-50 border border-gray-200 rounded-xl p-12 text-center">
         <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-3" />
@@ -411,24 +410,51 @@ function AssignmentsList({ router, onConnectedUsersChange }: AssignmentsListProp
     )
   }
 
+  if (assignments.length === 0 && usersWithoutData.length > 0) {
+    return (
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-12 text-center">
+        <svg className="w-12 h-12 text-blue-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <p className="text-blue-800 text-base font-medium">
+          {usersWithoutData.join(', ')} {usersWithoutData.length === 1 ? 'Has' : 'Have'} Not Added Any Assignment Yet
+        </p>
+        <p className="text-blue-600 text-sm mt-2">They haven't created their assignments yet. Check back later!</p>
+      </div>
+    )
+  }
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {assignments.map((assignment) => (
-        <AssignmentCard
-          key={assignment.id}
-          courseCode={assignment.courseCode}
-          assignmentCount={assignment.assignmentCount}
-          dates={assignment.dates}
-          isOwner={assignment.isOwner}
-          ownerName={assignment.ownerName}
-          onDateClick={(dateLabel) => {
-            const dateData = assignment.dates.find(d => d.label === dateLabel)
-            if (dateData) {
-              handleDateClick({ ...dateData, courseCode: assignment.courseCode, isOwner: assignment.isOwner })
-            }
-          }}
-        />
-      ))}
+    <div className="space-y-6">
+      {usersWithoutData.length > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 text-center">
+          <svg className="w-10 h-10 text-blue-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <p className="text-blue-800 text-base font-medium">
+            {usersWithoutData.join(', ')} {usersWithoutData.length === 1 ? 'has' : 'have'} not added any assignments yet
+          </p>
+          <p className="text-blue-600 text-sm mt-2">They haven't created their assignments yet. Check back later!</p>
+        </div>
+      )}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {assignments.map((assignment) => (
+          <AssignmentCard
+            key={assignment.id}
+            courseCode={assignment.courseCode}
+            assignmentCount={assignment.assignmentCount}
+            dates={assignment.dates}
+            isOwner={assignment.isOwner}
+            ownerName={assignment.ownerName}
+            onDateClick={(dateLabel) => {
+              const dateData = assignment.dates.find(d => d.label === dateLabel)
+              if (dateData) {
+                handleDateClick({ ...dateData, courseCode: assignment.courseCode, isOwner: assignment.isOwner })
+              }
+            }}
+          />
+        ))}
+      </div>
     </div>
   )
 }

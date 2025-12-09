@@ -18,27 +18,54 @@ export interface UserProfile {
   updated_at?: string
 }
 
-interface AuthStore {
+interface AuthState {
   user: User | null
   profile: UserProfile | null
-  hydrated: boolean  // ✅ CRITICAL: Prevents redirects before session loads
+  loading: boolean
+  initialized: boolean
+}
+
+interface AuthActions {
+  initialize: () => Promise<void>
   register: (email: string, password: string, userData: Partial<UserProfile>) => Promise<void>
   login: (email: string, password: string) => Promise<void>
   logout: () => Promise<void>
-  setAuth: (user: User | null, profile: UserProfile | null) => void
-  setHydrated: (hydrated: boolean) => void
+  updateProfile: (profile: UserProfile) => void
 }
 
-export const useAuthStore = create<AuthStore>((set, get) => ({
+export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
+  // State
   user: null,
   profile: null,
-  hydrated: false,  // ✅ Starts false, set true after first session check
+  loading: true,
+  initialized: false,
 
-  setAuth: (user, profile) => set({ user, profile }),
-  setHydrated: (hydrated) => set({ hydrated }),
+  // Initialize auth state
+  initialize: async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', session.user.id)
+          .single()
 
+        set({ user: session.user, profile, loading: false, initialized: true })
+      } else {
+        set({ user: null, profile: null, loading: false, initialized: true })
+      }
+    } catch (error) {
+      console.error('Auth initialization error:', error)
+      set({ user: null, profile: null, loading: false, initialized: true })
+    }
+  },
+
+  // Register new user
   register: async (email: string, password: string, userData: Partial<UserProfile>) => {
     try {
+      // Create auth user
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -47,12 +74,11 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       if (authError) throw authError
       if (!authData.user) throw new Error('User creation failed')
 
-      const userId = authData.user.id
-
+      // Create profile
       const { error: profileError } = await supabase
         .from('users')
         .insert({
-          id: userId,
+          id: authData.user.id,
           email,
           name: userData.name || '',
           phone_number: userData.phone_number,
@@ -63,13 +89,10 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
           bio: userData.bio,
         })
 
-      if (profileError) {
-        console.error('Profile creation error:', profileError)
-        throw profileError
-      }
+      if (profileError) throw profileError
 
       const profile: UserProfile = {
-        id: userId,
+        id: authData.user.id,
         email,
         name: userData.name || '',
         phone_number: userData.phone_number,
@@ -81,14 +104,13 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
       set({ user: authData.user, profile })
       toast.success('Account created successfully!')
-    } catch (error) {
-      const err = error as Error
-      const msg = err?.message || 'Registration failed'
-      toast.error(msg)
+    } catch (error: any) {
+      toast.error(error.message || 'Registration failed')
       throw error
     }
   },
 
+  // Login user
   login: async (email: string, password: string) => {
     try {
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
@@ -96,50 +118,38 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         password,
       })
 
-      if (authError) {
-        if (authError.message?.toLowerCase().includes('email not confirmed') || 
-            authError.message?.toLowerCase().includes('email_not_confirmed')) {
-          toast.error('Email not yet confirmed. Please check your inbox for a confirmation link.')
-          throw new Error('Email not confirmed')
-        }
-        throw authError
-      }
-
+      if (authError) throw authError
       if (!authData.user) throw new Error('Login failed')
 
-      const { data: profileData, error: profileError } = await supabase
+      // Fetch profile
+      const { data: profile } = await supabase
         .from('users')
         .select('*')
         .eq('id', authData.user.id)
         .single()
 
-      if (profileError && profileError.code !== 'PGRST116') throw profileError
-
-      const profile = profileData as UserProfile
-
-      set({ user: authData.user, profile: profile || null })
-      toast.success('Logged in successfully!')
-    } catch (error) {
-      const err = error as Error
-      const msg = err?.message || 'Login failed'
-      if (!msg.includes('Email not confirmed')) {
-        toast.error(msg)
-      }
+      set({ user: authData.user, profile })
+      toast.success('Welcome back!')
+    } catch (error: any) {
+      toast.error(error.message || 'Login failed')
       throw error
     }
   },
 
+  // Logout user
   logout: async () => {
     try {
-      const { error } = await supabase.auth.signOut()
-      if (error) throw error
-
+      await supabase.auth.signOut()
       set({ user: null, profile: null })
-      toast.success('Logged out successfully!')
-    } catch (error) {
-      const err = error as Error
-      const msg = err?.message || 'Logout failed'
-      toast.error(msg)
+      toast.success('Logged out successfully')
+    } catch (error: any) {
+      toast.error(error.message || 'Logout failed')
+      throw error
     }
+  },
+
+  // Update profile in state
+  updateProfile: (profile: UserProfile) => {
+    set({ profile })
   },
 }))

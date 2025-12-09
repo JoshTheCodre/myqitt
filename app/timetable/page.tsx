@@ -34,6 +34,7 @@ interface DaySelectorProps {
 interface ClassScheduleProps {
   classesForDay: ClassInfo[]
   selectedDay: string
+  usersWithoutTimetable: string[]
 }
 
 // ============ HEADER COMPONENT ============
@@ -160,15 +161,15 @@ function ClassCard({ time, title, location, isOwner, ownerName }: ClassCardProps
 }
 
 // ============ CLASS SCHEDULE COMPONENT ============
-function ClassSchedule({ classesForDay, selectedDay }: ClassScheduleProps) {
+function ClassSchedule({ classesForDay, selectedDay, usersWithoutTimetable }: ClassScheduleProps) {
   const router = useRouter()
   
   return (
     <div className="mt-8">
       <div className="space-y-4">
-        {classesForDay.map((cls, index) => (
+        {classesForDay.map((cls, idx) => (
           <ClassCard
-            key={index}
+            key={idx}
             time={cls.time}
             title={cls.title}
             location={cls.location}
@@ -176,7 +177,7 @@ function ClassSchedule({ classesForDay, selectedDay }: ClassScheduleProps) {
             ownerName={cls.ownerName}
           />
         ))}
-        {classesForDay.length === 0 && (
+        {classesForDay.length === 0 && usersWithoutTimetable.length === 0 && (
           <div className="bg-gray-50 border border-gray-200 rounded-xl p-12 text-center">
             <Clock className="w-12 h-12 text-gray-400 mx-auto mb-3" />
             <p className="text-gray-600 text-base font-medium">No classes on {selectedDay}</p>
@@ -190,6 +191,17 @@ function ClassSchedule({ classesForDay, selectedDay }: ClassScheduleProps) {
               </svg>
               <span>Connect with Classmates</span>
             </button>
+          </div>
+        )}
+        {classesForDay.length === 0 && usersWithoutTimetable.length > 0 && (
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-12 text-center">
+            <svg className="w-12 h-12 text-blue-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-blue-800 text-base font-medium">
+              {usersWithoutTimetable.join(', ')} {usersWithoutTimetable.length === 1 ? 'Has' : 'Have'} Not Added Any Timetable Yet
+            </p>
+            <p className="text-blue-600 text-sm mt-2">They haven't created their timetable yet. Check back later!</p>
           </div>
         )}
       </div>
@@ -212,6 +224,7 @@ export default function TimetablePage() {
   const [loading, setLoading] = useState(true)
   const [hasTimetable, setHasTimetable] = useState(false)
   const [connectedUsers, setConnectedUsers] = useState<string[]>([])
+  const [usersWithoutTimetable, setUsersWithoutTimetable] = useState<string[]>([])
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
   const classesForDay = timetable[selectedDay] || []
 
@@ -349,13 +362,9 @@ export default function TimetablePage() {
           return !hasData
         })
 
-        if (usersWithNoTimetable.length > 0 && !hasAnyTimetableData && !hasTimetable) {
-          const userNames = usersWithNoTimetable
-            .map(id => userNamesMap.get(id) || 'Classmate')
-            .join(', ')
-          toast(`${userNames} ${usersWithNoTimetable.length === 1 ? 'has' : 'have'} not added a timetable yet`, {
-            icon: 'ℹ️',
-          })
+        if (usersWithNoTimetable.length > 0) {
+          const userNames = usersWithNoTimetable.map(id => userNamesMap.get(id) || 'Classmate')
+          setUsersWithoutTimetable(userNames)
         }
 
         console.log('✅ Added timetables from', connectedTimetables?.length || 0, 'connected users')
@@ -403,8 +412,9 @@ export default function TimetablePage() {
             </div>
           ) : (
             <ClassSchedule 
-              classesForDay={classesForDay}
+              classesForDay={classesForDay} 
               selectedDay={selectedDay}
+              usersWithoutTimetable={usersWithoutTimetable}
             />
           )}
         </div>

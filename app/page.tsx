@@ -1,28 +1,21 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/store/authStore'
 import { RegistrationForm } from './auth/registration-form'
 
 export default function HomePage() {
-  const [mounted, setMounted] = useState(false)
-  const { user } = useAuthStore()
+  const { user, initialized } = useAuthStore()
   const router = useRouter()
 
   useEffect(() => {
-    // Set mounted after a tick to avoid sync setState
-    const timer = setTimeout(() => setMounted(true), 0)
-    return () => clearTimeout(timer)
-  }, [])
-
-  useEffect(() => {
-    if (mounted && user) {
+    if (initialized && user) {
       router.push('/dashboard')
     }
-  }, [user, mounted, router])
+  }, [user, initialized, router])
 
-  if (!mounted) {
+  if (!initialized) {
     return null
   }
 
