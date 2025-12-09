@@ -16,11 +16,21 @@ async function generateFavicon() {
   try {
     console.log('📦 Generating favicon.png from symbol icon...');
 
-    // Create a 32x32 favicon from symbol
+    // Create a 32x32 favicon from symbol with padding
+    const faviconSize = 32;
+    const symbolSize = Math.floor(faviconSize * 0.75); // Use 75% for favicon (smaller padding)
+    
     await sharp(SYMBOL_PATH)
-      .resize(32, 32, {
+      .resize(symbolSize, symbolSize, {
         fit: 'contain',
-        background: { r: 255, g: 255, b: 255, alpha: 1 },
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      })
+      .extend({
+        top: Math.floor((faviconSize - symbolSize) / 2),
+        bottom: Math.floor((faviconSize - symbolSize) / 2),
+        left: Math.floor((faviconSize - symbolSize) / 2),
+        right: Math.floor((faviconSize - symbolSize) / 2),
+        background: { r: 255, g: 255, b: 255, alpha: 1 }
       })
       .toFormat('png')
       .toFile(OUTPUT_PATH.replace('.ico', '.png'));

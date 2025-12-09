@@ -27,10 +27,20 @@ async function generateIcons() {
       
       console.log(`Creating ${name} (${width}×${height})...`);
 
+      // Create icon with padding to prevent zoom appearance
+      const symbolSize = Math.floor(width * 0.8); // Use 80% of the icon size
+      
       await sharp(SYMBOL_PATH)
-        .resize(width, height, {
+        .resize(symbolSize, symbolSize, {
           fit: 'contain',
-          background: { r: 255, g: 255, b: 255, alpha: 1 },
+          background: { r: 0, g: 0, b: 0, alpha: 0 }, // Transparent background for symbol
+        })
+        .extend({
+          top: Math.floor((height - symbolSize) / 2),
+          bottom: Math.floor((height - symbolSize) / 2),
+          left: Math.floor((width - symbolSize) / 2),
+          right: Math.floor((width - symbolSize) / 2),
+          background: { r: 255, g: 255, b: 255, alpha: 1 } // White background for final icon
         })
         .png()
         .toFile(outputPath);
