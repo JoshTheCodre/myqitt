@@ -1,7 +1,5 @@
 'use client'
 
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/store/authStore'
 import { Sidebar } from './sidebar'
 import { BottomNav } from './bottom-nav'
@@ -9,15 +7,9 @@ import { BottomNav } from './bottom-nav'
 // ✅ FIXED: AppShell no longer initializes auth - that's AuthProvider's job
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuthStore()
-  const router = useRouter()
 
-  useEffect(() => {
-    // ✅ FIXED: Only redirect after loading is complete
-    if (!loading && !user) {
-      console.log('🔒 AppShell: No user, redirecting to home')
-      router.push('/')
-    }
-  }, [user, loading, router])
+  // ✅ REMOVED: AppShell should not handle auth redirects - that's AuthGuard's job
+  // The AuthGuard component already handles authentication-based routing
 
   // ✅ FIXED: Show layout skeleton while loading (prevents blank screen)
   if (loading) {

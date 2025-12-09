@@ -19,19 +19,29 @@ export function LoginForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    console.log('📝 [LOGIN FORM] Form submitted for email:', data.email)
 
-    if (!data.email.trim()) return toast.error('Email is required')
-    if (!data.password.trim()) return toast.error('Password is required')
+    if (!data.email.trim()) {
+      console.log('❌ [LOGIN FORM] Email validation failed')
+      return toast.error('Email is required')
+    }
+    if (!data.password.trim()) {
+      console.log('❌ [LOGIN FORM] Password validation failed')
+      return toast.error('Password is required')
+    }
 
+    console.log('✅ [LOGIN FORM] Validation passed, calling login...')
     setLoading(true)
     try {
       await login(data.email, data.password)
+      console.log('✅ [LOGIN FORM] Login completed successfully')
       setData({ email: '', password: '' })
-      if (rememberMe) localStorage.setItem('rememberMe', 'true')
-      // Redirect is handled by the login action
+      if (rememberMe) {
+        localStorage.setItem('rememberMe', 'true')
+        console.log('💾 [LOGIN FORM] Remember me saved')
+      }
     } catch (error) {
-      // Error already handled by store
-      console.error('Login error:', error)
+      console.log('❌ [LOGIN FORM] Login failed:', error)
     } finally {
       setLoading(false)
     }

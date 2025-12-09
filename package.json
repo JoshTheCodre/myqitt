@@ -9,7 +9,8 @@
     "lint": "eslint",
     "seed": "tsx scripts/seedDb.ts",
     "add-timetable": "tsx scripts/addTimetable.ts",
-    "add-assignment": "tsx scripts/addAssignment.ts"
+    "add-assignment": "tsx scripts/addAssignment.ts",
+    "generate-icons": "node scripts/generateIcons.js"
   },
   "dependencies": {
     "@supabase/ssr": "^0.8.0",
@@ -30,6 +31,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.0.3",
+    "sharp": "^0.34.5",
     "tailwindcss": "^4",
     "tsx": "^4.20.6",
     "typescript": "^5"

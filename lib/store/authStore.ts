@@ -42,24 +42,46 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
   // Initialize auth state
   initialize: async () => {
     console.log('🔄 Initializing auth...')
+    set({ loading: true, initialized: false })
+    
     try {
       const response = await fetch('/api/auth/session', {
+        method: 'GET',
         cache: 'no-store',
+        credentials: 'include',
       })
+      
+      if (!response.ok) {
+        throw new Error('Session check failed')
+      }
+      
       const data = await response.json()
       
       if (data.user && data.profile) {
-        console.log('✅ User found:', data.user.id)
-        set({ user: data.user, profile: data.profile, loading: false, initialized: true })
-        console.log('✅ Auth initialized with user')
+        console.log('✅ User session found:', data.user.id)
+        set({ 
+          user: data.user, 
+          profile: data.profile, 
+          loading: false, 
+          initialized: true 
+        })
       } else {
-        console.log('ℹ️ No session found')
-        set({ user: null, profile: null, loading: false, initialized: true })
-        console.log('✅ Auth initialized without user')
+        console.log('ℹ️ No active session')
+        set({ 
+          user: null, 
+          profile: null, 
+          loading: false, 
+          initialized: true 
+        })
       }
     } catch (error) {
-      console.error('❌ Auth initialization error:', error)
-      set({ user: null, profile: null, loading: false, initialized: true })
+      console.error('❌ Auth initialization failed:', error)
+      set({ 
+        user: null, 
+        profile: null, 
+        loading: false, 
+        initialized: true 
+      })
     }
   },
 
@@ -94,11 +116,17 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
 
   // Login user
   login: async (email: string, password: string) => {
+    console.log('🔐 Attempting login...')
+    set({ loading: true })
+    
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ email, password }),
+        credentials: 'include',
         cache: 'no-store',
       })
 
@@ -108,14 +136,28 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
         throw new Error(data.error || 'Login failed')
       }
 
-      set({ user: data.user, profile: data.profile })
+      console.log('✅ Login successful')
+      
+      // Update state with user data
+      set({ 
+        user: data.user, 
+        profile: data.profile, 
+        loading: false, 
+        initialized: true 
+      })
+      
       toast.success('Welcome back!')
       
-      // Trigger a router refresh to sync server state
+      // Use a proper navigation approach
+      await new Promise(resolve => setTimeout(resolve, 200))
+      
       if (typeof window !== 'undefined') {
-        window.location.href = '/dashboard'
+        window.location.replace('/dashboard')
       }
+      
     } catch (error: any) {
+      console.error('❌ Login failed:', error)
+      set({ loading: false })
       toast.error(error.message || 'Login failed')
       throw error
     }
@@ -123,21 +165,58 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
 
   // Logout user
   logout: async () => {
+    console.log('🚪 Logging out...')
+    set({ loading: true })
+    
     try {
-      await fetch('/api/auth/logout', { 
+      // Call logout API first
+      const response = await fetch('/api/auth/logout', { 
         method: 'POST',
+        credentials: 'include',
         cache: 'no-store',
       })
-      set({ user: null, profile: null })
+      
+      if (!response.ok) {
+        throw new Error('Logout API failed')
+      }
+      
+      console.log('✅ Logout API successful')
+      
+      // Clear auth state completely
+      set({ 
+        user: null, 
+        profile: null, 
+        loading: false, 
+        initialized: true 
+      })
+      
+      // Clear any local storage
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('rememberMe')
+        localStorage.removeItem('schools_cache')
+        localStorage.removeItem('schools_cache_timestamp')
+      }
+      
       toast.success('Logged out successfully')
       
-      // Trigger a router refresh to sync server state
+      // Ensure clean redirect
+      await new Promise(resolve => setTimeout(resolve, 300))
+      
       if (typeof window !== 'undefined') {
-        window.location.href = '/'
+        window.location.replace('/')
       }
+      
     } catch (error: any) {
+      console.error('❌ Logout failed:', error)
+      set({ loading: false })
       toast.error(error.message || 'Logout failed')
-      throw error
+      
+      // Force redirect even if API fails
+      if (typeof window !== 'undefined') {
+        setTimeout(() => {
+          window.location.replace('/')
+        }, 1000)
+      }
     }
   },
 

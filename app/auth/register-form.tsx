@@ -57,12 +57,24 @@ export function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => v
                 
                 if (error) throw error
                 
-                const formattedSchools: SchoolOption[] = schoolsData.map((school: { id: string; name: string }) => ({
-                    id: school.id,
-                    name: school.name,
-                    logo: `/schools/${school.name.toLowerCase()}.png`,
-                    initials: school.name.substring(0, 1),
-                }))
+                const formattedSchools: SchoolOption[] = schoolsData.map((school: { id: string; name: string }) => {
+                    // Map school names to correct image files
+                    let logoPath = `/schools/${school.name.toLowerCase().replace(/\s+/g, '')}.png`
+                    
+                    // Handle specific school name mappings
+                    if (school.name.toLowerCase().includes('rivers state university') || school.name.toLowerCase().includes('rsu')) {
+                        logoPath = '/rsu.jpeg'
+                    } else if (school.name.toLowerCase().includes('university of port harcourt') || school.name.toLowerCase().includes('uniport')) {
+                        logoPath = '/uniport.png'
+                    }
+                    
+                    return {
+                        id: school.id,
+                        name: school.name,
+                        logo: logoPath,
+                        initials: school.name.substring(0, 1),
+                    }
+                })
                 
                 // Cache the schools data
                 localStorage.setItem('schools_cache', JSON.stringify(formattedSchools))
@@ -180,7 +192,7 @@ export function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => v
 
             <div>
                 <label className="block text-sm font-medium text-gray-800 mb-2">Select School</label>
-                <div className="flex gap-2 h-12">
+                <div className="flex gap-2 h-16">
                     {loadingSchools ? (
                         <div className="flex-1 flex items-center justify-center text-gray-500">Loading schools...</div>
                     ) : schools.length > 0 ? (
@@ -190,11 +202,20 @@ export function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => v
                                 type="button"
                                 onClick={() => setSelectedSchool(school.id)}
                                 disabled={loading || loadingSchools}
-                                className={`flex-1 flex items-center justify-center gap-2 border-2 rounded-lg transition-colors overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed ${selectedSchool === school.id ? 'border-2' : 'border-gray-200 hover:border-gray-300'
+                                className={`flex-1 flex flex-col items-center justify-center gap-1 p-2 border-2 rounded-lg transition-colors overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed ${selectedSchool === school.id ? 'border-2' : 'border-gray-200 hover:border-gray-300'
                                     }`}
                                 style={selectedSchool === school.id ? { borderColor: '#4045EF', backgroundColor: '#f0f4ff' } : {}}
                             >
-                                <span className="text-xs font-semibold text-gray-700">{school.name}</span>
+                                <img 
+                                    src={school.logo} 
+                                    alt={`${school.name} logo`}
+                                    className="w-6 h-6 object-contain"
+                                    onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        target.style.display = 'none';
+                                    }}
+                                />
+                                <span className="text-xs font-semibold text-gray-700 text-center leading-tight">{school.name}</span>
                             </button>
                         ))
                     ) : (

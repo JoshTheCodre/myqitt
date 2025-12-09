@@ -6,6 +6,7 @@ import { Users, FileText, Clock, Loader2 } from 'lucide-react'
 import { useAuthStore } from '@/lib/store/authStore'
 import { supabase } from '@/lib/supabase/client'
 import { checkConnection, connectToUser, disconnectFromUser } from '@/lib/connections/connectionService'
+import toast from 'react-hot-toast'
 
 // ============ TYPES ============
 interface Classmate {
@@ -282,15 +283,6 @@ function ClassmatesList({ onConnectionChange, onCountUpdate }: ClassmatesListPro
     const classmate = classmates.find(c => c.id === classmateId)
     if (!classmate) return
 
-    // Prevent connecting if already connected to someone else
-    if (!classmate.isConnected) {
-      const hasConnection = classmates.some(c => c.isConnected)
-      if (hasConnection) {
-        alert('You can only connect to one classmate at a time. Please disconnect from your current connection first.')
-        return
-      }
-    }
-
     setConnectingId(classmateId)
 
     try {
@@ -310,12 +302,16 @@ function ClassmatesList({ onConnectionChange, onCountUpdate }: ClassmatesListPro
               : c
           )
         )
+        
+        toast.success('Successfully disconnected')
       } else {
         // Connect to user
         const result = await connectToUser(user.id, classmateId)
         
         if (!result.success) {
-          throw new Error(result.error || 'Failed to connect')
+          toast.error(result.error || 'Failed to connect')
+          setConnectingId(null)
+          return
         }
 
         // Update local state
@@ -326,13 +322,15 @@ function ClassmatesList({ onConnectionChange, onCountUpdate }: ClassmatesListPro
               : c
           )
         )
+        
+        toast.success('Successfully connected!')
       }
 
       // Notify parent to update count
       onConnectionChange()
     } catch (error) {
       console.error('Failed to toggle connection:', error)
-      alert(error instanceof Error ? error.message : 'Failed to update connection')
+      toast.error(error instanceof Error ? error.message : 'Failed to update connection')
     } finally {
       setConnectingId(null)
     }

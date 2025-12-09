@@ -7,6 +7,7 @@ import { HeadsetIcon, BookIcon, Users, ArrowRight, Clock, Plus } from 'lucide-re
 import { useAuthStore, UserProfile } from '@/lib/store/authStore'
 import { AppShell } from '@/components/layout/app-shell'
 import { CatchUpModal } from '@/components/catch-up-modal'
+import { InstallPopup } from '@/components/install-popup'
 import { supabase } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
 
@@ -455,6 +456,7 @@ export default function Page() {
           setSelectedItem(null)
         }}
       />
+      <InstallPopup />
     </AppShell>
   )
 }

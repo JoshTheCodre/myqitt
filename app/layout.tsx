@@ -4,6 +4,7 @@ import "./globals.css"
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from '@/components/auth-provider'
 import { AuthGuard } from '@/components/auth-guard'
+import { PWARegister } from '@/components/pwa-register'
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -18,6 +19,20 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Qitt - Students Academic Productivity Platform",
   description: "Qitt: A comprehensive platform for students to manage their academics and boost productivity",
+  manifest: "/manifest.json",
+  icons: {
+    icon: "/favicon.png",
+    apple: "/icon-192x192.png",
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Qitt",
+  },
+}
+
+export const viewport = {
+  themeColor: "#4045EF",
 }
 
 export default function RootLayout({
@@ -27,6 +42,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <link rel="apple-touch-icon" href="/icon-192x192.png" />
+      </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <AuthProvider>
           <AuthGuard>
@@ -58,6 +79,7 @@ export default function RootLayout({
             {children}
           </AuthGuard>
         </AuthProvider>
+        <PWARegister />
       </body>
     </html>
   )

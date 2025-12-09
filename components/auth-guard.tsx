@@ -14,22 +14,28 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   console.log('🛡️ AuthGuard state:', { initialized, loading, hasUser: !!user, pathname })
 
   useEffect(() => {
-    if (!initialized) return
+    // Only proceed if auth is fully initialized and not loading
+    if (!initialized || loading) return
 
     const isPublicPath = PUBLIC_PATHS.some(path => 
       pathname === path || pathname.startsWith(path + '/')
     )
 
-    // Redirect to home if not authenticated and accessing protected route
-    if (!user && !isPublicPath) {
-      router.push('/')
-    }
+    // Prevent redirect loops by checking current state
+    const timeoutId = setTimeout(() => {
+      if (!user && !isPublicPath) {
+        console.log('🔄 Redirecting to home - unauthenticated user on protected route:', pathname)
+        router.replace('/')
+      } else if (user && pathname === '/') {
+        console.log('🔄 Redirecting to dashboard - authenticated user on home page')
+        router.replace('/dashboard')
+      } else {
+        console.log('✅ No redirect needed - user:', !!user, 'path:', pathname, 'public:', isPublicPath)
+      }
+    }, 100)
 
-    // Redirect to dashboard if authenticated and on home page
-    if (user && pathname === '/') {
-      router.push('/dashboard')
-    }
-  }, [user, initialized, pathname, router])
+    return () => clearTimeout(timeoutId)
+  }, [user, initialized, loading, pathname, router])
 
   // Show loading state while initializing to prevent blank screen
   if (!initialized) {

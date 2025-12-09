@@ -29,16 +29,36 @@ export async function checkConnection(
 
 /**
  * Connect the current user to another user
+ * Only allows one connection at a time
  */
 export async function connectToUser(
   currentUserId: string,
   targetUserId: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    // Check if already connected
+    // Check if already connected to this user
     const isConnected = await checkConnection(currentUserId, targetUserId)
     if (isConnected) {
       return { success: false, error: 'Already connected to this user' }
+    }
+
+    // Check if user already has any existing connection
+    const { data: existingConnections, error: checkError } = await supabase
+      .from('connections')
+      .select('following_id')
+      .eq('follower_id', currentUserId)
+      .limit(1)
+
+    if (checkError) {
+      console.error('Error checking existing connections:', checkError)
+      return { success: false, error: 'Failed to check existing connections' }
+    }
+
+    if (existingConnections && existingConnections.length > 0) {
+      return { 
+        success: false, 
+        error: 'You can only connect to one classmate at a time. Please disconnect first.' 
+      }
     }
 
     // Create connection
