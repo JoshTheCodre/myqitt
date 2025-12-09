@@ -5,7 +5,7 @@ import { useAuthStore } from '@/lib/store/authStore'
 import { supabase } from '@/lib/supabase/client'
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { initialize, updateProfile } = useAuthStore()
+  const initialize = useAuthStore((state) => state.initialize)
 
   useEffect(() => {
     // Initialize auth state on mount
@@ -22,7 +22,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .single()
 
           if (profile) {
-            updateProfile(profile)
+            useAuthStore.setState({ profile })
           }
         }
 
@@ -35,7 +35,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.unsubscribe()
     }
-  }, [initialize, updateProfile])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return <>{children}</>
 }
