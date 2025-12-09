@@ -4,38 +4,27 @@ import { useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore } from '@/lib/store/authStore'
 
-// ✅ FIXED: Simplified guard - no extra timers or delays
 export function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuthStore()
+  const { user, hydrated } = useAuthStore()
   const router = useRouter()
   const pathname = usePathname()
 
   useEffect(() => {
-    // ✅ FIXED: Only act after loading is complete
-    if (!loading) {
-      const publicPaths = ['/', '/auth']
-      const isPublicPath = publicPaths.some(path => 
-        pathname === path || pathname.startsWith(path + '/')
-      )
+    // CRITICAL: Only redirect after hydration completes
+    if (!hydrated) return
 
-      if (!user && !isPublicPath) {
-        console.log('🔒 Redirecting to auth (no user)')
-        router.push('/')
-      } else if (user && pathname === '/') {
-        console.log('✅ Redirecting to dashboard (user exists)')
-        router.push('/dashboard')
-      }
-    }
-  }, [user, loading, pathname, router])
-
-  // ✅ FIXED: Show minimal skeleton while loading (prevents blank screen)
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background">
-        {/* Minimal loading without visible spinner */}
-      </div>
+    const publicPaths = ['/', '/auth']
+    const isPublicPath = publicPaths.some(path => 
+      pathname === path || pathname.startsWith(path + '/')
     )
-  }
 
+    if (!user && !isPublicPath) {
+      router.push('/')
+    } else if (user && pathname === '/') {
+      router.push('/dashboard')
+    }
+  }, [user, hydrated, pathname, router])
+
+  // Render immediately (no loading screen, no blank screen)
   return <>{children}</>
 }

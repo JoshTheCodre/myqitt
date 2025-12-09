@@ -315,13 +315,15 @@ export default function TimetablePage() {
         setConnectedUsers(connectedUsersData?.map(u => u.name) || [])
 
         // Add connected users' timetables
+        let hasAnyTimetableData = false
         connectedTimetables?.forEach(tt => {
           if (tt.timetable_data) {
             const jsonData = tt.timetable_data as Record<string, Array<{ time: string; course?: string; course_code?: string; course_title?: string; venue: string }>>
             const ownerName = userNamesMap.get(tt.user_id) || 'Classmate'
 
             Object.entries(jsonData).forEach(([day, classes]) => {
-              if (day in groupedData) {
+              if (day in groupedData && classes.length > 0) {
+                hasAnyTimetableData = true
                 classes.forEach(classItem => {
                   // Display only course code
                   const courseDisplay = classItem.course_code || classItem.course || 'TBD'
@@ -338,6 +340,23 @@ export default function TimetablePage() {
             })
           }
         })
+
+        // Check if connected users had no timetables
+        const usersWithNoTimetable = connectedUserIds.filter(userId => {
+          const hasData = connectedTimetables?.some(tt => 
+            tt.user_id === userId && tt.timetable_data
+          )
+          return !hasData
+        })
+
+        if (usersWithNoTimetable.length > 0 && !hasAnyTimetableData && !hasTimetable) {
+          const userNames = usersWithNoTimetable
+            .map(id => userNamesMap.get(id) || 'Classmate')
+            .join(', ')
+          toast(`${userNames} ${usersWithNoTimetable.length === 1 ? 'has' : 'have'} not added a timetable yet`, {
+            icon: 'ℹ️',
+          })
+        }
 
         console.log('✅ Added timetables from', connectedTimetables?.length || 0, 'connected users')
       }

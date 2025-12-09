@@ -279,7 +279,7 @@ function AssignmentsList({ router, onConnectedUsersChange }: AssignmentsListProp
           .in('user_id', connectedUserIds)
 
         connectedAssignments?.forEach(record => {
-          if (record.assignments_data && Array.isArray(record.assignments_data)) {
+          if (record.assignments_data && Array.isArray(record.assignments_data) && record.assignments_data.length > 0) {
             const ownerName = userNamesMap.get(record.user_id) || 'Classmate'
             const assignments = record.assignments_data.map((a: any) => ({
               ...a,
@@ -289,6 +289,25 @@ function AssignmentsList({ router, onConnectedUsersChange }: AssignmentsListProp
             allItems.push(...assignments)
           }
         })
+
+        // Check if connected users had no assignments
+        const usersWithNoAssignments = connectedUserIds.filter(userId => {
+          const hasData = connectedAssignments?.some(record => 
+            record.user_id === userId && 
+            Array.isArray(record.assignments_data) && 
+            record.assignments_data.length > 0
+          )
+          return !hasData
+        })
+
+        if (usersWithNoAssignments.length > 0 && allItems.length === 0) {
+          const userNames = usersWithNoAssignments
+            .map(id => userNamesMap.get(id) || 'Classmate')
+            .join(', ')
+          toast(`${userNames} ${usersWithNoAssignments.length === 1 ? 'has' : 'have'} not added any assignments yet`, {
+            icon: 'ℹ️',
+          })
+        }
 
         console.log('✅ Added assignments from', connectedAssignments?.length || 0, 'connected users')
       }

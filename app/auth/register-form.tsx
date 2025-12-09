@@ -15,9 +15,10 @@ interface SchoolOption {
 }
 
 export function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) {
-    const { register, loading } = useAuthStore()
+    const { register } = useAuthStore()
     const [schools, setSchools] = useState<SchoolOption[]>([])
     const [loadingSchools, setLoadingSchools] = useState(true)
+    const [loading, setLoading] = useState(false)
     const [data, setData] = useState({
         name: '',
         email: '',
@@ -102,6 +103,7 @@ export function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => v
         e.preventDefault()
         if (!validate()) return
 
+        setLoading(true)
         try {
             // Convert semester from "1"/"2" to "first"/"second"
             const semesterMap: { [key: string]: string } = {
@@ -124,6 +126,8 @@ export function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => v
             onRegisterSuccess()
         } catch {
             // Error already handled by store
+        } finally {
+            setLoading(false)
         }
     }
 

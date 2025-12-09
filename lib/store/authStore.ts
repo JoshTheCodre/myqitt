@@ -21,24 +21,24 @@ export interface UserProfile {
 interface AuthStore {
   user: User | null
   profile: UserProfile | null
-  loading: boolean
-  initialized: boolean  // ✅ NEW: Track if auth has been initialized
+  hydrated: boolean  // ✅ CRITICAL: Prevents redirects before session loads
   register: (email: string, password: string, userData: Partial<UserProfile>) => Promise<void>
   login: (email: string, password: string) => Promise<void>
   logout: () => Promise<void>
-  initAuth: () => (() => void) | void
+  setAuth: (user: User | null, profile: UserProfile | null) => void
+  setHydrated: (hydrated: boolean) => void
 }
 
 export const useAuthStore = create<AuthStore>((set, get) => ({
   user: null,
   profile: null,
-  loading: true,
-  initialized: false,  // ✅ Start as false
+  hydrated: false,  // ✅ Starts false, set true after first session check
+
+  setAuth: (user, profile) => set({ user, profile }),
+  setHydrated: (hydrated) => set({ hydrated }),
 
   register: async (email: string, password: string, userData: Partial<UserProfile>) => {
-    set({ loading: true })
     try {
-      // Create user in Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -49,7 +49,6 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
       const userId = authData.user.id
 
-      // Create user profile in users table (works with or without email confirmation)
       const { error: profileError } = await supabase
         .from('users')
         .insert({
@@ -80,10 +79,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         semester: userData.semester,
       }
 
-      set({ user: authData.user, profile, loading: false })
+      set({ user: authData.user, profile })
       toast.success('Account created successfully!')
     } catch (error) {
-      set({ loading: false })
       const err = error as Error
       const msg = err?.message || 'Registration failed'
       toast.error(msg)
@@ -92,7 +90,6 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   },
 
   login: async (email: string, password: string) => {
-    set({ loading: true })
     try {
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
@@ -100,11 +97,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       })
 
       if (authError) {
-        set({ loading: false })
-        // Better error message for unconfirmed email
         if (authError.message?.toLowerCase().includes('email not confirmed') || 
             authError.message?.toLowerCase().includes('email_not_confirmed')) {
-          toast.error('Email not yet confirmed. Please check your inbox for a confirmation link, or wait a moment and try again.')
+          toast.error('Email not yet confirmed. Please check your inbox for a confirmation link.')
           throw new Error('Email not confirmed')
         }
         throw authError
@@ -112,7 +107,6 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
       if (!authData.user) throw new Error('Login failed')
 
-      // Fetch user profile
       const { data: profileData, error: profileError } = await supabase
         .from('users')
         .select('*')
@@ -123,10 +117,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
       const profile = profileData as UserProfile
 
-      set({ user: authData.user, profile: profile || null, loading: false })
+      set({ user: authData.user, profile: profile || null })
       toast.success('Logged in successfully!')
     } catch (error) {
-      set({ loading: false })
       const err = error as Error
       const msg = err?.message || 'Login failed'
       if (!msg.includes('Email not confirmed')) {
@@ -137,122 +130,16 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   },
 
   logout: async () => {
-    set({ loading: true })
     try {
       const { error } = await supabase.auth.signOut()
       if (error) throw error
 
-      set({ user: null, profile: null, loading: false })
+      set({ user: null, profile: null })
       toast.success('Logged out successfully!')
     } catch (error) {
-      set({ loading: false })
       const err = error as Error
       const msg = err?.message || 'Logout failed'
       toast.error(msg)
-    }
-  },
-
-  initAuth: () => {
-    // ✅ FIXED: Prevent multiple initializations
-    if (get().initialized) {
-      console.log('⚠️ Auth already initialized, skipping')
-      return
-    }
-
-    console.log('🔐 Initializing auth...')
-    set({ initialized: true })
-
-    // ✅ FIXED: Wait for session restore to complete before setting state
-    supabase.auth.getSession()
-      .then(async ({ data: { session }, error }) => {
-        if (error) {
-          console.error('❌ Session restore error:', error)
-          set({ user: null, profile: null, loading: false })
-          return
-        }
-
-        if (session?.user) {
-          console.log('✅ Session restored for user:', session.user.id)
-          
-          try {
-            // Fetch profile synchronously before updating state
-            const { data: profileData, error: profileError } = await supabase
-              .from('users')
-              .select('*')
-              .eq('id', session.user.id)
-              .single()
-
-            if (profileError && profileError.code !== 'PGRST116') {
-              console.error('❌ Profile fetch error:', profileError)
-            }
-
-            const profile = profileData as UserProfile
-            
-            // ✅ FIXED: Set user and profile together atomically
-            set({ 
-              user: session.user, 
-              profile: profile || null, 
-              loading: false 
-            })
-            console.log('✅ Auth state ready with profile')
-          } catch (err) {
-            console.error('❌ Error fetching profile:', err)
-            // Still set user even if profile fetch fails
-            set({ 
-              user: session.user, 
-              profile: null, 
-              loading: false 
-            })
-          }
-        } else {
-          console.log('ℹ️ No active session')
-          set({ user: null, profile: null, loading: false })
-        }
-      })
-      .catch((err) => {
-        console.error('❌ Fatal error in getSession:', err)
-        set({ user: null, profile: null, loading: false })
-      })
-
-    // ✅ FIXED: Listen for auth changes (login/logout/token refresh)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('🔄 Auth event:', event)
-
-      try {
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
-          if (session?.user) {
-            console.log('🔄 Fetching profile for event:', event)
-            
-            const { data: profileData, error } = await supabase
-              .from('users')
-              .select('*')
-              .eq('id', session.user.id)
-              .single()
-
-            if (error && error.code !== 'PGRST116') {
-              console.error('❌ Profile fetch error:', error)
-            }
-
-            const profile = profileData as UserProfile
-            set({ user: session.user, profile: profile || null, loading: false })
-            console.log('✅ Profile updated for event:', event)
-          }
-        } else if (event === 'SIGNED_OUT') {
-          console.log('👋 User signed out')
-          set({ user: null, profile: null, loading: false })
-        } else if (event === 'INITIAL_SESSION') {
-          console.log('ℹ️ Initial session event (already handled by getSession)')
-        }
-      } catch (err) {
-        console.error('❌ Error in auth state change handler:', err)
-        // Don't set loading to false here - might be transient error
-      }
-    })
-
-    // ✅ FIXED: Return cleanup function
-    return () => {
-      console.log('🔌 Unsubscribing from auth changes')
-      subscription.unsubscribe()
     }
   },
 }))
