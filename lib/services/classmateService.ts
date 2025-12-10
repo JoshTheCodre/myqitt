@@ -33,16 +33,12 @@ export class ClassmateService {
     userDepartment: string
   ): Promise<Classmate[]> {
     try {
-      console.log('🔍 ClassmateService.getClassmates called with:', { userId, userSchool, userDepartment });
-      
       // Get users in same school and department (including current user)
       const { data: users, error: usersError } = await supabase
         .from('users')
         .select('*')
         .eq('school', userSchool)
         .eq('department', userDepartment)
-
-      console.log('📊 Query result:', { usersFound: users?.length, error: usersError });
       
       if (usersError) throw usersError
 
@@ -57,11 +53,8 @@ export class ClassmateService {
       const connectedIds = connections?.map(c => c.following_id) || []
 
       if (!users?.length) {
-        console.log('⚠️ No users found in database');
         return []
       }
-
-      console.log('✅ Found users:', users.map(u => ({ name: u.name, id: u.id.substring(0, 8) })));
 
       const userIds = users.map(u => u.id)
 

@@ -9,6 +9,7 @@ import { AppShell } from '@/components/layout/app-shell'
 import { CatchUpModal } from '@/components/catch-up-modal'
 import { InstallPopup } from '@/components/install-popup'
 import { TimetableService } from '@/lib/services'
+import { CatchUpService, type CatchUpItem } from '@/lib/services/catchUpService'
 
 // ============ HELPER FUNCTIONS ============
 const getInitials = (name?: string) => {
@@ -66,30 +67,96 @@ function Header({ profile }: { profile: UserProfile | null }) {
 }
 
 // ============ CATCH UP SECTION ============
-function CatchUpSection({ onItemClick }: { onItemClick: (item: string) => void }) {
-  const items = [
-    'School Calendar',
-    'Year 1 Clearance Checklist',
-    'Do your Course Reg Here',
-  ]
+function CatchUpSection({ onItemClick, profile }: { onItemClick: (item: CatchUpItem) => void; profile: UserProfile | null }) {
+  const [items, setItems] = useState<CatchUpItem[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function loadCatchUpItems() {
+      if (!profile?.school || !profile?.department) {
+        setLoading(false)
+        return
+      }
+
+      try {
+        const userProfile = {
+          school: profile.school,
+          department: profile.department,
+          level: profile.level || 1,
+          semester: profile.semester || 'first'
+        }
+
+        console.log('Loading catch-up items for:', userProfile)
+        const catchUpItems = await CatchUpService.getUnviewedItems(userProfile)
+        console.log('Loaded catch-up items:', catchUpItems.length)
+        setItems(catchUpItems)
+      } catch (error) {
+        console.error('Error loading catch-up items:', error)
+        setItems([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadCatchUpItems()
+  }, [profile?.school, profile?.department, profile?.level, profile?.semester])
+
+  if (loading) {
+    return (
+      <section>
+        <div className="relative rounded-2xl p-4 md:p-8 border border-purple-100 overflow-hidden animate-pulse">
+          <div className="space-y-3 md:space-y-5">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center gap-3 md:gap-4">
+                <div className="w-4 h-4 md:w-5 md:h-5 rounded-full bg-gray-200" />
+                <div className="h-4 bg-gray-200 rounded w-48" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  if (items.length === 0) {
+    return (
+      <section>
+        <div className="relative rounded-2xl p-6 md:p-8 border border-gray-200 bg-gradient-to-br from-gray-50 to-white overflow-hidden">
+          <div className="text-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-50 flex items-center justify-center">
+              <svg className="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">You're All Caught Up! 🎉</h3>
+            <p className="text-sm text-gray-600">No new announcements at the moment. Check back later for updates.</p>
+          </div>
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section>
       <div className="relative rounded-2xl p-4 md:p-8 border border-purple-100 overflow-hidden">
         <Image src="/catchup-bg.png" alt="" fill className="object-cover opacity-20" loading="eager" sizes="(max-width: 768px) 100vw, (max-width: 1200px) 90vw, 80vw" />
         <div className="relative z-10">
+          <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-4 md:mb-6">Catch Up</h2>
           <ul className="space-y-3 md:space-y-5">
-            {items.map((item, index) => (
+            {items.map((item) => (
               <li 
-                key={index} 
+                key={item.id} 
                 className="flex items-center gap-3 md:gap-4 cursor-pointer group"
                 onClick={() => onItemClick(item)}
               >
                 <div className="w-4 h-4 md:w-5 md:h-5 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-600 transition-colors">
                   <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-white" />
                 </div>
-                <div className='flex items-center group-hover:text-blue-600 transition-colors'>
-                  <span className="text-md md:text-lg flex items-center gap-3">{item} <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" /></span>
+                <div className='flex items-center group-hover:text-blue-600 transition-colors flex-1'>
+                  <span className="text-md md:text-lg flex items-center gap-3">
+                    {item.title} 
+                    <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                  </span>
                 </div>
               </li>
             ))}
@@ -277,10 +344,10 @@ function TodaysClasses({ userId }: { userId?: string }) {
 // ============ MAIN PAGE COMPONENT ============
 export default function Page() {
   const [modalOpen, setModalOpen] = useState(false)
-  const [selectedItem, setSelectedItem] = useState<string | null>(null)
+  const [selectedItem, setSelectedItem] = useState<CatchUpItem | null>(null)
   const { profile, user } = useAuthStore()
 
-  const handleItemClick = (item: string) => {
+  const handleItemClick = (item: CatchUpItem) => {
     setSelectedItem(item)
     setModalOpen(true)
   }
@@ -291,7 +358,7 @@ export default function Page() {
         <div className="w-full max-w-2xl px-3 md:px-4 py-4 md:py-8 pb-24 lg:pb-8">
           <Header profile={profile} />
           <div className="mt-5 md:mt-12">
-            <CatchUpSection onItemClick={handleItemClick} />
+            <CatchUpSection onItemClick={handleItemClick} profile={profile} />
           </div>
           <div className="mt-5 md:mt-8">
             <ActionCards />

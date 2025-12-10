@@ -138,12 +138,7 @@ function ClassmatesList({ onConnectionChange, onCountUpdate }: ClassmatesListPro
 
   useEffect(() => {
     const loadClassmates = async () => {
-      console.log('📱 ClassmatesList useEffect triggered');
-      console.log('👤 User:', user?.id);
-      console.log('🏫 Profile:', { school: profile?.school, department: profile?.department });
-      
       if (!user || !profile?.school || !profile?.department) {
-        console.log('❌ Missing required data, skipping load');
         setLoading(false)
         return
       }
@@ -154,12 +149,11 @@ function ClassmatesList({ onConnectionChange, onCountUpdate }: ClassmatesListPro
           profile.school,
           profile.department
         )
-        console.log('✅ Classmates loaded:', data.length);
         // Don't filter out current user - they should see themselves with "You" badge
         setClassmates(data)
         onCountUpdate(data.length)
       } catch (error) {
-        console.error('💥 Error loading classmates:', error);
+        console.error('Error loading classmates:', error)
         setClassmates([])
         onCountUpdate(0)
       } finally {

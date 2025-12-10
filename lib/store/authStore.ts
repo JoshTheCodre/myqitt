@@ -55,15 +55,6 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
           .eq('id', session.user.id)
           .single()
 
-        console.log('🔐 Auth initialized:', { 
-          userId: session.user.id, 
-          email: session.user.email,
-          profileLoaded: !!profile,
-          school: profile?.school,
-          department: profile?.department,
-          error: error?.message 
-        })
-
         set({ 
           user: session.user, 
           profile: error ? null : profile, 
@@ -71,7 +62,6 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
           initialized: true 
         })
       } else {
-        console.log('🔐 No active session')
         set({ 
           user: null, 
           profile: null, 
@@ -82,21 +72,12 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
 
       // Listen for auth state changes
       supabase.auth.onAuthStateChange(async (event, session) => {
-        console.log('🔐 Auth state changed:', event)
-        
         if (event === 'SIGNED_IN' && session?.user) {
           const { data: profile } = await supabase
             .from('users')
             .select('*')
             .eq('id', session.user.id)
             .single()
-
-          console.log('🔐 Profile loaded on sign in:', { 
-            userId: session.user.id,
-            profileLoaded: !!profile,
-            school: profile?.school,
-            department: profile?.department
-          })
 
           set({ 
             user: session.user, 
@@ -105,7 +86,6 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
             initialized: true 
           })
         } else if (event === 'SIGNED_OUT') {
-          console.log('🔐 User signed out')
           set({ 
             user: null, 
             profile: null, 
