@@ -27,8 +27,8 @@ async function generateIcons() {
       
       console.log(`Creating ${name} (${width}×${height})...`);
 
-      // Create icon with padding to prevent zoom appearance
-      const symbolSize = Math.floor(width * 0.8); // Use 80% of the icon size
+      // Create icon with more padding to prevent zoom appearance
+      const symbolSize = Math.floor(width * 0.6); // Use 60% of the icon size for more padding
       
       await sharp(SYMBOL_PATH)
         .resize(symbolSize, symbolSize, {

@@ -47,7 +47,7 @@ export function InstallPopup() {
               Install Qitt App
             </h3>
             <p className="text-sm text-gray-600 leading-relaxed">
-              Get quick access and work offline. Install our app for the best experience!
+              Get quick access and better performance. Install our app for the best experience!
             </p>
           </div>
         </div>

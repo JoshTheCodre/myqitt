@@ -1,44 +1,53 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
-export async function GET() {
+export async function GET(request: Request) {
   console.log('🔍 [SESSION API] Session check requested')
   try {
     const supabase = await createClient()
     
-    // Get current session
-    console.log('📡 [SESSION API] Getting current session...')
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    // First verify the session is still valid
+    console.log('📡 [SESSION API] Verifying current session...')
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
     
-    if (sessionError) {
-      console.log('❌ [SESSION API] Session error:', sessionError)
+    if (userError) {
+      console.log('❌ [SESSION API] User verification error:', userError.message)
       return NextResponse.json({ user: null, profile: null })
     }
     
-    if (!session || !session.user) {
-      console.log('ℹ️ [SESSION API] No active session found')
+    if (!user) {
+      console.log('ℹ️ [SESSION API] No authenticated user found')
       return NextResponse.json({ user: null, profile: null })
     }
 
-    console.log('✅ [SESSION API] Active session found for user:', session.user.email, '(ID:', session.user.id + ')')
+    // Double-check with session
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    
+    if (sessionError || !session) {
+      console.log('⚠️ [SESSION API] Session validation failed, clearing user')
+      return NextResponse.json({ user: null, profile: null })
+    }
+
+    console.log('✅ [SESSION API] Valid session confirmed for user:', user.email, '(ID:', user.id + ')')
 
     // Fetch profile for authenticated user
     console.log('👤 [SESSION API] Fetching user profile...')
     const { data: profile, error: profileError } = await supabase
       .from('users')
       .select('*')
-      .eq('id', session.user.id)
+      .eq('id', user.id)
       .single()
 
     if (profileError) {
-      console.log('❌ [SESSION API] Profile fetch error:', profileError)
-      return NextResponse.json({ user: session.user, profile: null })
+      console.log('❌ [SESSION API] Profile fetch error:', profileError.message)
+      // Still return user even if profile fails
+      return NextResponse.json({ user: user, profile: null })
     }
 
-    console.log('✅ [SESSION API] Session check completed for:', profile?.name || session.user.email)
+    console.log('✅ [SESSION API] Session check completed for:', profile?.name || user.email)
 
     return NextResponse.json({ 
-      user: session.user, 
+      user: user, 
       profile: profile 
     })
     

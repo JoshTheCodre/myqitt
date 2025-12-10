@@ -16,9 +16,9 @@ async function generateFavicon() {
   try {
     console.log('📦 Generating favicon.png from symbol icon...');
 
-    // Create a 32x32 favicon from symbol with padding
+    // Create a 32x32 favicon from symbol with more padding
     const faviconSize = 32;
-    const symbolSize = Math.floor(faviconSize * 0.75); // Use 75% for favicon (smaller padding)
+    const symbolSize = Math.floor(faviconSize * 0.6); // Use 60% for favicon (more padding)
     
     await sharp(SYMBOL_PATH)
       .resize(symbolSize, symbolSize, {

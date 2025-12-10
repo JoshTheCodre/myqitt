@@ -165,24 +165,51 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
 
   // Logout user
   logout: async () => {
-    console.log('🚪 Logging out...')
+    console.log('🚪 [AUTH STORE] Starting logout process...')
     set({ loading: true })
     
     try {
-      // Call logout API first
+      // Clear state immediately to prevent race conditions
+      set({ 
+        user: null, 
+        profile: null, 
+        loading: true,
+        initialized: false // Set to false to prevent auto re-initialization
+      })
+      
+      console.log('🧹 [AUTH STORE] Cleared local auth state')
+      
+      // Call logout API
       const response = await fetch('/api/auth/logout', { 
         method: 'POST',
         credentials: 'include',
         cache: 'no-store',
+        headers: {
+          'Content-Type': 'application/json'
+        }
       })
       
       if (!response.ok) {
-        throw new Error('Logout API failed')
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Logout API failed')
       }
       
-      console.log('✅ Logout API successful')
+      console.log('✅ [AUTH STORE] Logout API successful')
       
-      // Clear auth state completely
+      // Clear any local storage
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('rememberMe')
+        localStorage.removeItem('schools_cache')
+        localStorage.removeItem('schools_cache_timestamp')
+        
+        // Clear any other auth-related storage
+        localStorage.removeItem('supabase.auth.token')
+        sessionStorage.clear()
+        
+        console.log('🧹 [AUTH STORE] Cleared local storage')
+      }
+      
+      // Final state update
       set({ 
         user: null, 
         profile: null, 
@@ -190,31 +217,34 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
         initialized: true 
       })
       
-      // Clear any local storage
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('rememberMe')
-        localStorage.removeItem('schools_cache')
-        localStorage.removeItem('schools_cache_timestamp')
-      }
-      
       toast.success('Logged out successfully')
       
-      // Ensure clean redirect
-      await new Promise(resolve => setTimeout(resolve, 300))
+      // Force a hard reload to ensure clean state
+      console.log('🔄 [AUTH STORE] Performing hard redirect...')
+      await new Promise(resolve => setTimeout(resolve, 500))
       
       if (typeof window !== 'undefined') {
-        window.location.replace('/')
+        // Use location.href for a complete page reload that clears everything
+        window.location.href = '/'
       }
       
     } catch (error: any) {
-      console.error('❌ Logout failed:', error)
-      set({ loading: false })
+      console.error('❌ [AUTH STORE] Logout failed:', error)
+      
+      // Even if API fails, clear local state
+      set({ 
+        user: null, 
+        profile: null, 
+        loading: false, 
+        initialized: true 
+      })
+      
       toast.error(error.message || 'Logout failed')
       
       // Force redirect even if API fails
       if (typeof window !== 'undefined') {
         setTimeout(() => {
-          window.location.replace('/')
+          window.location.href = '/'
         }, 1000)
       }
     }

@@ -1,13 +1,11 @@
-// Service Worker for PWA offline support
+// Service Worker for PWA
 const CACHE_NAME = 'qitt-v1'
-const OFFLINE_URL = '/offline.html'
 
 // Assets to cache on install
 const PRECACHE_ASSETS = [
   '/',
   '/dashboard',
-  '/offline.html',
-  '/qitt-logo.svg',
+  '/qitt-logo.svg'
 ]
 
 // Install event - cache essential assets
@@ -69,10 +67,11 @@ self.addEventListener('fetch', (event) => {
           return response
         })
         .catch(() => {
-          // If both cache and network fail, show offline page for navigation requests
-          if (event.request.mode === 'navigate') {
-            return caches.match(OFFLINE_URL)
-          }
+          // If both cache and network fail, return nothing
+          return new Response('Network unavailable', {
+            status: 408,
+            statusText: 'Network unavailable'
+          })
         })
     })
   )
