@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import toast from 'react-hot-toast'
+import { supabase } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
 
 export interface UserProfile {
@@ -29,7 +30,7 @@ interface AuthActions {
   register: (email: string, password: string, userData: Partial<UserProfile>) => Promise<void>
   login: (email: string, password: string) => Promise<void>
   logout: () => Promise<void>
-  updateProfile: (profile: UserProfile) => void
+  updateProfile: (profileData: Partial<UserProfile>) => Promise<void>
 }
 
 export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
@@ -41,32 +42,36 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
 
   // Initialize auth state
   initialize: async () => {
-    console.log('🔄 Initializing auth...')
     set({ loading: true, initialized: false })
     
     try {
-      const response = await fetch('/api/auth/session', {
-        method: 'GET',
-        cache: 'no-store',
-        credentials: 'include',
-      })
+      const { data: { session } } = await supabase.auth.getSession()
       
-      if (!response.ok) {
-        throw new Error('Session check failed')
-      }
-      
-      const data = await response.json()
-      
-      if (data.user && data.profile) {
-        console.log('✅ User session found:', data.user.id)
+      if (session?.user) {
+        // Fetch profile
+        const { data: profile, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', session.user.id)
+          .single()
+
+        console.log('🔐 Auth initialized:', { 
+          userId: session.user.id, 
+          email: session.user.email,
+          profileLoaded: !!profile,
+          school: profile?.school,
+          department: profile?.department,
+          error: error?.message 
+        })
+
         set({ 
-          user: data.user, 
-          profile: data.profile, 
+          user: session.user, 
+          profile: error ? null : profile, 
           loading: false, 
           initialized: true 
         })
       } else {
-        console.log('ℹ️ No active session')
+        console.log('🔐 No active session')
         set({ 
           user: null, 
           profile: null, 
@@ -74,8 +79,43 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
           initialized: true 
         })
       }
+
+      // Listen for auth state changes
+      supabase.auth.onAuthStateChange(async (event, session) => {
+        console.log('🔐 Auth state changed:', event)
+        
+        if (event === 'SIGNED_IN' && session?.user) {
+          const { data: profile } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', session.user.id)
+            .single()
+
+          console.log('🔐 Profile loaded on sign in:', { 
+            userId: session.user.id,
+            profileLoaded: !!profile,
+            school: profile?.school,
+            department: profile?.department
+          })
+
+          set({ 
+            user: session.user, 
+            profile, 
+            loading: false, 
+            initialized: true 
+          })
+        } else if (event === 'SIGNED_OUT') {
+          console.log('🔐 User signed out')
+          set({ 
+            user: null, 
+            profile: null, 
+            loading: false, 
+            initialized: true 
+          })
+        }
+      })
+      
     } catch (error) {
-      console.error('❌ Auth initialization failed:', error)
       set({ 
         user: null, 
         profile: null, 
@@ -87,28 +127,44 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
 
   // Register new user
   register: async (email: string, password: string, userData: Partial<UserProfile>) => {
+    set({ loading: true })
+    
     try {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, userData }),
-        cache: 'no-store',
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
       })
 
-      const data = await response.json()
+      if (authError) throw authError
+      if (!authData.user) throw new Error('User creation failed')
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Registration failed')
-      }
+      // Create profile
+      const { data: profile, error: profileError } = await supabase
+        .from('users')
+        .insert({
+          id: authData.user.id,
+          email,
+          name: userData.name || '',
+          phone_number: userData.phone_number,
+          school: userData.school,
+          department: userData.department,
+          level: userData.level,
+          semester: userData.semester,
+          bio: userData.bio,
+        })
+        .select()
+        .single()
 
-      set({ user: data.user, profile: data.profile })
+      if (profileError) throw profileError
+
+      set({ user: authData.user, profile, loading: false, initialized: true })
       toast.success('Account created successfully!')
       
-      // Trigger a router refresh to sync server state
       if (typeof window !== 'undefined') {
         window.location.href = '/dashboard'
       }
     } catch (error: any) {
+      set({ loading: false })
       toast.error(error.message || 'Registration failed')
       throw error
     }
@@ -116,47 +172,40 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
 
   // Login user
   login: async (email: string, password: string) => {
-    console.log('🔐 Attempting login...')
     set({ loading: true })
     
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-        credentials: 'include',
-        cache: 'no-store',
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       })
 
-      const data = await response.json()
+      if (authError) throw authError
+      if (!authData.user) throw new Error('Login failed')
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Login failed')
-      }
+      // Fetch profile
+      const { data: profile, error: profileError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', authData.user.id)
+        .single()
 
-      console.log('✅ Login successful')
-      
-      // Update state with user data
+      if (profileError) throw profileError
+
       set({ 
-        user: data.user, 
-        profile: data.profile, 
+        user: authData.user, 
+        profile, 
         loading: false, 
         initialized: true 
       })
       
       toast.success('Welcome back!')
       
-      // Use a proper navigation approach
-      await new Promise(resolve => setTimeout(resolve, 200))
-      
       if (typeof window !== 'undefined') {
-        window.location.replace('/dashboard')
+        window.location.href = '/dashboard'
       }
       
     } catch (error: any) {
-      console.error('❌ Login failed:', error)
       set({ loading: false })
       toast.error(error.message || 'Login failed')
       throw error
@@ -165,93 +214,47 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
 
   // Logout user
   logout: async () => {
-    console.log('🚪 [AUTH STORE] Starting logout process...')
-    set({ loading: true })
-    
     try {
-      // Clear state immediately to prevent race conditions
-      set({ 
-        user: null, 
-        profile: null, 
-        loading: true,
-        initialized: false // Set to false to prevent auto re-initialization
-      })
+      await supabase.auth.signOut()
+      set({ user: null, profile: null, loading: false, initialized: true })
       
-      console.log('🧹 [AUTH STORE] Cleared local auth state')
-      
-      // Call logout API
-      const response = await fetch('/api/auth/logout', { 
-        method: 'POST',
-        credentials: 'include',
-        cache: 'no-store',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      })
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.error || 'Logout API failed')
-      }
-      
-      console.log('✅ [AUTH STORE] Logout API successful')
-      
-      // Clear any local storage
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('rememberMe')
-        localStorage.removeItem('schools_cache')
-        localStorage.removeItem('schools_cache_timestamp')
-        
-        // Clear any other auth-related storage
-        localStorage.removeItem('supabase.auth.token')
+        localStorage.clear()
         sessionStorage.clear()
-        
-        console.log('🧹 [AUTH STORE] Cleared local storage')
-      }
-      
-      // Final state update
-      set({ 
-        user: null, 
-        profile: null, 
-        loading: false, 
-        initialized: true 
-      })
-      
-      toast.success('Logged out successfully')
-      
-      // Force a hard reload to ensure clean state
-      console.log('🔄 [AUTH STORE] Performing hard redirect...')
-      await new Promise(resolve => setTimeout(resolve, 500))
-      
-      if (typeof window !== 'undefined') {
-        // Use location.href for a complete page reload that clears everything
         window.location.href = '/'
       }
       
-    } catch (error: any) {
-      console.error('❌ [AUTH STORE] Logout failed:', error)
+      toast.success('Logged out successfully')
       
-      // Even if API fails, clear local state
-      set({ 
-        user: null, 
-        profile: null, 
-        loading: false, 
-        initialized: true 
-      })
-      
-      toast.error(error.message || 'Logout failed')
-      
-      // Force redirect even if API fails
+    } catch (error) {
+      set({ user: null, profile: null, loading: false, initialized: true })
       if (typeof window !== 'undefined') {
-        setTimeout(() => {
-          window.location.href = '/'
-        }, 1000)
+        window.location.href = '/'
       }
     }
   },
 
-  // Update profile in state
-  updateProfile: (profile: UserProfile) => {
-    set({ profile })
+  // Update profile
+  updateProfile: async (profileData: Partial<UserProfile>) => {
+    const { user, profile } = get()
+    if (!user || !profile) throw new Error('No authenticated user')
+
+    try {
+      const { data: updatedProfile, error } = await supabase
+        .from('users')
+        .update(profileData)
+        .eq('id', user.id)
+        .select()
+        .single()
+
+      if (error) throw error
+
+      set({ profile: updatedProfile })
+      toast.success('Profile updated successfully!')
+      
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update profile')
+      throw error
+    }
   },
 }))

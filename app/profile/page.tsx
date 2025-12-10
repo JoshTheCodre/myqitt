@@ -29,8 +29,8 @@ function ProfileCard({ icon: Icon, label, value }: { icon: LucideIcon; label: st
 function getSchoolName(schoolId: string | undefined) {
     if (!schoolId) return 'Not set'
     const schoolMap: Record<string, string> = {
-        '6c59c8d9-b5d3-4525-b5bd-4ad38ef65e57': 'University of Port Harcourt',
-        '426a9fce-3d64-4679-8178-5d0776990d4a': 'Rivers State University'
+        '2e7f32f4-2087-4e4f-a8b5-717e2786d2b4': 'University of Port Harcourt',
+        '301b1d88-a1d6-4211-9dd8-e3fe0e732932': 'University of Calabar'
     }
     return schoolMap[schoolId] || schoolId
 }

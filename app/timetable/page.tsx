@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { AppShell } from '@/components/layout/app-shell'
 import { Clock, MapPin, Plus, Unplug, X } from 'lucide-react'
-import { supabase } from '@/lib/supabase/client'
 import { useAuthStore } from '@/lib/store/authStore'
+import { TimetableService } from '@/lib/services'
 import toast from 'react-hot-toast'
 
 // ============ TYPES ============
@@ -248,136 +248,20 @@ export default function TimetablePage() {
   }, [user?.id])
 
   const fetchTimetable = async () => {
-    if (!user) {
-      console.log('❌ No user found, skipping timetable fetch')
-      return
-    }
+    if (!user) return
 
     try {
-      console.log('🔍 Fetching timetable for user:', user.id)
-
-      // Initialize grouped data
-      const groupedData: Record<string, ClassInfo[]> = {
-        Monday: [],
-        Tuesday: [],
-        Wednesday: [],
-        Thursday: [],
-        Friday: [],
-      }
-
-      // ✅ 1. Fetch own timetable
-      const { data: timetableRecord, error: ownError } = await supabase
-        .from('timetable')
-        .select('timetable_data')
-        .eq('user_id', user.id)
-        .single()
-
-      if (ownError && ownError.code !== 'PGRST116') {
-        console.error('❌ Error fetching timetable:', ownError)
-      }
-
-      // Add own timetable
-      if (timetableRecord && timetableRecord.timetable_data) {
-        const jsonData = timetableRecord.timetable_data as Record<string, Array<{ time: string; course?: string; course_code?: string; course_title?: string; venue: string }>>
-        
-        Object.entries(jsonData).forEach(([day, classes]) => {
-          if (day in groupedData) {
-            classes.forEach(classItem => {
-              // Display only course code
-              const courseDisplay = classItem.course_code || classItem.course || 'TBD'
-              
-              groupedData[day].push({
-                time: classItem.time,
-                title: courseDisplay,
-                location: classItem.venue,
-                isOwner: true
-              })
-            })
-          }
-        })
-        setHasTimetable(true)
-      }
-
-      // ✅ 2. Fetch connected classmates' timetables
-      const { data: connections } = await supabase
-        .from('connections')
-        .select('following_id')
-        .eq('follower_id', user.id)
-
-      if (connections && connections.length > 0) {
-        const connectedUserIds = connections.map(c => c.following_id)
-        console.log('👥 Fetching timetables for connected users:', connectedUserIds)
-
-        // Fetch connected users' names and timetables
-        const { data: connectedUsersData } = await supabase
-          .from('users')
-          .select('id, name')
-          .in('id', connectedUserIds)
-
-        const { data: connectedTimetables } = await supabase
-          .from('timetable')
-          .select('user_id, timetable_data')
-          .in('user_id', connectedUserIds)
-
-        // Create a map of user IDs to names
-        const userNamesMap = new Map(
-          connectedUsersData?.map(u => [u.id, u.name]) || []
-        )
-
-        // Store connected users' names for header display
-        setConnectedUsers(connectedUsersData?.map(u => u.name) || [])
-
-        // Add connected users' timetables
-        let hasAnyTimetableData = false
-        connectedTimetables?.forEach(tt => {
-          if (tt.timetable_data) {
-            const jsonData = tt.timetable_data as Record<string, Array<{ time: string; course?: string; course_code?: string; course_title?: string; venue: string }>>
-            const ownerName = userNamesMap.get(tt.user_id) || 'Classmate'
-
-            Object.entries(jsonData).forEach(([day, classes]) => {
-              if (day in groupedData && classes.length > 0) {
-                hasAnyTimetableData = true
-                classes.forEach(classItem => {
-                  // Display only course code
-                  const courseDisplay = classItem.course_code || classItem.course || 'TBD'
-                  
-                  groupedData[day].push({
-                    time: classItem.time,
-                    title: courseDisplay,
-                    location: classItem.venue,
-                    isOwner: false,
-                    ownerName
-                  })
-                })
-              }
-            })
-          }
-        })
-
-        // Check if connected users had no timetables
-        const usersWithNoTimetable = connectedUserIds.filter(userId => {
-          const hasData = connectedTimetables?.some(tt => 
-            tt.user_id === userId && tt.timetable_data
-          )
-          return !hasData
-        })
-
-        if (usersWithNoTimetable.length > 0) {
-          const userNames = usersWithNoTimetable.map(id => userNamesMap.get(id) || 'Classmate')
-          setUsersWithoutTimetable(userNames)
-        }
-
-        console.log('✅ Added timetables from', connectedTimetables?.length || 0, 'connected users')
-      }
-
-      setTimetable(groupedData)
-      setHasTimetable(true)
-      console.log('✅ Timetable loaded from database')
-
-      setLoading(false)
+      setLoading(true)
+      const data = await TimetableService.getTimetable(user.id)
+      
+      setTimetable(data.timetable)
+      setHasTimetable(data.hasTimetable)
+      setConnectedUsers(data.connectedUserNames)
+      setUsersWithoutTimetable(data.usersWithoutTimetable)
     } catch (error) {
       console.error('Failed to fetch timetable:', error)
       toast.error('Failed to load timetable')
+    } finally {
       setLoading(false)
     }
   }

@@ -1,0 +1,58 @@
+{
+  "school": "University of Calabar",
+  "department": "Nursing",
+  "semester": "First Semester",
+  "total_units": 22,
+  "courses": [
+    {
+      "code": "NSC 411",
+      "title": "Family Health I",
+      "units": 2
+    },
+    {
+      "code": "NSC 421",
+      "title": "Advanced Medical-Surgical Nursing I",
+      "units": 2
+    },
+    {
+      "code": "NSC 431",
+      "title": "Advanced Medical-Surgical Nursing II",
+      "units": 2
+    },
+    {
+      "code": "NSC 441",
+      "title": "Gynaecological Nursing",
+      "units": 3
+    },
+    {
+      "code": "NSC 451",
+      "title": "Advanced MNCH I (Normal Midwifery I)",
+      "units": 2
+    },
+    {
+      "code": "NSC 461",
+      "title": "Research Methods I",
+      "units": 2
+    },
+    {
+      "code": "NSC 471",
+      "title": "Research Methods II",
+      "units": 2
+    },
+    {
+      "code": "NSC 481",
+      "title": "Administration and Organisation of Health Services",
+      "units": 2
+    },
+    {
+      "code": "NSC 491",
+      "title": "Community Health Nursing I",
+      "units": 2
+    },
+    {
+      "code": "HCP 411",
+      "title": "Haematology & Chemical Pathology",
+      "units": 3
+    }
+  ]
+}

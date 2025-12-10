@@ -15,10 +15,9 @@ interface SchoolOption {
 }
 
 export function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) {
-    const { register } = useAuthStore()
+    const { register, loading } = useAuthStore()
     const [schools, setSchools] = useState<SchoolOption[]>([])
     const [loadingSchools, setLoadingSchools] = useState(true)
-    const [loading, setLoading] = useState(false)
     const [data, setData] = useState({
         name: '',
         email: '',
@@ -59,14 +58,12 @@ export function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => v
                 
                 const formattedSchools: SchoolOption[] = schoolsData.map((school: { id: string; name: string }) => {
                     // Map school names to correct image files
-                    let logoPath = `/schools/${school.name.toLowerCase().replace(/\s+/g, '')}.png`
-                    
-                    // Handle specific school name mappings
-                    if (school.name.toLowerCase().includes('rivers state university') || school.name.toLowerCase().includes('rsu')) {
-                        logoPath = '/rsu.jpeg'
-                    } else if (school.name.toLowerCase().includes('university of port harcourt') || school.name.toLowerCase().includes('uniport')) {
-                        logoPath = '/uniport.png'
+                    const logoMap: Record<string, string> = {
+                        'University of Port Harcourt': '/uniport.png',
+                        'University of Calabar': '/unical.jpeg'
                     }
+                    
+                    const logoPath = logoMap[school.name] || `/schools/${school.name.toLowerCase().replace(/\s+/g, '')}.png`
                     
                     return {
                         id: school.id,
@@ -115,7 +112,6 @@ export function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => v
         e.preventDefault()
         if (!validate()) return
 
-        setLoading(true)
         try {
             // Convert semester from "1"/"2" to "first"/"second"
             const semesterMap: { [key: string]: string } = {
@@ -132,14 +128,12 @@ export function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => v
                 level: parseInt(data.level),
                 semester: semesterMap[data.semester],
             })
+            
             setData({ name: '', email: '', phone_number: '', department: '', level: '', semester: '', password: '' })
             setSelectedSchool(null)
             setAgreedToTerms(false)
-            // Redirect is handled by the register action
         } catch {
             // Error already handled by store
-        } finally {
-            setLoading(false)
         }
     }
 

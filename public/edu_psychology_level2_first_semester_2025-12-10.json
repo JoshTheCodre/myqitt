@@ -1,0 +1,62 @@
+{
+  "timetable_data": {
+    "Friday": [
+      {
+        "time": "8am-10am",
+        "venue": "LH-11",
+        "course_code": "GES 201.1",
+        "course_title": "Entrepreneurship & Innovation"
+      }
+    ],
+    "Monday": [
+      {
+        "time": "12pm-2pm",
+        "venue": "TET-Fund Building",
+        "course_code": "EDU 200.1",
+        "course_title": "Developmental Psychology"
+      },
+      {
+        "time": "2pm-4pm",
+        "venue": "7-1 Hall",
+        "course_code": "EDP 200.1",
+        "course_title": "Theories of Counseling & Psychotherapy"
+      }
+    ],
+    "Tuesday": [
+      {
+        "time": "8am-10am",
+        "venue": "LH-11",
+        "course_code": "GES 211.1",
+        "course_title": "Entrepreneurship & Innovation"
+      }
+    ],
+    "Thursday": [
+      {
+        "time": "8am-10am",
+        "venue": "LH 11",
+        "course_code": "EDP 201.1",
+        "course_title": "Social & Psychological Foundation of Counseling"
+      },
+      {
+        "time": "12pm-2pm",
+        "venue": "TET-Fund 7-1 Hall",
+        "course_code": "EDU 201.1",
+        "course_title": "History of Education"
+      }
+    ],
+    "Wednesday": [
+      {
+        "time": "8am-10am",
+        "venue": "LH 11",
+        "course_code": "EDP 202.1",
+        "course_title": "Psychological Testing"
+      },
+      {
+        "time": "2pm-4pm",
+        "venue": "LH 11",
+        "course_code": "EDP 203.1",
+        "course_title": "Personal Psychology"
+      }
+    ]
+  }
+}

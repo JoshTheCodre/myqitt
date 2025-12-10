@@ -1,0 +1,64 @@
+{
+  "school": "University of Port Harcourt",
+  "department": "Linguistics and Communication Studies",
+  "level": 400,
+  "semester": "First Semester",
+  "timetable": {
+    "Monday": [
+      {
+        "time": "12pm-2pm",
+        "course_code": "LCS 401.1",
+        "course_title": "Advanced Syntax",
+        "venue": "ETF"
+      },
+      {
+        "time": "2pm-4pm",
+        "course_code": "LCS 417.1",
+        "course_title": "Law/Ethics of Mass Communication",
+        "venue": "ETF"
+      }
+    ],
+    "Tuesday": [
+      {
+        "time": "12pm-2pm",
+        "course_code": "LCS 412.1",
+        "course_title": "Principles of Editing & Publishing",
+        "venue": "KWH"
+      },
+      {
+        "time": "2pm-4pm",
+        "course_code": "LCS 416.1",
+        "course_title": "Media Management",
+        "venue": "KWH"
+      }
+    ],
+    "Wednesday": [
+      {
+        "time": "8am-10am",
+        "course_code": "LCS 413.1",
+        "course_title": "Language Description/Documentation",
+        "venue": "KWH"
+      },
+      {
+        "time": "10am-12pm",
+        "course_code": "LCS 418.1",
+        "course_title": "Political Communication / Public Policy",
+        "venue": "KWH"
+      },
+      {
+        "time": "12pm-2pm",
+        "course_code": "LCS 415.1",
+        "course_title": "Discourse Analysis & Pragmatics",
+        "venue": "ETF"
+      }
+    ],
+    "Thursday": [
+      {
+        "time": "2pm-4pm",
+        "course_code": "LCS 429.1",
+        "course_title": "Corporate Communication",
+        "venue": "KWH"
+      }
+    ]
+  }
+}

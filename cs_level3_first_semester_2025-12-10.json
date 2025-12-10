@@ -1,0 +1,108 @@
+{
+  "timetable_data": {
+    "Friday": [
+      {
+        "time": "8am-10am",
+        "venue": "CS Lab 2",
+        "course_code": "CSC394.1",
+        "course_title": "Operating Systems"
+      },
+      {
+        "time": "2pm-4pm",
+        "venue": "CS Lab 1",
+        "course_code": "CSC382.1",
+        "course_title": "Computer Architecture I"
+      }
+    ],
+    "Monday": [
+      {
+        "time": "8am-10am",
+        "venue": "CS Lab 1",
+        "course_code": "CSC382.1",
+        "course_title": "Computer Architecture I"
+      },
+      {
+        "time": "12pm-2pm",
+        "venue": "LH 7",
+        "course_code": "CSC395.1",
+        "course_title": "Software Engineering"
+      }
+    ],
+    "Tuesday": [
+      {
+        "time": "10am-12pm",
+        "venue": "CS Lab 2",
+        "course_code": "CSC394.1",
+        "course_title": "Operating Systems"
+      },
+      {
+        "time": "2pm-4pm",
+        "venue": "LH 3",
+        "course_code": "GES300.1",
+        "course_title": "Fundamentals of Entrepreneurship Studies"
+      }
+    ],
+    "Thursday": [
+      {
+        "time": "10am-12pm",
+        "venue": "CS Lab 1",
+        "course_code": "CSC397.1",
+        "course_title": "Computational Methods"
+      },
+      {
+        "time": "2pm-4pm",
+        "venue": "LH 7",
+        "course_code": "CSC395.1",
+        "course_title": "Software Engineering"
+      }
+    ],
+    "Wednesday": [
+      {
+        "time": "8am-10am",
+        "venue": "LH 5",
+        "course_code": "CSC396.1",
+        "course_title": "Automata Theory, Computability and Formal Languages"
+      },
+      {
+        "time": "12pm-2pm",
+        "venue": "LH 9",
+        "course_code": "STA370.1",
+        "course_title": "Operations Research"
+      }
+    ]
+  },
+  "assignments_data": [
+    {
+      "id": "3da479d3-3492-4a1f-8505-f8f8e848ed33",
+      "title": "Database Design Project",
+      "due_date": "2025-12-15",
+      "created_at": "2025-11-30T06:39:28.711Z",
+      "course_code": "Csc 382.1",
+      "description": "Design and implement a normalized database for a library management system"
+    },
+    {
+      "id": "0015ca2d-0744-4cf1-9ff5-65010d0c5cbc",
+      "title": "Web Development Assignment",
+      "due_date": "2025-12-20",
+      "created_at": "2025-11-30T06:39:28.711Z",
+      "course_code": "Csc 394.1",
+      "description": "Create a responsive web application using React and Next.js"
+    },
+    {
+      "id": "f1709a1d-3add-426e-b69f-b8f592f0a56f",
+      "title": "Algorithm Analysis",
+      "due_date": "2025-12-10",
+      "created_at": "2025-11-30T06:39:28.711Z",
+      "course_code": "Csc 396.1",
+      "description": "Analyze time and space complexity of sorting algorithms"
+    },
+    {
+      "id": "fce85587-3fc8-4369-9c7d-3a6bdd591068",
+      "title": "Statistical Analysis Report",
+      "due_date": "2025-12-18",
+      "created_at": "2025-11-30T06:39:28.711Z",
+      "course_code": "Stat 370.1",
+      "description": "Perform statistical analysis on provided dataset"
+    }
+  ]
+}

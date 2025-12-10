@@ -3,25 +3,30 @@
 import { useState, useEffect } from 'react'
 import { X, ChevronDown, Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { supabase } from '@/lib/supabase/client'
 import { useAuthStore } from '@/lib/store/authStore'
-import { useDepartments, formatDepartmentName } from '@/lib/hooks/useDepartments'
+import { ProfileService } from '@/lib/services'
+import type { School, Department } from '@/lib/services'
 
 interface EditProfileModalProps {
   isOpen: boolean
   onClose: () => void
 }
 
-interface SchoolOption {
-  id: string
-  name: string
+// Helper function to format department names
+function formatDepartmentName(dept: string): string {
+  return dept
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
 }
 
 export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
-  const { profile, user } = useAuthStore()
-  const [schools, setSchools] = useState<SchoolOption[]>([])
+  const { profile, user, updateProfile } = useAuthStore()
+  const [schools, setSchools] = useState<School[]>([])
+  const [departments, setDepartments] = useState<Department[]>([])
   const [loading, setLoading] = useState(false)
   const [loadingSchools, setLoadingSchools] = useState(true)
+  const [loadingDepartments, setLoadingDepartments] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     phone_number: '',
@@ -31,29 +36,15 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
     semester: '',
     bio: '',
   })
-  
-  // Fetch departments based on selected school
-  const { departments, loading: loadingDepartments } = useDepartments(formData.school || null)
 
   // Load schools on mount
   useEffect(() => {
     const fetchSchools = async () => {
       try {
-        console.log('Fetching schools...')
-        const { data: schoolsData, error } = await supabase
-          .from('schools')
-          .select('id, name')
-
-        if (error) {
-          console.error('Error fetching schools:', error)
-          throw error
-        }
-        
-        console.log('Schools fetched:', schoolsData)
-        setSchools(schoolsData || [])
+        const schoolsData = await ProfileService.getSchools()
+        setSchools(schoolsData)
       } catch (error) {
-        console.error('Failed to fetch schools:', error)
-        toast.error('Failed to load schools')
+        // Error already handled in service
       } finally {
         setLoadingSchools(false)
       }
@@ -63,6 +54,29 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
       fetchSchools()
     }
   }, [isOpen])
+
+  // Load departments when school changes
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      if (!formData.school) {
+        setDepartments([])
+        return
+      }
+
+      setLoadingDepartments(true)
+      try {
+        const departmentsData = await ProfileService.getDepartments(formData.school)
+        setDepartments(departmentsData)
+      } catch (error) {
+        // Error already handled in service
+        setDepartments([])
+      } finally {
+        setLoadingDepartments(false)
+      }
+    }
+
+    fetchDepartments()
+  }, [formData.school])
 
   // Populate form with current profile data only when modal opens
   useEffect(() => {
@@ -90,28 +104,17 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    console.log('Submit triggered')
-    console.log('User:', user)
-    console.log('Profile:', profile)
-    
     if (!user?.id) {
       toast.error('User not authenticated')
       return
     }
 
     // Validate
-    if (!formData.name.trim()) {
-      return toast.error('Name is required')
-    }
-    if (!formData.level) {
-      return toast.error('Level is required')
-    }
-    if (!formData.semester) {
-      return toast.error('Semester is required')
-    }
+    if (!formData.name.trim()) return toast.error('Name is required')
+    if (!formData.level) return toast.error('Level is required')
+    if (!formData.semester) return toast.error('Semester is required')
 
     setLoading(true)
-    console.log('Starting update...')
     
     try {
       // Convert semester from "1"/"2" to "first"/"second" if needed
@@ -120,58 +123,23 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
       if (semester === '2') semester = 'second'
 
       // Prepare update data
-      const updateData: {
-        name: string
-        phone_number: string | null
-        department: string | null
-        level: number
-        semester: string
-        bio: string | null
-        school?: string
-      } = {
+      const updateData = {
         name: formData.name,
-        phone_number: formData.phone_number || null,
-        department: formData.department || null,
+        phone_number: formData.phone_number || undefined,
+        department: formData.department || undefined,
         level: parseInt(formData.level),
         semester: semester,
-        bio: formData.bio || null,
+        bio: formData.bio || undefined,
+        school: formData.school || undefined,
       }
 
-      // Only include school if it's a valid UUID
-      if (formData.school && formData.school.trim()) {
-        updateData.school = formData.school
-      }
-
-      console.log('Update data:', updateData)
-      console.log('Updating user ID:', user.id)
-
-      const { data, error } = await supabase
-        .from('users')
-        .update(updateData)
-        .eq('id', user.id)
-        .select()
-
-      console.log('Update response:', { data, error })
-
-      if (error) {
-        console.error('Update error:', error)
-        throw error
-      }
-
-      // Update the profile in the store immediately
-      if (data && data[0]) {
-        useAuthStore.setState({ profile: data[0] })
-      }
-
-      toast.success('Profile updated successfully!')
-      setLoading(false)
+      await updateProfile(updateData)
       onClose()
+      
     } catch (error) {
-      console.error('Submit error:', error)
+      // Error already handled in store
+    } finally {
       setLoading(false)
-      const err = error as Error
-      const msg = err?.message || 'Failed to update profile'
-      toast.error(msg)
     }
   }
 

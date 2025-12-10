@@ -5,9 +5,9 @@ import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.
 import { AppShell } from '@/components/layout/app-shell'
 import { Calendar, ChevronRight, Plus, Unplug, X } from 'lucide-react'
 import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase/client'
 import { useAuthStore } from '@/lib/store/authStore'
-import toast from 'react-hot-toast'
+import { AssignmentService } from '@/lib/services'
+import type { Assignment as ServiceAssignment } from '@/lib/services/assignmentService'
 
 // ============ TYPES ============
 interface AssignmentDate {
@@ -21,14 +21,7 @@ interface AssignmentDate {
   ownerName?: string  // ✅ NEW: Name of connected classmate
 }
 
-interface Assignment {
-  id: string
-  courseCode: string
-  assignmentCount: number
-  dates: AssignmentDate[]
-  isOwner?: boolean  // ✅ NEW: Whether this is user's own assignment
-  ownerName?: string  // ✅ NEW: Name if from connected classmate
-}
+
 
 interface AssignmentCardProps {
   courseCode: string
@@ -98,7 +91,7 @@ function Header({ onAddClick, connectedUsers }: { onAddClick: () => void; connec
                     </div>
                     <div>
                       <h3 className="font-bold text-gray-900 text-base mb-1">Connected to {connectedUsers[0]}</h3>
-                      <p className="text-sm text-gray-600 leading-relaxed mb-2">You're viewing combined assignments with {connectedUsers[0]}'s work.</p>
+                      <p className="text-sm text-gray-600 leading-relaxed mb-2">You&apos;re viewing combined assignments with {connectedUsers[0]}&apos;s work.</p>
                       <p className="text-sm text-gray-600 leading-relaxed">To add or update your own assignments, disconnect from {connectedUsers[0]} first.</p>
                     </div>
                   </div>
@@ -185,177 +178,34 @@ function AssignmentCard({
 
 // ============ ASSIGNMENTS LIST COMPONENT ============
 function AssignmentsList({ router, onConnectedUsersChange }: AssignmentsListProps) {
-  const [assignments, setAssignments] = useState<Assignment[]>([])
+  const [assignments, setAssignments] = useState<ServiceAssignment[]>([])
   const [loading, setLoading] = useState(true)
   const [usersWithoutData, setUsersWithoutData] = useState<string[]>([])
-  const [hasConnections, setHasConnections] = useState(false)
   const { user } = useAuthStore()
 
   useEffect(() => {
-    let mounted = true
-    
-    const loadData = async () => {
-      if (user && mounted) {
-        await fetchAssignments()
-      } else if (mounted) {
-        setAssignments([])
-        setLoading(false)
-      }
+    if (user) {
+      loadAssignments()
+    } else {
+      setAssignments([])
+      setLoading(false)
     }
-    
-    setLoading(true)
-    loadData()
-    
-    return () => {
-      mounted = false
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id])
 
-  const fetchAssignments = async () => {
-    if (!user) {
-      console.log('❌ No user found, skipping assignments fetch')
-      return
-    }
+  const loadAssignments = async () => {
+    if (!user) return
 
+    setLoading(true)
     try {
-      console.log('🔍 Fetching assignments for user:', user.id)
-
-      let allItems: Array<{
-        id: string
-        course_code: string
-        title: string
-        description: string
-        due_date: string
-        created_at: string
-        ownerName?: string
-        isOwner?: boolean
-      }> = []
-
-      // ✅ 1. Fetch user's own assignments
-      const { data: assignmentRecord, error: assignmentError } = await supabase
-        .from('assignments')
-        .select('assignments_data')
-        .eq('user_id', user.id)
-        .single()
-
-      if (assignmentError && assignmentError.code !== 'PGRST116') {
-        console.error('❌ Error fetching assignments:', assignmentError)
-      }
-
-      if (assignmentRecord && assignmentRecord.assignments_data) {
-        const ownAssignments = (assignmentRecord.assignments_data as any[]).map(a => ({
-          ...a,
-          isOwner: true
-        }))
-        allItems.push(...ownAssignments)
-      }
-
-      // ✅ 2. Fetch connected classmates' assignments
-      const { data: connections } = await supabase
-        .from('connections')
-        .select('following_id')
-        .eq('follower_id', user.id)
-
-      if (connections && connections.length > 0) {
-        setHasConnections(true)
-        const connectedUserIds = connections.map(c => c.following_id)
-        console.log('👥 Fetching assignments for connected users:', connectedUserIds)
-
-        // Fetch connected users' names
-        const { data: connectedUsersData } = await supabase
-          .from('users')
-          .select('id, name')
-          .in('id', connectedUserIds)
-
-        const userNamesMap = new Map(
-          connectedUsersData?.map(u => [u.id, u.name]) || []
-        )
-
-        // Store connected users' names for header display
-        onConnectedUsersChange(connectedUsersData?.map(u => u.name) || [])
-
-        // Fetch connected users' assignments
-        const { data: connectedAssignments } = await supabase
-          .from('assignments')
-          .select('user_id, assignments_data')
-          .in('user_id', connectedUserIds)
-
-        connectedAssignments?.forEach(record => {
-          if (record.assignments_data && Array.isArray(record.assignments_data) && record.assignments_data.length > 0) {
-            const ownerName = userNamesMap.get(record.user_id) || 'Classmate'
-            const assignments = record.assignments_data.map((a: any) => ({
-              ...a,
-              isOwner: false,
-              ownerName
-            }))
-            allItems.push(...assignments)
-          }
-        })
-
-        // Check if connected users had no assignments
-        const usersWithNoAssignments = connectedUserIds.filter(userId => {
-          const hasData = connectedAssignments?.some(record => 
-            record.user_id === userId && 
-            Array.isArray(record.assignments_data) && 
-            record.assignments_data.length > 0
-          )
-          return !hasData
-        })
-
-        if (usersWithNoAssignments.length > 0) {
-          const userNames = usersWithNoAssignments.map(id => userNamesMap.get(id) || 'Classmate')
-          setUsersWithoutData(userNames)
-        }
-
-        console.log('✅ Added assignments from', connectedAssignments?.length || 0, 'connected users')
-      }
-
-      if (allItems && allItems.length > 0) {
-        const groupedAssignments = allItems.reduce((acc, item) => {
-          const existing = acc.find(a => a.courseCode === item.course_code && a.ownerName === item.ownerName)
-          const dueDate = new Date(item.due_date)
-          const dateLabel = dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-          
-          const assignmentDate: AssignmentDate = {
-            id: item.id,
-            date: item.due_date,
-            label: dateLabel,
-            title: item.title,
-            description: item.description || '',
-            submissionType: 'PDF Report',
-            lecturer: 'TBA'
-          }
-
-          if (existing) {
-            existing.dates.push(assignmentDate)
-            existing.assignmentCount++
-          } else {
-            acc.push({
-              id: item.id,
-              courseCode: item.course_code,
-              assignmentCount: 1,
-              dates: [assignmentDate],
-              isOwner: item.isOwner !== false,
-              ownerName: item.ownerName
-            })
-          }
-
-          return acc
-        }, [] as Assignment[])
-
-        setAssignments(groupedAssignments)
-        console.log('✅ Assignments loaded from database:', allItems.length, 'assignments')
-      } else {
-        console.log('📋 No assignments found')
-        setAssignments([])
-      }
-
-      setLoading(false)
+      const data = await AssignmentService.getAssignments(user.id)
+      
+      setAssignments(data.assignments)
+      setUsersWithoutData(data.usersWithoutData)
+      onConnectedUsersChange(data.connectedUserNames)
     } catch (error) {
-      console.error('Failed to fetch assignments:', error)
-      toast.error('Failed to load assignments')
+      console.error('Failed to load assignments:', error)
       setAssignments([])
+    } finally {
       setLoading(false)
     }
   }
@@ -487,41 +337,8 @@ export default function AssignmentPage() {
     if (!user) return
 
     try {
-      let totalCount = 0
-
-      // Count user's own assignments
-      const { data: assignmentRecord } = await supabase
-        .from('assignments')
-        .select('assignments_data')
-        .eq('user_id', user.id)
-        .single()
-
-      if (assignmentRecord && assignmentRecord.assignments_data) {
-        const assignments = assignmentRecord.assignments_data as any[]
-        totalCount += assignments.length
-      }
-
-      // Count connected users' assignments
-      const { data: connections } = await supabase
-        .from('connections')
-        .select('following_id')
-        .eq('follower_id', user.id)
-
-      if (connections && connections.length > 0) {
-        const connectedUserIds = connections.map(c => c.following_id)
-
-        const { data: connectedAssignments } = await supabase
-          .from('assignments')
-          .select('assignments_data')
-          .in('user_id', connectedUserIds)
-
-        connectedAssignments?.forEach(record => {
-          if (record.assignments_data && Array.isArray(record.assignments_data)) {
-            totalCount += record.assignments_data.length
-          }
-        })
-      }
-
+      const data = await AssignmentService.getAssignments(user.id)
+      const totalCount = data.assignments.reduce((sum, assignment) => sum + assignment.assignmentCount, 0)
       setTotalAssignments(totalCount)
     } catch (error) {
       console.error('Failed to fetch assignment count:', error)

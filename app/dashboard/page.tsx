@@ -8,8 +8,7 @@ import { useAuthStore, UserProfile } from '@/lib/store/authStore'
 import { AppShell } from '@/components/layout/app-shell'
 import { CatchUpModal } from '@/components/catch-up-modal'
 import { InstallPopup } from '@/components/install-popup'
-import { supabase } from '@/lib/supabase/client'
-import toast from 'react-hot-toast'
+import { TimetableService } from '@/lib/services'
 
 // ============ HELPER FUNCTIONS ============
 const getInitials = (name?: string) => {
@@ -181,159 +180,13 @@ function TodaysClasses({ userId }: { userId?: string }) {
     if (!userId) return
 
     try {
-      // Get current day
-      const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-      const today = days[new Date().getDay()]
-
-      // Check if today is a weekend (no classes)
-      if (today === 'Sunday' || today === 'Saturday') {
-        console.log(`📋 No classes scheduled for ${today} (Weekend)`)
-        setClasses([])
-        setLoading(false)
-        return
-      }
-
-      let todaysClasses: Array<{ time: string; course: string; venue: string; isOwner?: boolean; ownerName?: string }> = []
-
-      // ✅ 1. Fetch user's own timetable
-      const { data: timetableRecord, error: ownError } = await supabase
-        .from('timetable')
-        .select('timetable_data')
-        .eq('user_id', userId)
-        .single()
-
-      // Only log error if it's not a "no rows found" error
-      if (ownError && ownError.code !== 'PGRST116') {
-        console.error('Error fetching today\'s classes:', ownError)
-      }
-
-      if (timetableRecord && timetableRecord.timetable_data) {
-        const jsonData = timetableRecord.timetable_data as Record<string, Array<{ time: string; course?: string; course_code?: string; course_title?: string; venue: string }>>
-        const ownClasses = (jsonData[today] || []).map(c => ({ 
-          time: c.time,
-          course: c.course_code || c.course || 'TBD',
-          venue: c.venue,
-          isOwner: true 
-        }))
-        todaysClasses.push(...ownClasses)
-      }
-
-      // ✅ 2. Fetch connected users' timetables
-      const { data: connections } = await supabase
-        .from('connections')
-        .select('following_id')
-        .eq('follower_id', userId)
-
-      if (connections && connections.length > 0) {
-        const connectedUserIds = connections.map(c => c.following_id)
-
-        // Fetch connected users' names
-        const { data: connectedUsers } = await supabase
-          .from('users')
-          .select('id, name')
-          .in('id', connectedUserIds)
-
-        const userNamesMap = new Map(
-          connectedUsers?.map(u => [u.id, u.name]) || []
-        )
-
-        // Fetch connected users' timetables
-        const { data: connectedTimetables } = await supabase
-          .from('timetable')
-          .select('user_id, timetable_data')
-          .in('user_id', connectedUserIds)
-
-        connectedTimetables?.forEach(tt => {
-          if (tt.timetable_data) {
-            const jsonData = tt.timetable_data as Record<string, Array<{ time: string; course?: string; course_code?: string; course_title?: string; venue: string }>>
-            const ownerName = userNamesMap.get(tt.user_id) || 'Classmate'
-            const connectedClasses = (jsonData[today] || []).map(c => ({
-              time: c.time,
-              course: c.course_code || c.course || 'TBD',
-              venue: c.venue,
-              isOwner: false,
-              ownerName
-            }))
-            todaysClasses.push(...connectedClasses)
-          }
-        })
-      }
-
-      if (todaysClasses && todaysClasses.length > 0) {
-        const currentTime = new Date()
-        const currentHour = currentTime.getHours()
-        const currentMinute = currentTime.getMinutes()
-
-        const formattedClasses = todaysClasses.map((item, index) => {
-          // Parse time string like "8am-10am"
-          const [startTimeStr, endTimeStr] = item.time.split('-')
-          
-          const parseTime = (timeStr: string) => {
-            const match = timeStr.match(/(\d+)(am|pm)/)
-            if (!match) return { hour: 0, minute: 0 }
-            let hour = parseInt(match[1])
-            const period = match[2]
-            
-            if (period === 'pm' && hour !== 12) {
-              hour += 12
-            } else if (period === 'am' && hour === 12) {
-              hour = 0
-            }
-            
-            return { hour, minute: 0 }
-          }
-
-          const startTime = parseTime(startTimeStr)
-          const endTime = parseTime(endTimeStr)
-
-          // Determine status
-          let status = 'Upcoming'
-          let borderColor = item.isOwner ? 'border-l-blue-500' : 'border-l-emerald-500'
-          let badgeBg = item.isOwner ? 'bg-blue-50' : 'bg-emerald-50'
-          let badgeText = item.isOwner ? 'text-blue-600' : 'text-emerald-600'
-          let dot = item.isOwner ? 'bg-blue-600' : 'bg-emerald-600'
-
-          const currentTotalMinutes = currentHour * 60 + currentMinute
-          const startTotalMinutes = startTime.hour * 60 + startTime.minute
-          const endTotalMinutes = endTime.hour * 60 + endTime.minute
-
-          if (currentTotalMinutes >= startTotalMinutes && currentTotalMinutes < endTotalMinutes) {
-            status = 'Ongoing'
-            borderColor = 'border-l-amber-400'
-            badgeBg = 'bg-amber-50'
-            badgeText = 'text-amber-400'
-            dot = 'bg-amber-400'
-          } else if (currentTotalMinutes >= endTotalMinutes) {
-            status = 'Completed'
-            borderColor = 'border-l-gray-400'
-            badgeBg = 'bg-gray-50'
-            badgeText = 'text-gray-600'
-            dot = 'bg-gray-600'
-          }
-
-          return {
-            id: `${today}-${index}`,
-            code: item.course,
-            program: item.venue || 'TBA',
-            time: item.time,
-            status,
-            borderColor,
-            badgeBg,
-            badgeText,
-            dot
-          }
-        })
-
-        setClasses(formattedClasses)
-        console.log(`✅ Loaded ${formattedClasses.length} classes for ${today}`)
-      } else {
-        console.log(`📋 No classes scheduled for ${today}`)
-        setClasses([])
-      }
-
-      setLoading(false)
+      setLoading(true)
+      const todaysClasses = await TimetableService.getTodaySchedule(userId)
+      setClasses(todaysClasses)
     } catch (error) {
       console.error('Failed to fetch today\'s classes:', error)
+      setClasses([])
+    } finally {
       setLoading(false)
     }
   }

@@ -1,14 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '@/lib/store/authStore'
 
 export function LoginForm() {
-  const router = useRouter()
-  const { login } = useAuthStore()
-  const [loading, setLoading] = useState(false)
+  const { login, loading } = useAuthStore()
   const [data, setData] = useState({ email: '', password: '' })
   const [rememberMe, setRememberMe] = useState(false)
 
@@ -19,31 +16,19 @@ export function LoginForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('📝 [LOGIN FORM] Form submitted for email:', data.email)
 
-    if (!data.email.trim()) {
-      console.log('❌ [LOGIN FORM] Email validation failed')
-      return toast.error('Email is required')
-    }
-    if (!data.password.trim()) {
-      console.log('❌ [LOGIN FORM] Password validation failed')
-      return toast.error('Password is required')
-    }
+    if (!data.email.trim()) return toast.error('Email is required')
+    if (!data.password.trim()) return toast.error('Password is required')
 
-    console.log('✅ [LOGIN FORM] Validation passed, calling login...')
-    setLoading(true)
     try {
       await login(data.email, data.password)
-      console.log('✅ [LOGIN FORM] Login completed successfully')
       setData({ email: '', password: '' })
+      
       if (rememberMe) {
         localStorage.setItem('rememberMe', 'true')
-        console.log('💾 [LOGIN FORM] Remember me saved')
       }
     } catch (error) {
-      console.log('❌ [LOGIN FORM] Login failed:', error)
-    } finally {
-      setLoading(false)
+      // Error handled in store
     }
   }
 

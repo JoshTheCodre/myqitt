@@ -1,0 +1,540 @@
+{
+  "linguistics_and_communication_studies": {
+    "100": {
+      "1": [
+        {
+          "courseCode": "FLL111.1",
+          "courseTitle": "AUDIO VISUAL FRENCH I",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "GES103.1",
+          "courseTitle": "NIGERIAN PEOPLE AND CULTURE I",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "GES104.1",
+          "courseTitle": "HISTORY AND PHILOSOPHY OF SCIENCE",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LLA100.1",
+          "courseTitle": "LINGUISTICS, LANGUAGE AND COMMUNICATION",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LLA101.1",
+          "courseTitle": "BASIC ENGLISH GRAMMAR",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LLA102.1",
+          "courseTitle": "INTRODUCTION TO PHONETICS AND PHONOLOGY",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "FAD100.1",
+          "courseTitle": "FUNDAMENTALS OF ART AND DESIGN",
+          "courseUnit": 3,
+          "category": "ELECTIVE"
+        },
+        {
+          "courseCode": "LCS100.1X",
+          "courseTitle": "INTRODUCTION TO ENGLISH",
+          "courseUnit": 3,
+          "category": "ELECTIVE"
+        },
+        {
+          "courseCode": "LCS112.1",
+          "courseTitle": "INTRODUCTION TO COMMUNICATION STUDIES",
+          "courseUnit": 2,
+          "category": "ELECTIVE"
+        },
+        {
+          "courseCode": "TFS100.1",
+          "courseTitle": "FUNDAMENTALS OF THEATRE AND FILM STUDIES",
+          "courseUnit": 3,
+          "category": "ELECTIVE"
+        }
+      ],
+      "2": [
+        {
+          "courseCode": "EST120.2",
+          "courseTitle": "INTRODUCTION TO THE STUDY OF LITERATURE",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "GES100.2",
+          "courseTitle": "COMMUNICATION SKILLS IN ENGLISH LANGUAGE II",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "GES101.2",
+          "courseTitle": "COMPUTER APPRECIATION AND APPLICATIONS II",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LLA111.2",
+          "courseTitle": "STUDY OF A NIGERIAN LANGUAGE",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LLA112.2",
+          "courseTitle": "SIGN LANGUAGE AND THE SEMIOTICS OF COMMUNICATION",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LLA113.2",
+          "courseTitle": "TEACHING AND LEARNING VOCABULARY AND SPELLING",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LLA114.2",
+          "courseTitle": "LINGUISTICS DIGITAL COMMUNICATION",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LLA115.2",
+          "courseTitle": "COMMUNICATION AND HUMAN PSYCHOLOGY",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LLA116.2",
+          "courseTitle": "LANGUAGE AND LITERACY EDUCATION",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LCS115.2",
+          "courseTitle": "AFRICAN COMMUNICATION SYSTEMS",
+          "courseUnit": 3,
+          "category": "ELECTIVE"
+        }
+      ]
+    },
+    "200": {
+      "1": [
+        {
+          "courseCode": "LLA200.1",
+          "courseTitle": "SPEECH PRODUCTION AND VOICE TRAINING TECHNIQUES",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LLA201.1",
+          "courseTitle": "INTRODUCTION TO SYNTAX",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LLA202.1",
+          "courseTitle": "INTRODUCTION TO COMMUNICATION ARTS",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LLA203.1",
+          "courseTitle": "GRAMMATICAL SYSTEMS I",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LLA204.1",
+          "courseTitle": "LEXICOLOGY AND LEXICOGRAPHY",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LLA205.1",
+          "courseTitle": "LANGUAGE DEVELOPMENT IN CHILDREN",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LLA206.1",
+          "courseTitle": "INTRODUCTION TO MORPHOLOGY",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LLA207.1",
+          "courseTitle": "TEACHING READING THROUGH LITERARY GENRES",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LLA208.1",
+          "courseTitle": "EXPRESSIVE AND RECEPTIVE COMMUNICATION",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LCS206.1",
+          "courseTitle": "PRINCIPLES OF BROADCASTING",
+          "courseUnit": 3,
+          "category": "ELECTIVE"
+        },
+        {
+          "courseCode": "LCS210.1",
+          "courseTitle": "INTRODUCTION TO PUBLIC RELATIONS AND ADVERTISING",
+          "courseUnit": 3,
+          "category": "ELECTIVE"
+        },
+        {
+          "courseCode": "LCS211.1",
+          "courseTitle": "HISTORY OF THE MEDIA IN NIGERIA",
+          "courseUnit": 3,
+          "category": "ELECTIVE"
+        },
+        {
+          "courseCode": "LCS217.1",
+          "courseTitle": "LANGUAGE DEVELOPMENT IN NIGERIA",
+          "courseUnit": 3,
+          "category": "ELECTIVE"
+        }
+      ],
+      "2": [
+        {
+          "courseCode": "GES102.2",
+          "courseTitle": "INTRODUCTION TO LOGIC AND PHILOSOPHY II",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LCS2C1.2",
+          "courseTitle": "COMMUNITY SERVICE",
+          "courseUnit": 1,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LLA211.2",
+          "courseTitle": "GRAMMAR IN THE MEDIA CLASS",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LLA212.2",
+          "courseTitle": "PHONOLOGICAL ANALYSIS",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LLA213.2",
+          "courseTitle": "INSTRUMENTAL PHONETICS",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LLA214.2",
+          "courseTitle": "INTRODUCTION TO COMMUNICATION DISORDERS",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LLA215.2",
+          "courseTitle": "LANGUAGE AND COMMUNICATION FOR SPECIFIC PURPOSES",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LLA216.2",
+          "courseTitle": "PUBLIC SPEAKING AND ORATORY",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LLA218.2",
+          "courseTitle": "PIDGINS AND CREOLES",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LLA219.2",
+          "courseTitle": "COMMUNICATION IN NIGERIA",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LCS214.2",
+          "courseTitle": "INTRO TO GRAPHIC EXPRESSION AND PRINTING COMMUNICATION",
+          "courseUnit": 3,
+          "category": "ELECTIVE"
+        },
+        {
+          "courseCode": "LCS215.2",
+          "courseTitle": "INTRO TO THE THEORY AND PRACTICE OF JOURNALISM",
+          "courseUnit": 3,
+          "category": "ELECTIVE"
+        },
+        {
+          "courseCode": "LCS216.2",
+          "courseTitle": "DEVELOPMENT COMMUNICATION",
+          "courseUnit": 3,
+          "category": "ELECTIVE"
+        }
+      ]
+    },
+    "300": {
+      "1": [
+        {
+          "courseCode": "LCS300.1",
+          "courseTitle": "RADIO, VIDEO FILM AND TV PRODUCTION TECHNIQUES",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LCS301.1",
+          "courseTitle": "RESEARCH METHODS",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LCS303.1",
+          "courseTitle": "SEMANTICS",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LCS316.1",
+          "courseTitle": "WRITING FOR THE MASS MEDIA",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LCS319.1",
+          "courseTitle": "INTRODUCTION TO COMMUNICATION DISORDERS",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LCS304.1",
+          "courseTitle": "INTRODUCTION TO LINGUISTIC THEORY",
+          "courseUnit": 3,
+          "category": "ELECTIVE"
+        },
+        {
+          "courseCode": "LCS308.1",
+          "courseTitle": "INTRO TO FORENSIC LINGUISTICS",
+          "courseUnit": 3,
+          "category": "ELECTIVE"
+        },
+        {
+          "courseCode": "LCS317.1",
+          "courseTitle": "SPORTS JOURNALISM/SPECIALIZED COMMUNICATION",
+          "courseUnit": 3,
+          "category": "ELECTIVE"
+        },
+        {
+          "courseCode": "LCS318.1",
+          "courseTitle": "PERSUASION AND MARKETING COMMUNICATION",
+          "courseUnit": 3,
+          "category": "ELECTIVE"
+        }
+      ],
+      "2": [
+        {
+          "courseCode": "GES300.1",
+          "courseTitle": "FUNDAMENTALS OF ENTREPRENEURSHIP STUDIES",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LCS305.2",
+          "courseTitle": "SOCIOLINGUISTICS",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LCS307.2",
+          "courseTitle": "GENERATIVE PHONOLOGY",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LCS310.2",
+          "courseTitle": "PRINCIPLES AND PRACTICE OF PUBLIC RELATIONS AND ADVERTISING",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LCS311.2",
+          "courseTitle": "MEDIA, RELIGION AND SOCIETY",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LCS312.2",
+          "courseTitle": "NEWSPAPER/MAGAZINE PRODUCTION",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LCS313.2",
+          "courseTitle": "SYNTAX I",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LCS314.2",
+          "courseTitle": "INDUSTRIAL ATTACHMENT",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        }
+      ],
+      "3": [
+        {
+          "courseCode": "LCS314.2",
+          "courseTitle": "INDUSTRIAL ATTACHMENT",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        }
+      ]
+    },
+    "400": {
+      "1": [
+        {
+          "courseCode": "LCS401.1",
+          "courseTitle": "ADVANCED SYNTAX",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LCS412.1",
+          "courseTitle": "PRINCIPLE OF EDITING AND PUBLISHING",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LCS415.1",
+          "courseTitle": "DISCOURSE ANALYSIS AND PRAGMATICS",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LCS416.1",
+          "courseTitle": "MEDIA MANAGEMENT",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LCS417.1",
+          "courseTitle": "LAWS AND ETHICS OF MASS COMMUNICATION",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LCS411.1",
+          "courseTitle": "COMPUTATIONAL LINGUISTICS",
+          "courseUnit": 3,
+          "category": "ELECTIVE"
+        },
+        {
+          "courseCode": "LCS413.1",
+          "courseTitle": "LANGUAGE DESCRIPTION AND DOCUMENTATION",
+          "courseUnit": 3,
+          "category": "ELECTIVE"
+        },
+        {
+          "courseCode": "LCS418.1",
+          "courseTitle": "POLITICAL COMMUNICATION AND PUBLIC POLICY",
+          "courseUnit": 3,
+          "category": "ELECTIVE"
+        },
+        {
+          "courseCode": "LCS429.1",
+          "courseTitle": "CORPORATE COMMUNICATION",
+          "courseUnit": 3,
+          "category": "ELECTIVE"
+        },
+        {
+          "courseCode": "LCS430.1",
+          "courseTitle": "COGNITIVE LINGUISTICS",
+          "courseUnit": 3,
+          "category": "ELECTIVE"
+        }
+      ],
+      "2": [
+        {
+          "courseCode": "GES400.2",
+          "courseTitle": "ENTREPRENEURSHIP DEVELOPMENT",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LCS420.2",
+          "courseTitle": "INTERNATIONAL COMMUNICATION",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LCS426.2",
+          "courseTitle": "TOPICS IN GENERAL LINGUISTICS",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LCS427.2",
+          "courseTitle": "TOPICS IN COMMUNICATION STUDIES",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LCS428.2",
+          "courseTitle": "PROJECT",
+          "courseUnit": 6,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "LCS421.2",
+          "courseTitle": "BOOK PUBLISHING IN NIGERIA",
+          "courseUnit": 3,
+          "category": "ELECTIVE"
+        },
+        {
+          "courseCode": "LCS422.2",
+          "courseTitle": "ECONOMIC AND SOCIAL ISSUES IN PUBLIC RELATIONS",
+          "courseUnit": 3,
+          "category": "ELECTIVE"
+        },
+        {
+          "courseCode": "LCS425.2",
+          "courseTitle": "TOPICS IN AFRICAN LINGUISTICS",
+          "courseUnit": 3,
+          "category": "ELECTIVE"
+        },
+        {
+          "courseCode": "LCS431.2",
+          "courseTitle": "STYLISTICS",
+          "courseUnit": 3,
+          "category": "ELECTIVE"
+        },
+        {
+          "courseCode": "LCS432.2",
+          "courseTitle": "PHOTOJOURNALISM",
+          "courseUnit": 3,
+          "category": "ELECTIVE"
+        },
+        {
+          "courseCode": "LCS433.2",
+          "courseTitle": "TOPICS IN DEVIANT LANGUAGE DEVELOPMENT AND MANAGEMENT",
+          "courseUnit": 3,
+          "category": "ELECTIVE"
+        }
+      ]
+    }
+  }
+}

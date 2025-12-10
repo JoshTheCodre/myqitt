@@ -2,21 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { AppShell } from '@/components/layout/app-shell'
-import { Users, FileText, Clock, Loader2 } from 'lucide-react'
+import { Users, FileText, Clock } from 'lucide-react'
 import { useAuthStore } from '@/lib/store/authStore'
-import { supabase } from '@/lib/supabase/client'
-import { checkConnection, connectToUser, disconnectFromUser } from '@/lib/connections/connectionService'
-import toast from 'react-hot-toast'
-
-// ============ TYPES ============
-interface Classmate {
-  id: string
-  name: string
-  followers: number
-  hasAssignments: boolean
-  hasTimetable: boolean
-  isConnected: boolean
-}
+import { ClassmateService, type Classmate } from '@/lib/services'
 
 interface HeaderProps {
   classmateCount: number
@@ -31,6 +19,7 @@ interface ClassmateCardProps {
   onConnect: (id: string) => void
   classmateId: string
   isLoading?: boolean
+  isCurrentUser?: boolean
 }
 
 interface ClassmatesListProps {
@@ -61,23 +50,31 @@ function ClassmateCard({
   isConnected,
   onConnect,
   classmateId,
-  isLoading = false
+  isLoading = false,
+  isCurrentUser = false
 }: ClassmateCardProps) {
   return (
   <div className="bg-white rounded-xl border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all duration-300 overflow-hidden group relative">
     <div className="p-5 flex flex-col gap-4">
-      {/* Connect button - top right rectangular */}
-      <button
-        onClick={() => onConnect(classmateId)}
-        disabled={isLoading}
-        className={`absolute top-4 right-4 px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 border disabled:opacity-50 disabled:cursor-not-allowed ${
-          isConnected
-            ? 'bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100'
-            : 'bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100'
-        }`}
-      >
-        {isLoading ? '...' : isConnected ? '✓ Connected' : 'Connect'}
-      </button>
+      {/* Connect button - top right rectangular (hidden for current user) */}
+      {!isCurrentUser && (
+        <button
+          onClick={() => onConnect(classmateId)}
+          disabled={isLoading}
+          className={`absolute top-4 right-4 px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 border disabled:opacity-50 disabled:cursor-not-allowed ${
+            isConnected
+              ? 'bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100'
+              : 'bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100'
+          }`}
+        >
+          {isLoading ? '...' : isConnected ? '✓ Connected' : 'Connect'}
+        </button>
+      )}
+      {isCurrentUser && (
+        <div className="absolute top-4 right-4 px-4 py-1.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-600 border border-blue-200">
+          You
+        </div>
+      )}
 
       {/* Avatar and header */}
       <div className="flex items-center gap-3 pr-20">
@@ -134,148 +131,44 @@ function ClassmateCard({
 
 // ============ CLASSMATES LIST COMPONENT ============
 function ClassmatesList({ onConnectionChange, onCountUpdate }: ClassmatesListProps) {
-  const { user } = useAuthStore()
+  const { user, profile } = useAuthStore()
   const [classmates, setClassmates] = useState<Classmate[]>([])
   const [loading, setLoading] = useState(true)
   const [connectingId, setConnectingId] = useState<string | null>(null)
 
   useEffect(() => {
-    let mounted = true
-    
     const loadClassmates = async () => {
-      if (user && mounted) {
-        await fetchClassmates()
-      } else if (mounted) {
+      console.log('📱 ClassmatesList useEffect triggered');
+      console.log('👤 User:', user?.id);
+      console.log('🏫 Profile:', { school: profile?.school, department: profile?.department });
+      
+      if (!user || !profile?.school || !profile?.department) {
+        console.log('❌ Missing required data, skipping load');
+        setLoading(false)
+        return
+      }
+
+      try {
+        const data = await ClassmateService.getClassmates(
+          user.id,
+          profile.school,
+          profile.department
+        )
+        console.log('✅ Classmates loaded:', data.length);
+        // Don't filter out current user - they should see themselves with "You" badge
+        setClassmates(data)
+        onCountUpdate(data.length)
+      } catch (error) {
+        console.error('💥 Error loading classmates:', error);
+        setClassmates([])
+        onCountUpdate(0)
+      } finally {
         setLoading(false)
       }
     }
-    
-    setLoading(true)
+
     loadClassmates()
-    
-    return () => {
-      mounted = false
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id])
-
-  const fetchClassmates = async () => {
-    if (!user) return
-
-    try {
-      // Fetch current user's profile
-      const { data: profile } = await supabase
-        .from('users')
-        .select('school, department, level')
-        .eq('id', user.id)
-        .single()
-
-      if (!profile) {
-        setLoading(false)
-        return
-      }
-
-      // Fetch all users in the same school, department, and level (excluding current user)
-      const { data: users, error: usersError } = await supabase
-        .from('users')
-        .select('id, name, followers_count')
-        .eq('school', profile.school)
-        .eq('department', profile.department)
-        .eq('level', profile.level)
-        .neq('id', user.id)
-
-      if (usersError) {
-        console.error('Users fetch error:', usersError)
-        setClassmates([])
-        setLoading(false)
-        return
-      }
-
-      if (!users || users.length === 0) {
-        setClassmates([])
-        setLoading(false)
-        return
-      }
-
-      // Get current user's connections
-      const { data: connections } = await supabase
-        .from('connections')
-        .select('following_id')
-        .eq('follower_id', user.id)
-
-      const connectedIds = new Set(connections?.map(c => c.following_id) || [])
-
-      // Get all user IDs
-      const userIds = users.map(u => u.id)
-      console.log('👥 Fetching data for user IDs:', userIds)
-
-      // Batch fetch assignments for all users
-      const { data: allAssignments, error: assignmentsError } = await supabase
-        .from('assignments')
-        .select('user_id, assignments_data')
-        .in('user_id', userIds)
-
-      console.log('📊 Assignments query result:', { allAssignments, assignmentsError })
-
-      // Batch fetch timetables for all users
-      const { data: allTimetables, error: timetablesError } = await supabase
-        .from('timetable')
-        .select('user_id, timetable_data')
-        .in('user_id', userIds)
-
-      console.log('📅 Timetables query result:', { allTimetables, timetablesError })
-
-      // Create maps for quick lookup
-      const assignmentsMap = new Map(
-        allAssignments?.map(a => {
-          const hasData = Array.isArray(a.assignments_data) && a.assignments_data.length > 0
-          console.log(`📋 User ${a.user_id.substring(0, 8)}...: has ${Array.isArray(a.assignments_data) ? a.assignments_data.length : 0} assignments`)
-          return [a.user_id, hasData]
-        }) || []
-      )
-
-      const timetablesMap = new Map(
-        allTimetables?.map(t => {
-          // Check if timetable_data exists and has at least one day with classes
-          const hasData = t.timetable_data && 
-            typeof t.timetable_data === 'object' &&
-            Object.values(t.timetable_data).some((day: any) => 
-              Array.isArray(day) && day.length > 0
-            )
-          const totalClasses = t.timetable_data ? 
-            Object.values(t.timetable_data).reduce((sum: number, day: any) => 
-              sum + (Array.isArray(day) ? day.length : 0), 0
-            ) : 0
-          console.log(`📆 User ${t.user_id.substring(0, 8)}...: has ${totalClasses} classes, hasData=${hasData}`)
-          return [t.user_id, hasData]
-        }) || []
-      )
-
-      console.log('🗺️ Final maps:', {
-        assignmentsMap: Array.from(assignmentsMap.entries()),
-        timetablesMap: Array.from(timetablesMap.entries())
-      })
-
-      // Map classmates with their data
-      const classmatesWithData = users.map(classmate => ({
-        id: classmate.id,
-        name: classmate.name || 'Unknown',
-        followers: classmate.followers_count || 0,
-        hasAssignments: assignmentsMap.get(classmate.id) || false,
-        hasTimetable: timetablesMap.get(classmate.id) || false,
-        isConnected: connectedIds.has(classmate.id),
-      }))
-
-      setClassmates(classmatesWithData)
-      onCountUpdate(classmatesWithData.length)
-      setLoading(false)
-    } catch (error) {
-      console.error('Failed to fetch classmates:', error)
-      setClassmates([])
-      onCountUpdate(0)
-      setLoading(false)
-    }
-  }
+  }, [user?.id, profile?.school, profile?.department, onCountUpdate])
 
   const toggleConnect = async (classmateId: string) => {
     if (!user || connectingId) return
@@ -287,14 +180,7 @@ function ClassmatesList({ onConnectionChange, onCountUpdate }: ClassmatesListPro
 
     try {
       if (classmate.isConnected) {
-        // Disconnect from user
-        const result = await disconnectFromUser(user.id, classmateId)
-        
-        if (!result.success) {
-          throw new Error(result.error || 'Failed to disconnect')
-        }
-
-        // Update local state
+        await ClassmateService.disconnectUser(user.id, classmateId)
         setClassmates(prev =>
           prev.map(c =>
             c.id === classmateId
@@ -302,19 +188,8 @@ function ClassmatesList({ onConnectionChange, onCountUpdate }: ClassmatesListPro
               : c
           )
         )
-        
-        toast.success('Successfully disconnected')
       } else {
-        // Connect to user
-        const result = await connectToUser(user.id, classmateId)
-        
-        if (!result.success) {
-          toast.error(result.error || 'Failed to connect')
-          setConnectingId(null)
-          return
-        }
-
-        // Update local state
+        await ClassmateService.connectToUser(user.id, classmateId)
         setClassmates(prev =>
           prev.map(c =>
             c.id === classmateId
@@ -322,15 +197,10 @@ function ClassmatesList({ onConnectionChange, onCountUpdate }: ClassmatesListPro
               : c
           )
         )
-        
-        toast.success('Successfully connected!')
       }
-
-      // Notify parent to update count
       onConnectionChange()
     } catch (error) {
-      console.error('Failed to toggle connection:', error)
-      toast.error(error instanceof Error ? error.message : 'Failed to update connection')
+      // Error already handled in service
     } finally {
       setConnectingId(null)
     }
@@ -395,6 +265,7 @@ function ClassmatesList({ onConnectionChange, onCountUpdate }: ClassmatesListPro
           isConnected={classmate.isConnected}
           onConnect={toggleConnect}
           isLoading={connectingId === classmate.id}
+          isCurrentUser={classmate.id === user?.id}
         />
       ))}
     </div>

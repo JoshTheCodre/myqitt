@@ -1,0 +1,68 @@
+{
+  "nursing": {
+    "400": {
+      "1": [
+        {
+          "courseCode": "NSC 411",
+          "courseTitle": "Family Health I",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "NSC 421", 
+          "courseTitle": "Advanced Medical-Surgical Nursing I",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "NSC 431",
+          "courseTitle": "Advanced Medical-Surgical Nursing II", 
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "NSC 441",
+          "courseTitle": "Gynaecological Nursing",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "NSC 451",
+          "courseTitle": "Advanced MNCH I (Normal Midwifery I)",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "NSC 461",
+          "courseTitle": "Research Methods I",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "NSC 471",
+          "courseTitle": "Research Methods II",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "NSC 481",
+          "courseTitle": "Administration and Organisation of Health Services",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "NSC 491",
+          "courseTitle": "Community Health Nursing I",
+          "courseUnit": 2,
+          "category": "COMPULSORY"
+        },
+        {
+          "courseCode": "HCP 411",
+          "courseTitle": "Haematology & Chemical Pathology",
+          "courseUnit": 3,
+          "category": "COMPULSORY"
+        }
+      ]
+    }
+  }
+}

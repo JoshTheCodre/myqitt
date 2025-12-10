@@ -1,0 +1,150 @@
+{
+  "school": "University of Calabar",
+  "department": "Nursing",
+  "level": 400,
+  "semester": "First Semester",
+  "timetable": {
+    "Monday": [
+      {
+        "time": "7am-9am",
+        "course_code": "NSC 411",
+        "lecturers": "Prof. Opiah M. & Dr. Ojong",
+        "venue": "SEM RM"
+      },
+      {
+        "time": "10am-11am",
+        "course_code": "NSC 461",
+        "lecturers": "Prof. Et. Ella & Prof. M. Mgbekem",
+        "venue": "PAV 3B"
+      },
+      {
+        "time": "12pm-1pm",
+        "course_code": "NSC 411",
+        "lecturers": "Dr. Asuquo E. & Dr. Ndidia A.",
+        "venue": "NSLT4"
+      },
+      {
+        "time": "1pm-2pm",
+        "course_code": "NSC 451",
+        "lecturers": "Prof. Opiah M. & Dr. Ojong",
+        "venue": "SEM RM"
+      },
+      {
+        "time": "3pm-6pm",
+        "course_code": "NSC 441",
+        "lecturers": "Dr. Ojong I. & Dr. Osaji T.",
+        "venue": "PAV 2B"
+      }
+    ],
+    "Tuesday": [
+      {
+        "time": "10am-11am",
+        "course_code": "NSC 471",
+        "lecturers": "Dr. Asuquo E. & Dr. Osuchukwu E.",
+        "venue": "NSLT5"
+      },
+      {
+        "time": "1pm-2pm",
+        "course_code": "NSC 411",
+        "lecturers": "Prof. Opiah M. & Dr. Ojong",
+        "venue": "SEM RM"
+      },
+      {
+        "time": "3pm-4pm",
+        "course_code": "NSC 421",
+        "lecturers": "Dr. Asuquo E. & Dr. Ndidia A.",
+        "venue": "NSLT5"
+      },
+      {
+        "time": "5pm-6pm",
+        "course_code": "NSC 451",
+        "lecturers": "Dr. Ojong I. & Chioma Chikiodozie",
+        "venue": "PAV 3B"
+      }
+    ],
+    "Wednesday": [
+      {
+        "time": "7am-8am",
+        "course_code": "HCP 411",
+        "lecturers": "Prof. Eno Ukpong",
+        "venue": "PAV 3A"
+      },
+      {
+        "time": "9am-11am",
+        "course_code": "NSC 431",
+        "lecturers": "Dr. Asuquo E. & Dr. Osuchukwu E.",
+        "venue": "NSLT5"
+      },
+      {
+        "time": "12pm-1pm",
+        "course_code": "NSC 421",
+        "lecturers": "Prof. Sunday Essang",
+        "venue": "PAV 1B"
+      },
+      {
+        "time": "2pm-3pm",
+        "course_code": "NSC 491",
+        "lecturers": "Dr. Osaji T. & Mr. Ita John",
+        "venue": "SEM RM"
+      },
+      {
+        "time": "4pm-5pm",
+        "course_code": "NSC 471",
+        "lecturers": "Dr. Asuquo E. & Dr. Ndidia A.",
+        "venue": "PAV 3C"
+      },
+      {
+        "time": "5pm-6pm",
+        "course_code": "NSC 481",
+        "lecturers": "Prof. Ella & Prof. M. Mgbekem",
+        "venue": "PAV 1A"
+      }
+    ],
+    "Thursday": [
+      {
+        "time": "7am-9am",
+        "course_code": "NSC 481",
+        "lecturers": "Prof. Mary M. & Prof. Ella",
+        "venue": "NSLT1"
+      },
+      {
+        "time": "10am-1pm",
+        "course_code": "NSC 421",
+        "lecturers": "Dr. Asuquo E. & Dr. Ndidia A.",
+        "venue": "PAV 1A"
+      },
+      {
+        "time": "2pm-5pm",
+        "course_code": "NSC 461",
+        "lecturers": "Prof. Et. Ella & Prof. M. Mgbekem",
+        "venue": "PAV 1A"
+      }
+    ],
+    "Friday": [
+      {
+        "time": "8am-9am",
+        "course_code": "NSC 471",
+        "lecturers": "Dr. Asuquo E. & Dr. Ndidia A.",
+        "venue": "NSLT1"
+      },
+      {
+        "time": "12pm-1pm",
+        "course_code": "NSC 491",
+        "lecturers": "Dr. Osaji T. & Mr. Ita John",
+        "venue": "SEM RM"
+      },
+      {
+        "time": "2pm-3pm",
+        "course_code": "NSC 431",
+        "lecturers": "Dr. Asuquo E. & Dr. Osuchukwu E.",
+        "venue": "SEM RM"
+      },
+      {
+        "time": "5pm-6pm",
+        "course_code": "NSC 451",
+        "lecturers": "Dr. Ojong & Chioma Chikiodozie",
+        "venue": "NSLT1"
+      }
+    ]
+  }
+}

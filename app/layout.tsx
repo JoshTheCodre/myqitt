@@ -2,7 +2,6 @@ import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import "./globals.css"
 import { Toaster } from 'react-hot-toast'
-import { AuthProvider } from '@/components/auth-provider'
 import { AuthGuard } from '@/components/auth-guard'
 import { PWARegister } from '@/components/pwa-register'
 
@@ -49,36 +48,34 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icon-192x192.png" />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <AuthProvider>
-          <AuthGuard>
-            <Toaster
-              position="top-center"
-              reverseOrder={false}
-              gutter={8}
-              toastOptions={{
-                duration: 4000,
+        <AuthGuard>
+          <Toaster
+            position="top-center"
+            reverseOrder={false}
+            gutter={8}
+            toastOptions={{
+              duration: 4000,
+              style: {
+                background: '#363636',
+                color: '#fff',
+                borderRadius: '8px',
+                padding: '16px',
+                fontWeight: '500',
+              },
+              success: {
                 style: {
-                  background: '#363636',
-                  color: '#fff',
-                  borderRadius: '8px',
-                  padding: '16px',
-                  fontWeight: '500',
+                  background: '#10b981',
                 },
-                success: {
-                  style: {
-                    background: '#10b981',
-                  },
+              },
+              error: {
+                style: {
+                  background: '#ef4444',
                 },
-                error: {
-                  style: {
-                    background: '#ef4444',
-                  },
-                },
-              }}
-            />
-            {children}
-          </AuthGuard>
-        </AuthProvider>
+              },
+            }}
+          />
+          {children}
+        </AuthGuard>
         <PWARegister />
       </body>
     </html>

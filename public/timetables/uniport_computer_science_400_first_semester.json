@@ -1,0 +1,68 @@
+{
+  "school": "University of Port Harcourt",
+  "department": "Computer Science",
+  "level": 400,
+  "semester": "First Semester",
+  "timetable": {
+    "Monday": [
+      {
+        "time": "9am-11am",
+        "course_code": "CSC 486.1",
+        "venue": "CSC Hall 1"
+      },
+      {
+        "time": "11am-1pm",
+        "course_code": "CSC 483.1",
+        "venue": "CSC Hall 1"
+      }
+    ],
+    "Tuesday": [
+      {
+        "time": "8am-9am",
+        "course_code": "CSC 480.1",
+        "venue": "CSC Hall 1"
+      },
+      {
+        "time": "9am-11am",
+        "course_code": "CSC 482.1",
+        "venue": "CSC Hall 2"
+      }
+    ],
+    "Wednesday": [
+      {
+        "time": "10am-11am",
+        "course_code": "CSC 498.1",
+        "venue": "CSC Hall 1"
+      },
+      {
+        "time": "11am-12pm",
+        "course_code": "CSC 486.1",
+        "venue": "CSC Hall 2"
+      },
+      {
+        "time": "1pm-3pm",
+        "course_code": "CSC 480.1",
+        "venue": "CSC Hall 2"
+      }
+    ],
+    "Thursday": [
+      {
+        "time": "9am-11am",
+        "course_code": "CSC 496.1",
+        "venue": "CSC Hall 2"
+      },
+      {
+        "time": "11am-1pm",
+        "course_code": "CSC 481.1",
+        "venue": "CSC Hall 1"
+      }
+    ],
+    "Friday": [
+      {
+        "time": "8am-10am",
+        "course_code": "CSC 498.1",
+        "venue": "CSC Hall 2"
+      }
+    ]
+  }
+}
