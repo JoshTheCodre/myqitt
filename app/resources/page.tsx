@@ -215,19 +215,19 @@ export default function ResourcesPage() {
                       className="fixed inset-0 z-10" 
                       onClick={() => setShowMenu(false)}
                     />
-                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-20">
-                      <button className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors flex items-center gap-3">
-                        <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                          <Upload className="w-4 h-4 text-blue-600" />
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-20">
+                      <a href="/resources/contribute" className="w-full px-3 py-2.5 text-left hover:bg-gray-50 transition-colors flex items-center gap-2.5 text-sm block">
+                        <div className="w-7 h-7 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <Upload className="w-3.5 h-3.5 text-blue-600" />
                         </div>
                         <span className="font-medium text-gray-900">Contribute</span>
-                      </button>
-                      <button className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors flex items-center gap-3">
-                        <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                          <FolderOpen className="w-4 h-4 text-purple-600" />
+                      </a>
+                      <a href="/resources/my-uploads" className="w-full px-3 py-2.5 text-left hover:bg-gray-50 transition-colors flex items-center gap-2.5 text-sm block">
+                        <div className="w-7 h-7 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <FolderOpen className="w-3.5 h-3.5 text-purple-600" />
                         </div>
                         <span className="font-medium text-gray-900">My Uploads</span>
-                      </button>
+                      </a>
                     </div>
                   </>
                 )}
@@ -268,7 +268,7 @@ export default function ResourcesPage() {
           {/* For You Banner - Only show when "For You" is selected */}
           {selectedCourse === 'for-you' && (
             <div className="mb-6 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl p-6 text-white shadow-lg">
-              <div className="flex items-start justify-between">
+              <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
                     <h2 className="text-xl font-bold">Your Saved Resources</h2>
@@ -276,9 +276,27 @@ export default function ResourcesPage() {
                       <span className="text-sm font-bold">5</span>
                     </div>
                   </div>
-                  <p className="text-blue-100 text-sm">
-                    Click contribute to add materials and help us all escape this place 😂🤣 No cap, we're in this together fr fr
+                  <p className="text-blue-100 text-xs mb-4">
+                    Share notes, past questions & study guides to help your peers succeed 📚
                   </p>
+                  
+                  {/* Action Buttons */}
+                  <div className="flex gap-2">
+                    <a
+                      href="/resources/contribute"
+                      className="px-4 py-2 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-colors font-medium text-sm flex items-center gap-2"
+                    >
+                      <Upload className="w-4 h-4" />
+                      Contribute
+                    </a>
+                    <a
+                      href="/resources/my-uploads"
+                      className="px-4 py-2 bg-white/20 backdrop-blur-sm text-white border border-white/30 rounded-lg hover:bg-white/30 transition-colors font-medium text-sm flex items-center gap-2"
+                    >
+                      <FolderOpen className="w-4 h-4" />
+                      My Uploads
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>
