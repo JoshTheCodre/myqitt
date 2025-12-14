@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter, usePathname } from 'next/navigation'
-import { Home, Calendar, ClipboardList } from 'lucide-react'
+import { Home, Calendar, ClipboardList, GraduationCap } from 'lucide-react'
 
 export function BottomNav() {
   const router = useRouter()
@@ -11,6 +11,7 @@ export function BottomNav() {
     { id: 'home', icon: Home, label: 'Home', href: '/dashboard' },
     { id: 'timetable', icon: Calendar, label: 'Timetable', href: '/timetable' },
     { id: 'assignment', icon: ClipboardList, label: 'Assignments', href: '/assignment' },
+    { id: 'resources', icon: GraduationCap, label: 'Resources', href: '/resources' },
   ]
 
   const isActive = (href: string) => pathname === href

@@ -24,15 +24,27 @@ export class NotificationService {
    */
   static async registerToken(userId: string, fcmToken: string, deviceType: 'web' | 'mobile' = 'web'): Promise<boolean> {
     try {
+      console.log('🔄 Registering FCM token...', { 
+        userId: userId.substring(0, 8) + '...', 
+        tokenPreview: fcmToken.substring(0, 20) + '...',
+        deviceType 
+      })
+
       // Check if token already exists
-      const { data: existing } = await supabase
+      const { data: existing, error: checkError } = await supabase
         .from('notification_tokens')
         .select('id')
         .eq('user_id', userId)
         .eq('fcm_token', fcmToken)
         .single()
 
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.error('❌ Error checking existing token:', checkError)
+        throw checkError
+      }
+
       if (existing) {
+        console.log('📝 Updating existing token...')
         // Update existing token
         const { error } = await supabase
           .from('notification_tokens')
@@ -40,23 +52,30 @@ export class NotificationService {
           .eq('id', existing.id)
 
         if (error) throw error
+        console.log('✅ Existing FCM token updated')
       } else {
+        console.log('➕ Inserting new token...')
         // Insert new token
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('notification_tokens')
           .insert({
             user_id: userId,
             fcm_token: fcmToken,
             device_type: deviceType
           })
+          .select()
 
-        if (error) throw error
+        if (error) {
+          console.error('❌ Insert error:', error)
+          throw error
+        }
+        console.log('✅ New FCM token inserted:', data)
       }
 
       console.log('✅ FCM token registered successfully')
       return true
     } catch (error) {
-      console.error('Failed to register FCM token:', error)
+      console.error('❌ Failed to register FCM token:', error)
       return false
     }
   }
@@ -323,36 +342,64 @@ export class NotificationService {
     }>
   }> {
     try {
-      // Get users this person is following (hosts they're connected to)
+      console.log('🔍 Loading connected hosts and tokens for user:', userId.substring(0, 8) + '...')
+
+      // Get users this person is following (simpler query without joins)
       const { data: connections, error: connectionsError } = await supabase
         .from('connections')
-        .select(`
-          following_id,
-          profiles!connections_following_id_fkey (
-            id,
-            name,
-            email
-          )
-        `)
+        .select('following_id')
         .eq('follower_id', userId)
 
-      if (connectionsError) throw connectionsError
+      if (connectionsError) {
+        console.error('❌ Connections query error:', connectionsError)
+        throw connectionsError
+      }
 
-      // Get user's notification tokens
+      console.log('📊 Found connections:', connections?.length || 0)
+
+      // Get user's notification tokens  
       const { data: tokens, error: tokensError } = await supabase
         .from('notification_tokens')
         .select('id, fcm_token, device_type, created_at')
         .eq('user_id', userId)
 
-      if (tokensError) throw tokensError
+      if (tokensError) {
+        console.error('❌ Tokens query error:', tokensError)
+        throw tokensError
+      }
 
-      // Format connected hosts (since we don't have connection_type in current schema, default to 'both')
-      const connectedHosts = (connections || []).map((conn: any) => ({
-        id: conn.following_id,
-        name: conn.profiles?.name || 'Unknown',
-        email: conn.profiles?.email || '',
-        connection_type: 'both' // Default since current schema doesn't have this field
-      }))
+      console.log('🔑 Found tokens:', tokens?.length || 0)
+
+      // Get profile info for connected users separately (to avoid complex joins)
+      let connectedHosts: Array<{
+        id: string
+        name: string
+        email: string
+        connection_type: string
+      }> = []
+
+      if (connections && connections.length > 0) {
+        const followingIds = connections.map(c => c.following_id)
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, name, email')
+          .in('id', followingIds)
+
+        if (profilesError) {
+          console.error('❌ Profiles query error:', profilesError)
+          // Don't throw, just use empty profiles
+        }
+
+        connectedHosts = connections.map(conn => {
+          const profile = profiles?.find(p => p.id === conn.following_id)
+          return {
+            id: conn.following_id,
+            name: profile?.name || 'Unknown',
+            email: profile?.email || '',
+            connection_type: 'both' // Default since current schema doesn't have this field
+          }
+        })
+      }
 
       const userTokens = (tokens || []).map(token => ({
         id: token.id,
@@ -360,6 +407,11 @@ export class NotificationService {
         device_type: token.device_type,
         created_at: token.created_at
       }))
+
+      console.log('✅ Successfully loaded data:', { 
+        connectedHosts: connectedHosts.length, 
+        userTokens: userTokens.length 
+      })
 
       return {
         connectedHosts,
@@ -371,6 +423,34 @@ export class NotificationService {
         connectedHosts: [],
         userTokens: []
       }
+    }
+  }
+
+  /**
+   * Test database access for debugging
+   */
+  static async testDatabaseAccess(userId: string): Promise<boolean> {
+    try {
+      console.log('🧪 Testing notification_tokens table access...')
+      
+      // Try to query the table
+      const { data, error, count } = await supabase
+        .from('notification_tokens')
+        .select('*', { count: 'exact' })
+        .eq('user_id', userId)
+
+      console.log('📊 Query result:', { data, error, count })
+      
+      if (error) {
+        console.error('❌ Database query error:', error)
+        return false
+      }
+      
+      console.log('✅ Database access successful')
+      return true
+    } catch (error) {
+      console.error('❌ Database test failed:', error)
+      return false
     }
   }
 }

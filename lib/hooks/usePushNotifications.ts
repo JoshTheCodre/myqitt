@@ -55,22 +55,41 @@ export function usePushNotifications() {
 
   // Register FCM token
   const registerToken = async () => {
-    if (!messaging || !user) return
+    if (!messaging) {
+      console.error('❌ Messaging not initialized')
+      return false
+    }
+    
+    if (!user) {
+      console.error('❌ User not authenticated')
+      return false
+    }
 
     try {
+      console.log('🔄 Requesting FCM token...')
       const currentToken = await getToken(messaging, {
         vapidKey: VAPID_KEY
       })
 
       if (currentToken) {
+        console.log('✅ FCM token received:', currentToken.substring(0, 40) + '...')
         setFcmToken(currentToken)
-        await NotificationService.registerToken(user.id, currentToken, 'web')
-        console.log('✅ FCM token registered:', currentToken.substring(0, 20) + '...')
+        
+        const success = await NotificationService.registerToken(user.id, currentToken, 'web')
+        if (success) {
+          console.log('✅ FCM token registered in database')
+          return true
+        } else {
+          console.error('❌ Failed to register token in database')
+          return false
+        }
       } else {
-        console.log('No registration token available')
+        console.error('❌ No registration token available. Make sure Firebase is configured correctly.')
+        return false
       }
     } catch (error) {
-      console.error('Failed to get FCM token:', error)
+      console.error('❌ Failed to get FCM token:', error)
+      return false
     }
   }
 
@@ -120,6 +139,7 @@ export function usePushNotifications() {
     permission,
     fcmToken,
     requestPermission,
+    registerToken, // Expose for manual registration
     isSupported: typeof window !== 'undefined' && 'Notification' in window
   }
 }

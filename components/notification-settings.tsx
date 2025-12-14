@@ -14,7 +14,7 @@ interface NotificationSettingsProps {
 
 export function NotificationSettings({ isOpen, onClose }: NotificationSettingsProps) {
   const { user } = useAuthStore()
-  const { permission, requestPermission, isSupported } = usePushNotifications()
+  const { permission, fcmToken, requestPermission, registerToken, isSupported } = usePushNotifications()
   const [pushEnabled, setPushEnabled] = useState(true)
   const [loading, setLoading] = useState(false)
   const [connectedHosts, setConnectedHosts] = useState<Array<{
@@ -48,10 +48,28 @@ export function NotificationSettings({ isOpen, onClose }: NotificationSettingsPr
   const loadConnectedData = async () => {
     if (!user) return
     setLoadingData(true)
-    const data = await NotificationService.getConnectedHostsAndTokens(user.id)
-    setConnectedHosts(data.connectedHosts)
-    setUserTokens(data.userTokens)
-    setLoadingData(false)
+    
+    try {
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timeout')), 10000)
+      )
+      
+      const dataPromise = NotificationService.getConnectedHostsAndTokens(user.id)
+      
+      const data = await Promise.race([dataPromise, timeoutPromise]) as any
+      
+      setConnectedHosts(data.connectedHosts)
+      setUserTokens(data.userTokens)
+      console.log('✅ Loaded connected data:', data)
+    } catch (error) {
+      console.error('❌ Failed to load connected data:', error)
+      setConnectedHosts([])
+      setUserTokens([])
+      toast.error('Failed to load connection data')
+    } finally {
+      setLoadingData(false)
+    }
   }
 
   const handleToggleNotifications = async () => {
@@ -59,11 +77,26 @@ export function NotificationSettings({ isOpen, onClose }: NotificationSettingsPr
       const granted = await requestPermission()
       if (granted) {
         await updatePushEnabled(true)
+        await loadConnectedData() // Refresh to show new token
         toast.success('Notifications enabled!')
       }
     } else {
       await updatePushEnabled(!pushEnabled)
       toast.success(pushEnabled ? 'Notifications disabled' : 'Notifications enabled')
+    }
+  }
+
+  const handleRefreshTokens = async () => {
+    if (permission === 'granted' && registerToken) {
+      setLoadingData(true)
+      const success = await registerToken()
+      if (success) {
+        await loadConnectedData()
+        toast.success('Token refreshed!')
+      } else {
+        toast.error('Failed to refresh token')
+      }
+      setLoadingData(false)
     }
   }
 
@@ -171,7 +204,10 @@ export function NotificationSettings({ isOpen, onClose }: NotificationSettingsPr
                   </div>
                   
                   {loadingData ? (
-                    <p className="text-sm text-blue-600">Loading connections...</p>
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                      <p className="text-sm text-blue-600">Loading connections...</p>
+                    </div>
                   ) : connectedHosts.length > 0 ? (
                     <div className="space-y-2">
                       {connectedHosts.map((host) => (
@@ -189,19 +225,39 @@ export function NotificationSettings({ isOpen, onClose }: NotificationSettingsPr
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-blue-600">No connected hosts yet. Connect with classmates to receive their notifications!</p>
+                    <div className="text-center py-4">
+                      <p className="text-sm text-blue-600 mb-3">No connected hosts yet. Connect with classmates to receive their notifications!</p>
+                      <button
+                        onClick={loadConnectedData}
+                        className="px-3 py-1.5 text-xs bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200"
+                      >
+                        Retry Loading
+                      </button>
+                    </div>
                   )}
                 </div>
 
                 {/* Notification Tokens */}
                 <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Key className="w-4 h-4 text-gray-600" />
-                    <p className="font-semibold text-gray-800">Your Notification Tokens</p>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Key className="w-4 h-4 text-gray-600" />
+                      <p className="font-semibold text-gray-800">Your Notification Tokens</p>
+                    </div>
+                    <button
+                      onClick={handleRefreshTokens}
+                      disabled={loadingData || permission !== 'granted'}
+                      className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {loadingData ? 'Refreshing...' : 'Refresh'}
+                    </button>
                   </div>
                   
                   {loadingData ? (
-                    <p className="text-sm text-gray-600">Loading tokens...</p>
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                      <p className="text-sm text-gray-600">Loading tokens...</p>
+                    </div>
                   ) : userTokens.length > 0 ? (
                     <div className="space-y-2">
                       {userTokens.map((token) => (
@@ -225,7 +281,37 @@ export function NotificationSettings({ isOpen, onClose }: NotificationSettingsPr
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-600">No notification tokens registered yet.</p>
+                    <div className="space-y-3">
+                      <p className="text-sm text-gray-600">No notification tokens registered yet.</p>
+                      
+                      {/* Debug Info */}
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-xs">
+                        <p className="font-medium text-yellow-800 mb-2">Debug Info:</p>
+                        <div className="space-y-1 text-yellow-700">
+                          <p>• Permission: <span className="font-mono">{permission}</span></p>
+                          <p>• Current FCM Token: <span className="font-mono">{fcmToken ? `${fcmToken.substring(0, 20)}...` : 'None'}</span></p>
+                          <p>• User ID: <span className="font-mono">{user?.id || 'None'}</span></p>
+                          <p>• Browser Support: <span className="font-mono">{isSupported ? 'Yes' : 'No'}</span></p>
+                        </div>
+                        {permission === 'granted' && !fcmToken && (
+                          <p className="text-yellow-600 mt-2 font-medium">
+                            ⚠️ Permission granted but no FCM token. Try refreshing tokens.
+                          </p>
+                        )}
+                        
+                        <button
+                          onClick={async () => {
+                            console.log('🔧 Testing database access...')
+                            const testResult = await NotificationService.testDatabaseAccess(user?.id || '')
+                            toast(testResult ? 'Database accessible' : 'Database error - check console', 
+                              { icon: testResult ? '✅' : '❌' })
+                          }}
+                          className="mt-2 px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200"
+                        >
+                          Test DB Access
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </div>
 
