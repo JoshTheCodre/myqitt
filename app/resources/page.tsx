@@ -1,11 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { FileText, BookOpen, GraduationCap, Search, MoreVertical, ChevronRight, Upload, FolderOpen, Sparkles } from 'lucide-react'
+import { FileText, BookOpen, GraduationCap, Search, MoreVertical, ChevronRight, Upload, FolderOpen, Sparkles, User, Calendar } from 'lucide-react'
 import { useAuthStore } from '@/lib/store/authStore'
 import { supabase } from '@/lib/supabase/client'
-import { Sidebar } from '@/components/layout/sidebar'
-import { BottomNav } from '@/components/layout/bottom-nav'
+import { AppShell } from '@/components/layout/app-shell'
 
 type ResourceType = 'past_questions' | 'lecture_notes' | 'study_guides'
 
@@ -133,20 +132,28 @@ export default function ResourcesPage() {
   }
 
   const ResourceCard = ({ resource }: { resource: Resource }) => (
-    <div className="flex-shrink-0 w-56 bg-white rounded-xl border border-gray-200 p-3.5 hover:shadow-lg hover:border-blue-200 transition-all">
-      <h4 className="font-semibold text-gray-900 mb-1.5 text-sm line-clamp-2 leading-tight">{resource.title}</h4>
+    <div 
+      className="flex-shrink-0 w-56 bg-white rounded-xl border border-gray-200 p-4 hover:shadow-lg hover:border-blue-300 hover:scale-105 transition-all cursor-pointer group"
+      onClick={() => {
+        // TODO: Navigate to resource detail page
+        console.log('View resource:', resource.id)
+      }}
+    >
+      <h4 className="font-semibold text-gray-900 mb-1.5 text-sm line-clamp-2 leading-tight group-hover:text-blue-600 transition-colors">{resource.title}</h4>
       <p className="text-xs text-gray-500 mb-3">{resource.course}</p>
       
-      <div className="text-xs text-gray-500 mb-3">
+      <div className="text-xs text-gray-500">
         <div className="flex items-center justify-between">
-          <span>By {resource.uploadedBy}</span>
-          <span>{new Date(resource.uploadDate).toLocaleDateString()}</span>
+          <span className="flex items-center gap-1">
+            <User className="w-3 h-3" />
+            {resource.uploadedBy}
+          </span>
+          <span className="flex items-center gap-1">
+            <Calendar className="w-3 h-3" />
+            {new Date(resource.uploadDate).toLocaleDateString()}
+          </span>
         </div>
       </div>
-
-      <button className="w-full px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-xs shadow-sm">
-        View
-      </button>
     </div>
   )
 
@@ -186,10 +193,9 @@ export default function ResourcesPage() {
   }
 
   return (
-    <>
-      <Sidebar />
-      <div className="min-h-screen bg-gray-50 pb-24 lg:pb-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <AppShell>
+      <div className="h-full flex items-start justify-center overflow-hidden">
+        <div className="w-full lg:w-3/4 px-4 py-8 pb-24 lg:pb-8 overflow-x-hidden">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div>
@@ -349,7 +355,6 @@ export default function ResourcesPage() {
           }
         `}</style>
       </div>
-      <BottomNav />
-    </>
+    </AppShell>
   )
 }

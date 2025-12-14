@@ -2,8 +2,7 @@
 
 import { useState } from 'react'
 import { Upload, FileText, BookOpen, GraduationCap, Plus, X } from 'lucide-react'
-import { Sidebar } from '@/components/layout/sidebar'
-import { BottomNav } from '@/components/layout/bottom-nav'
+import { AppShell } from '@/components/layout/app-shell'
 import toast from 'react-hot-toast'
 
 type ResourceType = 'past_questions' | 'lecture_notes' | 'study_guides'
@@ -88,10 +87,9 @@ export default function ContributePage() {
   }
 
   return (
-    <>
-      <Sidebar />
-      <div className="min-h-screen bg-gray-50 pb-24 lg:pb-8">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <AppShell>
+      <div className="h-full flex items-start justify-center overflow-hidden">
+        <div className="w-full lg:w-3/4 px-4 py-8 pb-24 lg:pb-8 overflow-x-hidden">
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-2xl font-bold text-gray-900">Contribute Materials</h1>
@@ -266,7 +264,6 @@ export default function ContributePage() {
           </div>
         </div>
       </div>
-      <BottomNav />
-    </>
+    </AppShell>
   )
 }
