@@ -138,7 +138,7 @@ function ClassmatesList({ onConnectionChange, onCountUpdate }: ClassmatesListPro
 
   useEffect(() => {
     const loadClassmates = async () => {
-      if (!user || !profile?.school || !profile?.department) {
+      if (!user || !profile?.school || !profile?.department || !profile?.level) {
         setLoading(false)
         return
       }
@@ -147,7 +147,8 @@ function ClassmatesList({ onConnectionChange, onCountUpdate }: ClassmatesListPro
         const data = await ClassmateService.getClassmates(
           user.id,
           profile.school,
-          profile.department
+          profile.department,
+          profile.level
         )
         // Don't filter out current user - they should see themselves with "You" badge
         setClassmates(data)
@@ -162,7 +163,7 @@ function ClassmatesList({ onConnectionChange, onCountUpdate }: ClassmatesListPro
     }
 
     loadClassmates()
-  }, [user?.id, profile?.school, profile?.department, onCountUpdate])
+  }, [user?.id, profile?.school, profile?.department, profile?.level, onCountUpdate])
 
   const toggleConnect = async (classmateId: string) => {
     if (!user || connectingId) return

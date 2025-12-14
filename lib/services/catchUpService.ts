@@ -64,9 +64,11 @@ export class CatchUpService {
           targetSchools: targets.schools,
           targetDepts: targets.departments,
           targetLevels: targets.levels,
+          targetSemester: targets.semester,
           userSchool: userProfile.school,
           userDept: userProfile.department,
-          userLevel: userProfile.level
+          userLevel: userProfile.level,
+          userSemester: userProfile.semester
         })
 
         // If global, show to everyone
@@ -75,16 +77,19 @@ export class CatchUpService {
           return true
         }
 
-        // Check if user matches any of the targeting criteria
+        // For non-global items, ALL specified criteria must match (AND logic)
+        // If a criteria is empty/not specified, it's considered a match
         const matchesSchool = targets.schools.length === 0 || targets.schools.includes(userProfile.school)
         const matchesDepartment = targets.departments.length === 0 || targets.departments.includes(userProfile.department)
         const matchesLevel = targets.levels.length === 0 || targets.levels.includes(userProfile.level)
         const matchesSemester = targets.semester.length === 0 || targets.semester.includes(userProfile.semester)
 
-        const matches = matchesSchool || matchesDepartment || matchesLevel || matchesSemester
+        // ALL criteria must match (AND logic)
+        const matches = matchesSchool && matchesDepartment && matchesLevel && matchesSemester
+        
+        console.log(`  School: ${matchesSchool}, Dept: ${matchesDepartment}, Level: ${matchesLevel}, Semester: ${matchesSemester}`)
         console.log(`${matches ? '✅' : '❌'} "${item.title}" - ${matches ? 'Matched' : 'Not matched'}`)
         
-        // Show if matches any criteria (OR logic)
         return matches
       })
 

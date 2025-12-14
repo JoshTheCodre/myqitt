@@ -26,19 +26,21 @@ export interface Connection {
 }
 
 export class ClassmateService {
-  // Get classmates (users in same school/department)
+  // Get classmates (users in same school/department/level)
   static async getClassmates(
     userId: string, 
     userSchool: string, 
-    userDepartment: string
+    userDepartment: string,
+    userLevel: number
   ): Promise<Classmate[]> {
     try {
-      // Get users in same school and department (including current user)
+      // Get users in same school, department AND level (including current user)
       const { data: users, error: usersError } = await supabase
         .from('users')
         .select('*')
         .eq('school', userSchool)
         .eq('department', userDepartment)
+        .eq('level', userLevel)
       
       if (usersError) throw usersError
 
