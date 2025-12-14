@@ -494,7 +494,7 @@ function TodaysClasses({ userId }: { userId?: string }) {
       </section>
 
       {/* Update Modal */}
-      {selectedClass && (
+      {selectedClass && userId && (
         <UpdateTodaysClassModal
           isOpen={showUpdateModal}
           onClose={handleCloseModal}
