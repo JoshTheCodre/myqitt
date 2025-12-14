@@ -43,7 +43,5 @@ export type {
 } from './todaysClassService'
 
 export type {
-  NotificationPayload,
-  NotificationPreferences,
-  NotificationRecord
+  NotificationPayload
 } from './notificationService'

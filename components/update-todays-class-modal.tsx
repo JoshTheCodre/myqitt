@@ -388,9 +388,9 @@ export function UpdateTodaysClassModal({
               </button>
               <button
                 onClick={handleSave}
-                disabled={loading || (!hasChanges && existingUpdate)}
+                disabled={loading || (!hasChanges && !!existingUpdate)}
                 className={`flex-1 px-4 py-3 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 ${
-                  loading || (!hasChanges && existingUpdate)
+                  loading || (!hasChanges && !!existingUpdate)
                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     : 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700 shadow-md hover:shadow-lg'
                 }`}
