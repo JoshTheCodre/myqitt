@@ -3,12 +3,14 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { HeadsetIcon, BookIcon, Users, ArrowRight, Clock, Plus } from 'lucide-react'
+import { HeadsetIcon, BookIcon, Users, ArrowRight, Clock, Plus, AlertCircle, MapPin } from 'lucide-react'
 import { useAuthStore, UserProfile } from '@/lib/store/authStore'
 import { AppShell } from '@/components/layout/app-shell'
 import { CatchUpModal } from '@/components/catch-up-modal'
 import { InstallPopup } from '@/components/install-popup'
-import { TimetableService } from '@/lib/services'
+import { ClassMenu } from '@/components/class-menu'
+import { UpdateTodaysClassModal } from '@/components/update-todays-class-modal'
+import { TodaysClassService, type MergedClass } from '@/lib/services'
 import { CatchUpService, type CatchUpItem } from '@/lib/services/catchUpService'
 
 // ============ HELPER FUNCTIONS ============
@@ -36,6 +38,45 @@ const formatDepartmentDisplay = (dept?: string) => {
     return words.slice(0, 2).join(' ') + '...'
   }
   return formatted
+}
+
+// Get class status based on current time
+const getClassStatus = (startTime: string, endTime: string): 'upcoming' | 'ongoing' | 'completed' => {
+  const now = new Date()
+  const currentMinutes = now.getHours() * 60 + now.getMinutes()
+  
+  // Parse time - handle both "09:00" and "9:00AM" formats
+  const parseTime = (time: string): number => {
+    // Remove any whitespace
+    time = time.trim()
+    
+    // If it has AM/PM, convert to 24-hour
+    if (time.toLowerCase().includes('am') || time.toLowerCase().includes('pm')) {
+      const cleanTime = time.toLowerCase().replace(/\s+/g, '')
+      const match = cleanTime.match(/(\d+):(\d+)(am|pm)/)
+      if (match) {
+        let hour = parseInt(match[1])
+        const minute = parseInt(match[2])
+        const meridiem = match[3]
+        
+        if (meridiem === 'pm' && hour !== 12) hour += 12
+        if (meridiem === 'am' && hour === 12) hour = 0
+        
+        return hour * 60 + minute
+      }
+    }
+    
+    // Already in 24-hour format (HH:MM)
+    const [hour, minute] = time.split(':').map(Number)
+    return hour * 60 + minute
+  }
+  
+  const classStartMinutes = parseTime(startTime)
+  const classEndMinutes = parseTime(endTime)
+  
+  if (currentMinutes < classStartMinutes) return 'upcoming'
+  if (currentMinutes >= classStartMinutes && currentMinutes < classEndMinutes) return 'ongoing'
+  return 'completed'
 }
 
 // ============ HEADER COMPONENT ============
@@ -208,19 +249,10 @@ function ActionCards() {
 
 // ============ TODAY'S CLASSES COMPONENT ============
 function TodaysClasses({ userId }: { userId?: string }) {
-  const [classes, setClasses] = useState<Array<{
-    id: string
-    code: string
-    program: string
-    time: string
-    status: string
-    borderColor: string
-    badgeBg: string
-    badgeText: string
-    dot: string
-    connectedTo?: string
-  }>>([])
+  const [classes, setClasses] = useState<MergedClass[]>([])
   const [loading, setLoading] = useState(true)
+  const [selectedClass, setSelectedClass] = useState<MergedClass | null>(null)
+  const [showUpdateModal, setShowUpdateModal] = useState(false)
 
   useEffect(() => {
     let mounted = true
@@ -248,7 +280,8 @@ function TodaysClasses({ userId }: { userId?: string }) {
 
     try {
       setLoading(true)
-      const todaysClasses = await TimetableService.getTodaySchedule(userId)
+      const todaysClasses = await TodaysClassService.getTodaysClasses(userId)
+      console.log('Loaded today\'s classes:', todaysClasses.length, 'classes')
       setClasses(todaysClasses)
     } catch (error) {
       console.error('Failed to fetch today\'s classes:', error)
@@ -256,6 +289,20 @@ function TodaysClasses({ userId }: { userId?: string }) {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleUpdateClass = (cls: MergedClass) => {
+    setSelectedClass(cls)
+    setShowUpdateModal(true)
+  }
+
+  const handleCloseModal = () => {
+    setShowUpdateModal(false)
+    setSelectedClass(null)
+  }
+
+  const handleClassUpdated = () => {
+    fetchTodaysClasses()
   }
 
   if (loading) {
@@ -282,39 +329,146 @@ function TodaysClasses({ userId }: { userId?: string }) {
     )
   }
 
+  const formatTime = (time: string) => {
+    if (!time) return ''
+    
+    // If already formatted with am/pm, just format it properly
+    if (time.toLowerCase().includes('am') || time.toLowerCase().includes('pm')) {
+      const cleanTime = time.toLowerCase().replace(/\s+/g, '')
+      const match = cleanTime.match(/(\d+):(\d+)(am|pm)/)
+      if (match) {
+        return `${match[1]}:${match[2]}${match[3].toUpperCase()}`
+      }
+      return time
+    }
+    
+    // Otherwise convert from 24-hour format
+    const [hours, minutes] = time.split(':')
+    const hour = parseInt(hours)
+    const ampm = hour >= 12 ? 'PM' : 'AM'
+    const displayHour = hour % 12 || 12
+    return `${displayHour}:${minutes}${ampm}`
+  }
+
   return (
-    <section>
-      <h2 className="text-lg md:text-2xl font-bold mb-4 md:mb-6">Today&apos;s Classes</h2>
-      <div className="space-y-2 md:space-y-4">
-        {classes.length > 0 ? (
-          classes.map((cls) => (
-            <div
-              key={cls.id}
-              className={`border-l-4 ${cls.borderColor} bg-white rounded-lg md:rounded-xl p-5 md:p-6 border-r border-t border-b border-gray-200`}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-lg  md:text-xl font-bold">{cls.code}</h3>
-                  <p className="text-muted-foreground text-xs md:text-sm">{cls.program}</p>
-                </div>
-                <div className="text-right flex-shrink-0">
-                  <p className="font-semibold mb-1 md:mb-3 text-sm">{cls.time}</p>
-                  <div className={`${cls.badgeBg} ${cls.badgeText} rounded-full px-2 md:px-3 py-1 md:py-1.5 text-xs md:text-sm font-medium inline-flex items-center gap-1.5 md:gap-2`}>
-                    <span className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full ${cls.dot || cls.badgeText}`}></span>
-                    <span className="hidden sm:inline">{cls.status}</span>
+    <>
+      <section>
+        <h2 className="text-lg md:text-2xl font-bold mb-4 md:mb-6">Today&apos;s Classes</h2>
+        <div className="space-y-4">
+          {classes.length > 0 ? (
+            classes.map((cls) => {
+              const classStatus = getClassStatus(cls.start_time, cls.end_time)
+              
+              return (
+              <div
+                key={cls.id}
+                className={`bg-white rounded-lg border-l-4 border-r border-t border-b ${cls.has_update ? 'border-blue-300' : 'border-gray-200'} hover:shadow-md transition-all relative overflow-hidden`}
+                style={{ borderLeftColor: cls.is_cancelled ? '#ef4444' : (classStatus === 'ongoing' ? '#10b981' : classStatus === 'upcoming' ? '#fbbf24' : cls.has_update ? '#3b82f6' : '#0A32F8') }}
+              >
+                {/* Subtle Cancellation Pattern */}
+                {cls.is_cancelled && (
+                  <div className="absolute inset-0 opacity-5 pointer-events-none" style={{
+                    backgroundImage: 'repeating-linear-gradient(45deg, #ef4444 0, #ef4444 10px, transparent 10px, transparent 20px)'
+                  }} />
+                )}
+                
+                {/* Main Content with proper padding */}
+                <div className="p-5 pt-12">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className={`text-lg font-bold ${cls.is_cancelled ? 'line-through text-gray-400' : 'text-gray-900'}`}>{cls.course_code}</h3>
+                        {cls.is_cancelled && (
+                          <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">Cancelled</span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="text-right flex-shrink-0">
+                      {/* Time */}
+                      <p className={`font-semibold text-sm mb-2 ${cls.time_changed ? 'text-amber-700' : 'text-gray-900'}`}>
+                        {formatTime(cls.start_time)} - {formatTime(cls.end_time)}
+                      </p>
+                      {cls.time_changed && cls.original_start_time && (
+                        <p className="text-xs text-gray-400 line-through mb-2">
+                          {formatTime(cls.original_start_time)} - {formatTime(cls.original_end_time || '')}
+                        </p>
+                      )}
+                      
+                      {/* Location Badge */}
+                      <div className={`rounded-full px-3 py-1 text-xs font-medium inline-flex items-center gap-1 ${cls.location_changed ? 'bg-purple-100 text-purple-700' : 'bg-blue-50 text-blue-700'}`}>
+                        <MapPin className="w-3 h-3" />
+                        <span>{cls.location}</span>
+                      </div>
+                      {cls.location_changed && cls.original_location && (
+                        <p className="text-xs text-gray-400 line-through mt-1">({cls.original_location})</p>
+                      )}
+                    </div>
                   </div>
+                  
+                  {/* Full Notes */}
+                  {cls.notes && (
+                    <div className="mt-3 pt-3 border-t border-gray-100">
+                      <p className={`text-xs ${cls.is_cancelled ? 'text-red-600 bg-red-50' : 'text-blue-600 bg-blue-50'} px-2 py-1.5 rounded inline-block`}>
+                        {cls.is_cancelled ? '🚫 Reason: ' : '💡 '}{cls.notes}
+                      </p>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Status and Update Badges - Top Left */}
+                <div className="absolute top-3 left-3 flex flex-wrap gap-1 z-10">
+                  {/* Status Badge */}
+                  {!cls.is_cancelled && (
+                    <div className={`text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${
+                      classStatus === 'ongoing' ? 'bg-green-500 border-green-300 animate-pulse' : 
+                      classStatus === 'completed' ? 'bg-gray-400 border-gray-300' : 
+                      'bg-yellow-400 border-yellow-200'
+                    }`}>
+                      {classStatus === 'ongoing' ? 'Ongoing' : 
+                       classStatus === 'completed' ? 'Completed' : 
+                       'Upcoming'}
+                    </div>
+                  )}
+                  
+                  {/* Update Badge */}
+                  {cls.has_update && !cls.is_cancelled && (
+                    <div className="bg-blue-500 border border-blue-300 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-1">
+                      <AlertCircle className="w-2.5 h-2.5" />
+                      Updated
+                    </div>
+                  )}
+                  
+                  {/* Change indicators */}
+                  {cls.time_changed && (
+                    <div className="bg-amber-500 border border-amber-300 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">Time</div>
+                  )}
+                  {cls.location_changed && (
+                    <div className="bg-purple-500 border border-purple-300 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">Venue</div>
+                  )}
+                </div>
+                
+                {/* Menu Button - Top Right */}
+                <div className="absolute top-3 right-3 z-20">
+                  <ClassMenu 
+                    onUpdate={() => handleUpdateClass(cls)}
+                    hasUpdate={cls.has_update}
+                  />
                 </div>
               </div>
-            </div>
-          ))
-        ) : (
+            )
+            })
+          ) : (
           <div className="bg-white rounded-xl p-6 md:p-8 text-center border-2 border-dashed border-gray-300">
             <Clock className="w-10 h-10 text-gray-400 mx-auto mb-3" />
             <h3 className="text-base font-semibold text-gray-900 mb-1">No classes today</h3>
-            <p className="text-xs text-gray-600 mb-4">
+            <p className="text-xs text-gray-600 mb-2">
               {new Date().getDay() === 0 || new Date().getDay() === 6 
                 ? "It's the weekend! Enjoy your day off."
-                : "Add your timetable or connect with a classmate to see their schedule"}
+                : "No classes scheduled for Monday"} {/* TESTING: Hardcoded Monday */}
+            </p>
+            <p className="text-xs text-blue-600 font-medium mb-4">
+              🧪 Testing Mode: Showing Monday's schedule
             </p>
             {(new Date().getDay() !== 0 && new Date().getDay() !== 6) && (
               <div className="flex justify-center gap-2">
@@ -337,7 +491,37 @@ function TodaysClasses({ userId }: { userId?: string }) {
           </div>
         )}
       </div>
-    </section>
+      </section>
+
+      {/* Update Modal */}
+      {selectedClass && (
+        <UpdateTodaysClassModal
+          isOpen={showUpdateModal}
+          onClose={handleCloseModal}
+          userId={userId}
+          originalClass={{
+            id: selectedClass.timetable_id || selectedClass.id,
+            course_code: selectedClass.course_code,
+            start_time: selectedClass.start_time,
+            end_time: selectedClass.end_time,
+            location: selectedClass.location,
+            day: selectedClass.day
+          }}
+          existingUpdate={selectedClass.has_update ? {
+            id: selectedClass.todays_class_id,
+            timetable_id: selectedClass.timetable_id,
+            course_code: selectedClass.course_code,
+            start_time: selectedClass.start_time,
+            end_time: selectedClass.end_time,
+            location: selectedClass.location,
+            is_cancelled: selectedClass.is_cancelled || false,
+            notes: selectedClass.notes || '',
+            date: new Date().toISOString().split('T')[0]
+          } : null}
+          onUpdate={handleClassUpdated}
+        />
+      )}
+    </>
   )
 }
 

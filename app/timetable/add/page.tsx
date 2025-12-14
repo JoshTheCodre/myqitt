@@ -8,6 +8,7 @@ import toast from 'react-hot-toast'
 import { useCourseStore } from '@/lib/store/courseStore'
 import { useAuthStore } from '@/lib/store/authStore'
 import { supabase } from '@/lib/supabase/client'
+import { NotificationService } from '@/lib/services/notificationService'
 
 interface ClassEntry {
   id: string
@@ -58,6 +59,21 @@ export default function AddTimetablePage() {
     console.log('User Courses:', userCourses)
     console.log('All Courses:', allCourses)
     console.log('Loading:', loading)
+    console.log('Current day classes:', dayClasses[selectedDay])
+    console.log('Available venues:', venues)
+    
+    // Check for course code mismatches
+    if (allCourses.length > 0 && dayClasses[selectedDay]) {
+      dayClasses[selectedDay].forEach((cls, idx) => {
+        if (cls.title) {
+          const matchingCourse = allCourses.find(c => c.courseCode === cls.title)
+          console.log(`Class ${idx + 1}: title="${cls.title}", matches course:`, matchingCourse ? 'YES' : 'NO')
+          if (!matchingCourse) {
+            console.log('Available course codes:', allCourses.map(c => c.courseCode))
+          }
+        }
+      })
+    }
     
     if (!loading && allCourses.length === 0 && user) {
       toast('Complete your profile to see courses', {
@@ -65,7 +81,7 @@ export default function AddTimetablePage() {
         duration: 4000
       })
     }
-  }, [user, userCourses, allCourses, loading])
+  }, [user, userCourses, allCourses, loading, dayClasses, selectedDay, venues])
   
   // Check if there are any changes
   const hasChanges = Object.values(dayClasses).some(classes => 
@@ -139,8 +155,16 @@ export default function AddTimetablePage() {
                 id: `${day}-${index}`,
                 startTime: parseTimeToInput(startStr),
                 endTime: parseTimeToInput(endStr),
-                title: classItem.course,
+                title: classItem.course.replace(/\s+/g, ''), // Remove spaces to match course codes (e.g., "CSC 486.1" -> "CSC486.1")
                 location: classItem.venue
+              })
+              
+              console.log(`Loaded class for ${day}:`, {
+                course: classItem.course,
+                normalizedCourse: classItem.course.replace(/\s+/g, ''),
+                venue: classItem.venue,
+                startTime: parseTimeToInput(startStr),
+                endTime: parseTimeToInput(endStr)
               })
             })
           }
@@ -155,6 +179,26 @@ export default function AddTimetablePage() {
 
         setDayClasses(groupedClasses)
         console.log('✅ Loaded existing timetable for update')
+        
+        // Extract unique venues from timetable and add to venues list
+        const extractedVenues = new Set<string>()
+        Object.values(jsonData).forEach(classes => {
+          classes.forEach(cls => {
+            if (cls.venue) {
+              extractedVenues.add(cls.venue)
+            }
+          })
+        })
+        
+        if (extractedVenues.size > 0) {
+          const newVenues = Array.from(extractedVenues)
+          setVenues(prev => {
+            const combined = [...new Set([...prev, ...newVenues])]
+            localStorage.setItem('timetable_venues', JSON.stringify(combined))
+            return combined
+          })
+          console.log('✅ Extracted venues from timetable:', newVenues)
+        }
       }
     } catch (error) {
       console.error('Failed to fetch existing timetable:', error)
@@ -305,6 +349,31 @@ export default function AddTimetablePage() {
       }
 
       toast.success(`${filledClasses.length} class(es) ${existing ? 'updated' : 'added'} successfully!`)
+      
+      // Send push notifications to connected users (only if updating)
+      if (existing) {
+        try {
+          await NotificationService.notifyConnectedUsers(
+            user.id,
+            'timetable',
+            {
+              type: 'timetable_updated',
+              title: 'Timetable Updated',
+              body: `${user.name || 'A classmate'} has updated their timetable with ${filledClasses.length} class(es)`,
+              data: {
+                userId: user.id,
+                userName: user.name || 'Unknown',
+                classCount: filledClasses.length.toString()
+              }
+            }
+          )
+          console.log('✅ Sent timetable update notifications')
+        } catch (notifError) {
+          console.error('Failed to send notifications:', notifError)
+          // Don't show error to user - notifications are best-effort
+        }
+      }
+      
       router.push('/timetable')
     } catch (error) {
       console.error('Error saving timetable:', error)
@@ -456,7 +525,7 @@ export default function AddTimetablePage() {
                         >
                           <option value="">{loading ? 'Loading courses...' : allCourses.length === 0 ? 'No courses found' : 'Select course'}</option>
                           {allCourses.map((course) => (
-                            <option key={course.courseCode} value={course.courseTitle}>
+                            <option key={course.courseCode} value={course.courseCode}>
                               {course.courseCode}
                             </option>
                           ))}

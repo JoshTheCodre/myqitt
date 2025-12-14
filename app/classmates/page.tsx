@@ -5,6 +5,8 @@ import { AppShell } from '@/components/layout/app-shell'
 import { Users, FileText, Clock } from 'lucide-react'
 import { useAuthStore } from '@/lib/store/authStore'
 import { ClassmateService, type Classmate } from '@/lib/services'
+import { ConnectionModal } from '@/components/connection-modal'
+import { ConnectionService, type ConnectionType } from '@/lib/services/connectionService'
 
 interface HeaderProps {
   classmateCount: number
@@ -135,6 +137,8 @@ function ClassmatesList({ onConnectionChange, onCountUpdate }: ClassmatesListPro
   const [classmates, setClassmates] = useState<Classmate[]>([])
   const [loading, setLoading] = useState(true)
   const [connectingId, setConnectingId] = useState<string | null>(null)
+  const [selectedClassmate, setSelectedClassmate] = useState<Classmate | null>(null)
+  const [showModal, setShowModal] = useState(false)
 
   useEffect(() => {
     const loadClassmates = async () => {
@@ -165,34 +169,59 @@ function ClassmatesList({ onConnectionChange, onCountUpdate }: ClassmatesListPro
     loadClassmates()
   }, [user?.id, profile?.school, profile?.department, profile?.level, onCountUpdate])
 
-  const toggleConnect = async (classmateId: string) => {
-    if (!user || connectingId) return
-
+  const handleOpenModal = (classmateId: string) => {
     const classmate = classmates.find(c => c.id === classmateId)
     if (!classmate) return
 
-    setConnectingId(classmateId)
+    // If already connected, disconnect directly
+    if (classmate.isConnected) {
+      toggleDisconnect(classmateId)
+      return
+    }
 
+    // If no content available, show message and return
+    if (!classmate.hasAssignments && !classmate.hasTimetable) {
+      return // The modal will show "no content" message
+    }
+
+    setSelectedClassmate(classmate)
+    setShowModal(true)
+  }
+
+  const toggleDisconnect = async (classmateId: string) => {
+    if (!user || connectingId) return
+
+    setConnectingId(classmateId)
     try {
-      if (classmate.isConnected) {
-        await ClassmateService.disconnectUser(user.id, classmateId)
-        setClassmates(prev =>
-          prev.map(c =>
-            c.id === classmateId
-              ? { ...c, isConnected: false, followers: Math.max(0, c.followers - 1) }
-              : c
-          )
+      await ConnectionService.disconnectUser(user.id, classmateId)
+      setClassmates(prev =>
+        prev.map(c =>
+          c.id === classmateId
+            ? { ...c, isConnected: false, followers: Math.max(0, c.followers - 1) }
+            : c
         )
-      } else {
-        await ClassmateService.connectToUser(user.id, classmateId)
-        setClassmates(prev =>
-          prev.map(c =>
-            c.id === classmateId
-              ? { ...c, isConnected: true, followers: c.followers + 1 }
-              : c
-          )
+      )
+      onConnectionChange()
+    } catch (error) {
+      // Error already handled in service
+    } finally {
+      setConnectingId(null)
+    }
+  }
+
+  const handleConnect = async (type: ConnectionType) => {
+    if (!user || !selectedClassmate || connectingId) return
+
+    setConnectingId(selectedClassmate.id)
+    try {
+      await ConnectionService.connectToUser(user.id, selectedClassmate.id, type)
+      setClassmates(prev =>
+        prev.map(c =>
+          c.id === selectedClassmate.id
+            ? { ...c, isConnected: true, followers: c.followers + 1 }
+            : c
         )
-      }
+      )
       onConnectionChange()
     } catch (error) {
       // Error already handled in service
@@ -248,22 +277,44 @@ function ClassmatesList({ onConnectionChange, onCountUpdate }: ClassmatesListPro
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {classmates.map((classmate) => (
-        <ClassmateCard
-          key={classmate.id}
-          classmateId={classmate.id}
-          name={classmate.name}
-          followers={classmate.followers}
-          hasAssignments={classmate.hasAssignments}
-          hasTimetable={classmate.hasTimetable}
-          isConnected={classmate.isConnected}
-          onConnect={toggleConnect}
-          isLoading={connectingId === classmate.id}
-          isCurrentUser={classmate.id === user?.id}
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {classmates.map((classmate) => (
+          <ClassmateCard
+            key={classmate.id}
+            classmateId={classmate.id}
+            name={classmate.name}
+            followers={classmate.followers}
+            hasAssignments={classmate.hasAssignments}
+            hasTimetable={classmate.hasTimetable}
+            isConnected={classmate.isConnected}
+            onConnect={handleOpenModal}
+            isLoading={connectingId === classmate.id}
+            isCurrentUser={classmate.id === user?.id}
+          />
+        ))}
+      </div>
+
+      {/* Connection Modal */}
+      {selectedClassmate && (
+        <ConnectionModal
+          isOpen={showModal}
+          onClose={() => {
+            setShowModal(false)
+            setSelectedClassmate(null)
+          }}
+          classmate={{
+            id: selectedClassmate.id,
+            name: selectedClassmate.name,
+            bio: selectedClassmate.bio,
+            hasTimetable: selectedClassmate.hasTimetable,
+            hasAssignments: selectedClassmate.hasAssignments
+          }}
+          currentUserId={user?.id || ''}
+          onConnect={handleConnect}
         />
-      ))}
-    </div>
+      )}
+    </>
   )
 }
 

@@ -4,8 +4,9 @@ import { useState } from 'react'
 import Image from 'next/image'
 import { AppShell } from '@/components/layout/app-shell'
 import { EditProfileModal } from '@/components/edit-profile-modal'
+import { NotificationSettings } from '@/components/notification-settings'
 import { useAuthStore } from '@/lib/store/authStore'
-import { Mail, Phone, GraduationCap, Building2, BookOpen, Calendar, LogOut, Edit } from 'lucide-react'
+import { Mail, Phone, GraduationCap, Building2, BookOpen, Calendar, LogOut, Edit, Bell } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import type { LucideIcon } from 'lucide-react'
 import { formatDepartmentName } from '@/lib/hooks/useDepartments'
@@ -39,6 +40,7 @@ export default function ProfilePage() {
     const { user, profile, logout } = useAuthStore()
     const router = useRouter()
     const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+    const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false)
 
     const handleLogout = async () => {
         try {
@@ -145,6 +147,14 @@ export default function ProfilePage() {
                         </button>
                         
                         <button
+                            className="w-full py-3 px-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl font-semibold hover:from-indigo-600 hover:to-purple-700 transition-colors flex items-center justify-center gap-2"
+                            onClick={() => setIsNotificationModalOpen(true)}
+                        >
+                            <Bell className="w-5 h-5" />
+                            Notification Settings
+                        </button>
+                        
+                        <button
                             className="w-full py-3 px-4 bg-red-50 text-red-600 rounded-xl font-semibold hover:bg-red-100 transition-colors flex items-center justify-center gap-2 border border-red-200"
                             onClick={handleLogout}
                         >
@@ -155,6 +165,7 @@ export default function ProfilePage() {
                 </div>
             </div>
             <EditProfileModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} />
+            <NotificationSettings isOpen={isNotificationModalOpen} onClose={() => setIsNotificationModalOpen(false)} />
         </AppShell>
     )
 }
