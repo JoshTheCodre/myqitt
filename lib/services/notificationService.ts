@@ -292,4 +292,73 @@ export class NotificationService {
       return 0
     }
   }
+
+  /**
+   * Get connected hosts and user's notification tokens
+   */
+  static async getConnectedHostsAndTokens(userId: string): Promise<{
+    connectedHosts: Array<{
+      id: string
+      name: string
+      email: string
+      connection_type: string
+    }>
+    userTokens: Array<{
+      id: string
+      fcm_token: string
+      device_type: string
+      created_at: string
+    }>
+  }> {
+    try {
+      // Get users this person is connected to (following)
+      const { data: connections, error: connectionsError } = await supabase
+        .from('connections')
+        .select(`
+          following_id,
+          profiles:following_id (
+            id,
+            name,
+            email
+          )
+        `)
+        .eq('follower_id', userId)
+
+      if (connectionsError) throw connectionsError
+
+      // Get user's notification tokens
+      const { data: tokens, error: tokensError } = await supabase
+        .from('notification_tokens')
+        .select('id, fcm_token, device_type, created_at')
+        .eq('user_id', userId)
+
+      if (tokensError) throw tokensError
+
+      // Format connected hosts (since we don't have connection_type in current schema, default to 'both')
+      const connectedHosts = (connections || []).map((conn: any) => ({
+        id: conn.following_id,
+        name: conn.profiles?.name || 'Unknown',
+        email: conn.profiles?.email || '',
+        connection_type: 'both' // Default since current schema doesn't have this field
+      }))
+
+      const userTokens = (tokens || []).map(token => ({
+        id: token.id,
+        fcm_token: token.fcm_token,
+        device_type: token.device_type,
+        created_at: token.created_at
+      }))
+
+      return {
+        connectedHosts,
+        userTokens
+      }
+    } catch (error) {
+      console.error('Failed to get connected hosts and tokens:', error)
+      return {
+        connectedHosts: [],
+        userTokens: []
+      }
+    }
+  }
 }

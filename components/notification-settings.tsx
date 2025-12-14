@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Bell, BellOff, X } from 'lucide-react'
+import { Bell, BellOff, X, Users, Key } from 'lucide-react'
 import { usePushNotifications } from '@/lib/hooks/usePushNotifications'
 import { NotificationService } from '@/lib/services/notificationService'
 import { useAuthStore } from '@/lib/store/authStore'
@@ -17,11 +17,25 @@ export function NotificationSettings({ isOpen, onClose }: NotificationSettingsPr
   const { permission, requestPermission, isSupported } = usePushNotifications()
   const [pushEnabled, setPushEnabled] = useState(true)
   const [loading, setLoading] = useState(false)
+  const [connectedHosts, setConnectedHosts] = useState<Array<{
+    id: string
+    name: string
+    email: string
+    connection_type: string
+  }>>([])
+  const [userTokens, setUserTokens] = useState<Array<{
+    id: string
+    fcm_token: string
+    device_type: string
+    created_at: string
+  }>>([])
+  const [loadingData, setLoadingData] = useState(false)
 
-  // Load push enabled state
+  // Load push enabled state and connected hosts/tokens
   useEffect(() => {
     if (user && isOpen) {
       loadPreferences()
+      loadConnectedData()
     }
   }, [user, isOpen])
 
@@ -29,6 +43,15 @@ export function NotificationSettings({ isOpen, onClose }: NotificationSettingsPr
     if (!user) return
     const prefs = await NotificationService.getNotificationPreferences(user.id)
     setPushEnabled(prefs.push_enabled)
+  }
+
+  const loadConnectedData = async () => {
+    if (!user) return
+    setLoadingData(true)
+    const data = await NotificationService.getConnectedHostsAndTokens(user.id)
+    setConnectedHosts(data.connectedHosts)
+    setUserTokens(data.userTokens)
+    setLoadingData(false)
   }
 
   const handleToggleNotifications = async () => {
@@ -71,7 +94,7 @@ export function NotificationSettings({ isOpen, onClose }: NotificationSettingsPr
       {/* Modal */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div
-          className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
+          className="bg-white w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -139,17 +162,79 @@ export function NotificationSettings({ isOpen, onClose }: NotificationSettingsPr
             )}
 
             {permission === 'granted' && pushEnabled && (
-              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800">
-                <p className="font-semibold mb-2">📬 You'll receive notifications from:</p>
-                <ul className="space-y-1 ml-4 list-disc">
-                  <li>Classmates you're connected to for <strong>timetable</strong></li>
-                  <li>Classmates you're connected to for <strong>assignments</strong></li>
-                  <li>Classmates you're connected to for <strong>both</strong></li>
-                </ul>
-                <p className="mt-2 text-xs text-blue-600">
-                  💡 Your connection type determines what notifications you receive from each classmate.
-                </p>
-              </div>
+              <>
+                {/* Connected Hosts */}
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Users className="w-4 h-4 text-blue-600" />
+                    <p className="font-semibold text-blue-800">Connected Hosts</p>
+                  </div>
+                  
+                  {loadingData ? (
+                    <p className="text-sm text-blue-600">Loading connections...</p>
+                  ) : connectedHosts.length > 0 ? (
+                    <div className="space-y-2">
+                      {connectedHosts.map((host) => (
+                        <div key={host.id} className="bg-white rounded-lg p-3 border border-blue-200">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <p className="font-medium text-gray-900">{host.name}</p>
+                              <p className="text-sm text-gray-600">{host.email}</p>
+                            </div>
+                            <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
+                              {host.connection_type}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-blue-600">No connected hosts yet. Connect with classmates to receive their notifications!</p>
+                  )}
+                </div>
+
+                {/* Notification Tokens */}
+                <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Key className="w-4 h-4 text-gray-600" />
+                    <p className="font-semibold text-gray-800">Your Notification Tokens</p>
+                  </div>
+                  
+                  {loadingData ? (
+                    <p className="text-sm text-gray-600">Loading tokens...</p>
+                  ) : userTokens.length > 0 ? (
+                    <div className="space-y-2">
+                      {userTokens.map((token) => (
+                        <div key={token.id} className="bg-white rounded-lg p-3 border border-gray-200">
+                          <div className="flex justify-between items-start gap-2">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full font-medium capitalize">
+                                  {token.device_type}
+                                </span>
+                                <span className="text-xs text-gray-500">
+                                  {new Date(token.created_at).toLocaleDateString()}
+                                </span>
+                              </div>
+                              <p className="text-xs text-gray-600 font-mono break-all">
+                                {token.fcm_token.substring(0, 40)}...
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-600">No notification tokens registered yet.</p>
+                  )}
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800">
+                  <p className="text-xs text-blue-600">
+                    💡 Your connection type with each classmate determines what notifications you receive from them.
+                  </p>
+                </div>
+              </>
             )}
           </div>
 
