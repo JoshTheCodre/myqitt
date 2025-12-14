@@ -82,7 +82,7 @@ export class NotificationService {
   }
 
   /**
-   * Send notification to specific users based on connection type
+   * Send notification to users who follow this host
    * This will be called by the host when they update their content
    */
   static async notifyConnectedUsers(
@@ -91,36 +91,22 @@ export class NotificationService {
     notification: NotificationPayload
   ): Promise<void> {
     try {
-      // Get all users connected to this host with the appropriate connection type
+      // Get all users who follow this host (followers)
       const { data: connections, error: connectionsError } = await supabase
         .from('connections')
-        .select('user_id, connection_type')
-        .eq('connected_user_id', hostUserId)
+        .select('follower_id')
+        .eq('following_id', hostUserId)
 
       if (connectionsError) throw connectionsError
 
       if (!connections || connections.length === 0) {
-        console.log('No connected users to notify')
+        console.log('No followers to notify')
         return
       }
 
-      // Filter connections based on content type
-      const relevantConnections = connections.filter(conn => {
-        if (contentType === 'timetable') {
-          return conn.connection_type === 'timetable' || conn.connection_type === 'both'
-        } else if (contentType === 'assignments') {
-          return conn.connection_type === 'assignments' || conn.connection_type === 'both'
-        } else {
-          return true // Both: notify all connections
-        }
-      })
-
-      if (relevantConnections.length === 0) {
-        console.log('No relevant connections for this content type')
-        return
-      }
-
-      const userIds = relevantConnections.map(conn => conn.user_id)
+      // Since we don't have connection_type in schema yet, notify all followers
+      // In the future, we can add connection_type filtering here
+      const userIds = connections.map(conn => conn.follower_id)
 
       // Get FCM tokens for these users
       const { data: tokens, error: tokensError } = await supabase
@@ -138,7 +124,7 @@ export class NotificationService {
       const fcmTokens = tokens.map(t => t.fcm_token)
 
       // Call edge function to send notifications via FCM
-      const { error: sendError } = await supabase.functions.invoke('send-push-notification', {
+      const { data: result, error: sendError } = await supabase.functions.invoke('send-push-notification', {
         body: {
           tokens: fcmTokens,
           notification: {
@@ -149,11 +135,37 @@ export class NotificationService {
         }
       })
 
-      if (sendError) throw sendError
+      if (sendError) {
+        console.error('Edge function error:', sendError)
+        throw sendError
+      }
 
-      console.log(`✅ Sent notifications to ${fcmTokens.length} device(s)`)
+      // Create notification records for each user
+      const notificationRecords = userIds.map(userId => ({
+        user_id: userId,
+        type: notification.type,
+        title: notification.title,
+        body: notification.body,
+        data: notification.data || {},
+        read: false
+      }))
+
+      const { error: recordsError } = await supabase
+        .from('notifications')
+        .insert(notificationRecords)
+
+      if (recordsError) {
+        console.error('Failed to create notification records:', recordsError)
+        // Don't throw here, FCM notification was sent successfully
+      }
+
+      console.log(`✅ Sent notifications to ${fcmTokens.length} device(s) and ${userIds.length} user(s)`)
+      if (result) {
+        console.log('FCM Result:', result)
+      }
     } catch (error) {
       console.error('Failed to notify connected users:', error)
+      throw error
     }
   }
 
@@ -311,12 +323,12 @@ export class NotificationService {
     }>
   }> {
     try {
-      // Get users this person is connected to (following)
+      // Get users this person is following (hosts they're connected to)
       const { data: connections, error: connectionsError } = await supabase
         .from('connections')
         .select(`
           following_id,
-          profiles:following_id (
+          profiles!connections_following_id_fkey (
             id,
             name,
             email
