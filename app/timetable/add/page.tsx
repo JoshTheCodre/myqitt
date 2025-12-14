@@ -24,7 +24,7 @@ interface DayClasses {
 
 export default function AddTimetablePage() {
   const router = useRouter()
-  const { user } = useAuthStore()
+  const { user, profile } = useAuthStore()
   const { userCourses, fetchUserCourses, loading } = useCourseStore()
   const [selectedDay, setSelectedDay] = useState('Monday')
   const [isUpdateMode, setIsUpdateMode] = useState(false)
@@ -359,10 +359,10 @@ export default function AddTimetablePage() {
             {
               type: 'timetable_updated',
               title: 'Timetable Updated',
-              body: `${user.name || 'A classmate'} has updated their timetable with ${filledClasses.length} class(es)`,
+              body: `${profile?.name || 'A classmate'} has updated their timetable with ${filledClasses.length} class(es)`,
               data: {
                 userId: user.id,
-                userName: user.name || 'Unknown',
+                userName: profile?.name || 'Unknown',
                 classCount: filledClasses.length.toString()
               }
             }
