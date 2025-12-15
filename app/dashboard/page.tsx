@@ -288,9 +288,9 @@ function TodaysClasses({ userId }: { userId?: string }) {
         .from('connections')
         .select('following_id')
         .eq('follower_id', userId)
-      
-      setIsConnected(connections && connections.length > 0)
-      
+
+      setIsConnected(!!(connections && connections.length > 0))
+
       const todaysClasses = await TodaysClassService.getTodaysClasses(userId)
       // Sort by start time (earliest first) - handle both 24h and 12h formats
       const sortedClasses = todaysClasses.sort((a, b) => {
