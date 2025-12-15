@@ -15,17 +15,44 @@ export function usePushNotifications() {
   const [permission, setPermission] = useState<NotificationPermission>('default')
   const [fcmToken, setFcmToken] = useState<string | null>(null)
   const [messaging, setMessaging] = useState<Messaging | null>(null)
+  const [isSupported, setIsSupported] = useState(false)
 
   // Initialize Firebase Messaging
   useEffect(() => {
-    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+    const initMessaging = async () => {
+      if (typeof window === 'undefined') {
+        console.log('❌ Not in browser environment')
+        return
+      }
+      
+      if (!('Notification' in window)) {
+        console.log('❌ Notifications not supported')
+        return
+      }
+      
+      if (!('serviceWorker' in navigator)) {
+        console.log('❌ Service Workers not supported')
+        return
+      }
+
       try {
+        console.log('🔄 Initializing Firebase Messaging...')
         const msg = getMessaging(app)
         setMessaging(msg)
+        setIsSupported(true)
+        console.log('✅ Firebase Messaging initialized')
+        
+        // Check current permission
+        if (Notification.permission !== 'default') {
+          setPermission(Notification.permission)
+        }
       } catch (error) {
-        console.error('Failed to initialize messaging:', error)
+        console.error('❌ Failed to initialize messaging:', error)
+        setIsSupported(false)
       }
     }
+
+    initMessaging()
   }, [])
 
   // Request notification permission
@@ -55,8 +82,14 @@ export function usePushNotifications() {
 
   // Register FCM token
   const registerToken = async () => {
+    console.log('🔄 registerToken called')
+    console.log('Messaging initialized:', !!messaging)
+    console.log('User authenticated:', !!user)
+    console.log('VAPID_KEY:', VAPID_KEY.substring(0, 20) + '...')
+    
     if (!messaging) {
       console.error('❌ Messaging not initialized')
+      toast.error('Firebase Messaging not available on this device')
       return false
     }
     
@@ -67,6 +100,13 @@ export function usePushNotifications() {
 
     try {
       console.log('🔄 Requesting FCM token...')
+      
+      // Check if service worker is ready
+      if ('serviceWorker' in navigator) {
+        const registration = await navigator.serviceWorker.ready
+        console.log('✅ Service worker ready:', registration.active?.scriptURL)
+      }
+      
       const currentToken = await getToken(messaging, {
         vapidKey: VAPID_KEY
       })
@@ -78,17 +118,33 @@ export function usePushNotifications() {
         const success = await NotificationService.registerToken(user.id, currentToken, 'web')
         if (success) {
           console.log('✅ FCM token registered in database')
+          toast.success('Push notifications enabled!')
           return true
         } else {
           console.error('❌ Failed to register token in database')
+          toast.error('Failed to save notification token')
           return false
         }
       } else {
-        console.error('❌ No registration token available. Make sure Firebase is configured correctly.')
+        console.error('❌ No registration token available')
+        toast.error('Could not get notification token. Check Firebase configuration.')
         return false
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Failed to get FCM token:', error)
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        code: error.code
+      })
+      
+      if (error.code === 'messaging/unsupported-browser') {
+        toast.error('Push notifications not supported on this browser')
+      } else if (error.code === 'messaging/permission-blocked') {
+        toast.error('Notification permission blocked. Please enable in browser settings.')
+      } else {
+        toast.error(`Failed to setup notifications: ${error.message}`)
+      }
       return false
     }
   }
@@ -140,6 +196,6 @@ export function usePushNotifications() {
     fcmToken,
     requestPermission,
     registerToken, // Expose for manual registration
-    isSupported: typeof window !== 'undefined' && 'Notification' in window
+    isSupported
   }
 }
