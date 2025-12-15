@@ -1,9 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { Upload, FileText, BookOpen, GraduationCap, Plus, X } from 'lucide-react'
+import { Upload, FileText, BookOpen, GraduationCap, Plus, X, ArrowLeft } from 'lucide-react'
 import { AppShell } from '@/components/layout/app-shell'
 import toast from 'react-hot-toast'
+import { useRouter } from 'next/navigation'
 
 type ResourceType = 'past_questions' | 'lecture_notes' | 'study_guides'
 
@@ -32,6 +33,7 @@ const resourceTypes: { value: ResourceType; label: string; icon: any }[] = [
 ]
 
 export default function ContributePage() {
+  const router = useRouter()
   const [formData, setFormData] = useState<FormData>({
     title: '',
     type: '',
@@ -92,6 +94,13 @@ export default function ContributePage() {
         <div className="w-full lg:w-3/4 px-4 py-8 pb-24 lg:pb-8 overflow-x-hidden">
           {/* Header */}
           <div className="mb-8">
+            <button
+              onClick={() => router.back()}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              <span className="font-medium">Back</span>
+            </button>
             <h1 className="text-2xl font-bold text-gray-900">Contribute Materials</h1>
             <p className="text-sm text-gray-600">Share study materials to help other students</p>
           </div>

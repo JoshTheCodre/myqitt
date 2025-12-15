@@ -45,51 +45,56 @@ export class TimetableService {
 
       let hasTimetable = false
       const connectedUserNames: string[] = []
-      const usersWithoutTimetable: string[] = []
+      const usersWithoutTimetable: string[]
 
-      // 1. Fetch user's own timetable  
-      const { data: timetableRecord, error: ownError } = await supabase
-        .from('timetable')
-        .select('timetable_data')
-        .eq('user_id', userId)
-        .single()
-
-      if (ownError && ownError.code !== 'PGRST116') {
-        console.error('Error fetching timetable:', ownError)
-      }
-
-      // Add own timetable
-      if (timetableRecord && timetableRecord.timetable_data) {
-        const jsonData = timetableRecord.timetable_data as Record<string, Array<{ time: string; course?: string; course_code?: string; course_title?: string; venue: string }>>
-        
-        Object.entries(jsonData).forEach(([day, classes]) => {
-          if (day in groupedData) {
-            classes.forEach(classItem => {
-              // Extract only course code (remove lecturer names after dash)
-              let courseDisplay = classItem.course_code || classItem.course || 'TBD'
-              if (courseDisplay.includes(' - ')) {
-                courseDisplay = courseDisplay.split(' - ')[0].trim()
-              }
-              
-              groupedData[day].push({
-                time: classItem.time,
-                title: courseDisplay,
-                location: classItem.venue,
-                isOwner: true
-              })
-            })
-          }
-        })
-        hasTimetable = true
-      }
-
-      // 2. Fetch connected classmates' timetables
+      // 2. First, check for connected classmates
       const { data: connections } = await supabase
         .from('connections')
         .select('following_id')
         .eq('follower_id', userId)
 
-      if (connections && connections.length > 0) {
+      const hasConnections = connections && connections.length > 0
+
+      // 1. Only fetch user's own timetable if NOT connected to anyone
+      if (!hasConnections) {
+        const { data: timetableRecord, error: ownError } = await supabase
+          .from('timetable')
+          .select('timetable_data')
+          .eq('user_id', userId)
+          .single()
+
+        if (ownError && ownError.code !== 'PGRST116') {
+          console.error('Error fetching timetable:', ownError)
+        }
+
+        // Add own timetable
+        if (timetableRecord && timetableRecord.timetable_data) {
+          const jsonData = timetableRecord.timetable_data as Record<string, Array<{ time: string; course?: string; course_code?: string; course_title?: string; venue: string }>>
+          
+          Object.entries(jsonData).forEach(([day, classes]) => {
+            if (day in groupedData) {
+              classes.forEach(classItem => {
+                // Extract only course code (remove lecturer names after dash)
+                let courseDisplay = classItem.course_code || classItem.course || 'TBD'
+                if (courseDisplay.includes(' - ')) {
+                  courseDisplay = courseDisplay.split(' - ')[0].trim()
+                }
+                
+                groupedData[day].push({
+                  time: classItem.time,
+                  title: courseDisplay,
+                  location: classItem.venue,
+                  isOwner: true
+                })
+              })
+            }
+          })
+          hasTimetable = true
+        }
+      }
+
+      // Fetch connected classmates' timetables if they exist
+      if (hasConnections) {
         const connectedUserIds = connections.map(c => c.following_id)
 
         // Fetch connected users' names and timetables

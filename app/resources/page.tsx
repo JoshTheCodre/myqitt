@@ -194,8 +194,8 @@ export default function ResourcesPage() {
 
   return (
     <AppShell>
-      <div className="h-full flex items-start justify-center overflow-hidden">
-        <div className="w-full lg:w-3/4 px-4 py-8 pb-24 lg:pb-8 overflow-x-hidden">
+      <div className="h-full flex items-start justify-center">
+        <div className="w-full lg:w-3/4 px-4 py-8 pb-24 lg:pb-8">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div>

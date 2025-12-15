@@ -53,32 +53,37 @@ export class AssignmentService {
       const usersWithoutData: string[] = []
       const connectedUserNames: string[] = []
 
-      // 1. Fetch user's own assignments
-      const { data: assignmentRecord, error: assignmentError } = await supabase
-        .from('assignments')
-        .select('assignments_data')
-        .eq('user_id', userId)
-        .single()
-
-      if (assignmentError && assignmentError.code !== 'PGRST116') {
-        console.error('Error fetching assignments:', assignmentError)
-      }
-
-      if (assignmentRecord && assignmentRecord.assignments_data) {
-        const ownAssignments = (assignmentRecord.assignments_data as any[]).map(a => ({
-          ...a,
-          isOwner: true
-        }))
-        allItems.push(...ownAssignments)
-      }
-
-      // 2. Fetch connected classmates' assignments
+      // 2. First, check for connected classmates
       const { data: connections } = await supabase
         .from('connections')
         .select('following_id')
         .eq('follower_id', userId)
 
-      if (connections && connections.length > 0) {
+      const hasConnections = connections && connections.length > 0
+
+      // 1. Only fetch user's own assignments if NOT connected to anyone
+      if (!hasConnections) {
+        const { data: assignmentRecord, error: assignmentError } = await supabase
+          .from('assignments')
+          .select('assignments_data')
+          .eq('user_id', userId)
+          .single()
+
+        if (assignmentError && assignmentError.code !== 'PGRST116') {
+          console.error('Error fetching assignments:', assignmentError)
+        }
+
+        if (assignmentRecord && assignmentRecord.assignments_data) {
+          const ownAssignments = (assignmentRecord.assignments_data as any[]).map(a => ({
+            ...a,
+            isOwner: true
+          }))
+          allItems.push(...ownAssignments)
+        }
+      }
+
+      // Fetch connected classmates' assignments if they exist
+      if (hasConnections) {
         const connectedUserIds = connections.map(c => c.following_id)
 
         // Fetch connected users' names

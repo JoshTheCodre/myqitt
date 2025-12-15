@@ -1,9 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { FileText, BookOpen, GraduationCap, Trash2, Edit2, Eye, EyeOff } from 'lucide-react'
-import { Sidebar } from '@/components/layout/sidebar'
-import { BottomNav } from '@/components/layout/bottom-nav'
+import { FileText, BookOpen, GraduationCap, Trash2, Edit2, Eye, EyeOff, ArrowLeft } from 'lucide-react'
+import { AppShell } from '@/components/layout/app-shell'
+import { useRouter } from 'next/navigation'
 
 type ResourceType = 'past_questions' | 'lecture_notes' | 'study_guides'
 
@@ -19,6 +19,7 @@ interface UploadedResource {
 }
 
 export default function MyUploadsPage() {
+  const router = useRouter()
   const [uploads, setUploads] = useState<UploadedResource[]>([
     {
       id: '1',
@@ -74,12 +75,18 @@ export default function MyUploadsPage() {
   }
 
   return (
-    <>
-      <Sidebar />
-      <div className="min-h-screen bg-gray-50 pb-24 lg:pb-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <AppShell>
+      <div className="h-full flex items-start justify-center">
+        <div className="w-full lg:w-3/4 px-4 py-8 pb-24 lg:pb-8">
           {/* Header */}
           <div className="mb-6">
+            <button
+              onClick={() => router.back()}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              <span className="font-medium">Back</span>
+            </button>
             <h1 className="text-2xl font-bold text-gray-900">My Uploads</h1>
             <p className="text-sm text-gray-600">Manage your contributed resources</p>
           </div>
@@ -154,7 +161,6 @@ export default function MyUploadsPage() {
           </div>
         </div>
       </div>
-      <BottomNav />
-    </>
+    </AppShell>
   )
 }
