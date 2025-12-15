@@ -133,23 +133,23 @@ export default function ResourcesPage() {
 
   const ResourceCard = ({ resource }: { resource: Resource }) => (
     <div 
-      className="flex-shrink-0 w-56 bg-white rounded-xl border border-gray-200 p-4 hover:shadow-lg hover:border-blue-300 hover:scale-105 transition-all cursor-pointer group"
+      className="flex-shrink-0 w-56 bg-white rounded-xl border border-gray-200 p-4 hover:shadow-lg hover:border-blue-300 transition-all cursor-pointer group"
       onClick={() => {
         // TODO: Navigate to resource detail page
         console.log('View resource:', resource.id)
       }}
     >
-      <h4 className="font-semibold text-gray-900 mb-1.5 text-sm line-clamp-2 leading-tight group-hover:text-blue-600 transition-colors">{resource.title}</h4>
+      <h4 className="font-semibold text-gray-900 mb-1.5 text-sm line-clamp-2 leading-tight group-hover:text-blue-500 transition-colors">{resource.title}</h4>
       <p className="text-xs text-gray-500 mb-3">{resource.course}</p>
       
       <div className="text-xs text-gray-500">
         <div className="flex items-center justify-between">
           <span className="flex items-center gap-1">
-            <User className="w-3 h-3" />
+            <User className="w-3 h-3 text-blue-500" />
             {resource.uploadedBy}
           </span>
           <span className="flex items-center gap-1">
-            <Calendar className="w-3 h-3" />
+            <Calendar className="w-3 h-3 text-purple-500" />
             {new Date(resource.uploadDate).toLocaleDateString()}
           </span>
         </div>
@@ -169,7 +169,7 @@ export default function ResourcesPage() {
     if (sectionResources.length === 0) return null
 
     return (
-      <div className="mb-8">
+      <div className="mb-8 max-w-full overflow-hidden">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <h3 className="font-semibold text-gray-900">{title}</h3>
@@ -177,13 +177,13 @@ export default function ResourcesPage() {
               {sectionResources.length}
             </span>
           </div>
-          <button className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium">
+          <button className="flex items-center gap-1 text-[10px] text-blue-600 hover:text-blue-700 font-medium whitespace-nowrap">
             View All
-            <ChevronRight className="w-4 h-4" />
+            <ChevronRight className="w-2.5 h-2.5 mb-[2px]" />
           </button>
         </div>
 
-        <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide">
+        <div className="-mx-4 px-4 flex gap-3 overflow-x-auto pb-4 scrollbar-hide">
           {sectionResources.map(resource => (
             <ResourceCard key={resource.id} resource={resource} />
           ))}
@@ -194,16 +194,16 @@ export default function ResourcesPage() {
 
   return (
     <AppShell>
-      <div className="h-full flex items-start justify-center">
-        <div className="w-full lg:w-3/4 px-4 py-8 pb-24 lg:pb-8">
+      <div className="h-full flex items-start justify-center overflow-hidden">
+        <div className="w-full lg:w-3/4 px-4 py-8 pb-24 lg:pb-8 overflow-y-auto h-full">
           {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Resources</h1>
-              <p className="text-sm text-gray-600">Access study materials for your courses</p>
+          <div className="flex items-center justify-between mb-6 gap-3 max-w-full">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 break-words">Resources</h1>
+              <p className="text-xs sm:text-sm text-gray-600 break-words">Access study materials for your courses</p>
             </div>
-            <div className="flex items-center gap-3">
-              <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+              <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0">
                 <Search className="w-5 h-5 text-gray-600" />
               </button>
               <div className="relative">
@@ -222,12 +222,15 @@ export default function ResourcesPage() {
                       onClick={() => setShowMenu(false)}
                     />
                     <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-20">
-                      <a href="/resources/contribute" className="w-full px-3 py-2.5 text-left hover:bg-gray-50 transition-colors flex items-center gap-2.5 text-sm block">
-                        <div className="w-7 h-7 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <Upload className="w-3.5 h-3.5 text-blue-600" />
-                        </div>
-                        <span className="font-medium text-gray-900">Contribute</span>
-                      </a>
+                    <a
+                      href="/resources/contribute"
+                      className="w-full px-3 py-2.5 text-left hover:bg-gray-50 transition-colors flex items-center gap-2.5 text-sm block bg-blue-50 border border-blue-200 rounded-lg text-blue-600 font-medium"
+                    >
+                      <div className="w-7 h-7 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Upload className="w-3.5 h-3.5 text-blue-600" />
+                      </div>
+                      <span>Contribute</span>
+                    </a>
                       <a href="/resources/my-uploads" className="w-full px-3 py-2.5 text-left hover:bg-gray-50 transition-colors flex items-center gap-2.5 text-sm block">
                         <div className="w-7 h-7 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
                           <FolderOpen className="w-3.5 h-3.5 text-purple-600" />
@@ -242,7 +245,7 @@ export default function ResourcesPage() {
           </div>
 
           {/* Course Tabs */}
-          <div className="mb-6 overflow-x-auto scrollbar-hide">
+          <div className="mb-6 -mx-4 px-4 overflow-x-auto scrollbar-hide">
             <div className="flex gap-2 pb-2">
               <button
                 onClick={() => setSelectedCourse('for-you')}
@@ -273,31 +276,31 @@ export default function ResourcesPage() {
 
           {/* For You Banner - Only show when "For You" is selected */}
           {selectedCourse === 'for-you' && (
-            <div className="mb-6 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl p-6 text-white shadow-lg">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h2 className="text-xl font-bold">Your Saved Resources</h2>
-                    <div className="flex items-center justify-center w-7 h-7 bg-white/30 backdrop-blur-sm rounded-full">
-                      <span className="text-sm font-bold">5</span>
+            <div className="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-4 sm:p-6 text-gray-900 shadow-sm max-w-full">
+              <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-3 mb-2 flex-wrap">
+                    <h2 className="text-lg sm:text-xl font-bold break-words text-gray-900">Your Saved Resources</h2>
+                    <div className="flex items-center justify-center w-7 h-7 bg-blue-100 rounded-full">
+                      <span className="text-sm font-bold text-blue-600">5</span>
                     </div>
                   </div>
-                  <p className="text-blue-100 text-xs mb-4">
-                    Share notes, past questions & study guides to help your peers succeed 📚
+                  <p className="text-gray-600 text-xs mb-4">
+                    Share notes, past questions & study guides to help your peers succeed 👻
                   </p>
                   
                   {/* Action Buttons */}
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <a
                       href="/resources/contribute"
-                      className="px-4 py-2 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-colors font-medium text-sm flex items-center gap-2"
+                      className="px-4 py-2 bg-blue-400 text-white border border-blue-600 rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm flex items-center gap-2 whitespace-nowrap"
                     >
                       <Upload className="w-4 h-4" />
                       Contribute
                     </a>
                     <a
                       href="/resources/my-uploads"
-                      className="px-4 py-2 bg-white/20 backdrop-blur-sm text-white border border-white/30 rounded-lg hover:bg-white/30 transition-colors font-medium text-sm flex items-center gap-2"
+                      className="px-4 py-2 bg-gray-100 text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-200 transition-colors font-medium text-sm flex items-center gap-2 whitespace-nowrap"
                     >
                       <FolderOpen className="w-4 h-4" />
                       My Uploads

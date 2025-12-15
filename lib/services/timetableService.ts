@@ -45,7 +45,7 @@ export class TimetableService {
 
       let hasTimetable = false
       const connectedUserNames: string[] = []
-      const usersWithoutTimetable: string[]
+      const usersWithoutTimetable: string[] = []
 
       // 2. First, check for connected classmates
       const { data: connections } = await supabase

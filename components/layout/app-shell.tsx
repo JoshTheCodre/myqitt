@@ -41,16 +41,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   // ✅ Only render shell when user is authenticated
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen bg-background overflow-hidden">
       {/* Sidebar (desktop only) */}
       <div className="hidden lg:flex">
         <Sidebar />
       </div>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col px-1">
+      <div className="flex-1 flex flex-col overflow-hidden">
         {/* Content */}
-        <main className="flex-1 w-full">
+        <main className="flex-1 w-full overflow-hidden">
           {children}
         </main>
 
