@@ -80,6 +80,21 @@ export class TodaysClassService {
       const targetDate = date || new Date().toISOString().split('T')[0]
       const dayName = new Date(targetDate).toLocaleDateString('en-US', { weekday: 'long' })
 
+      // Check for connections first
+      const { data: connections } = await supabase
+        .from('connections')
+        .select('following_id')
+        .eq('follower_id', userId)
+
+      const hasConnections = connections && connections.length > 0
+
+      // If connected to someone, show their classes instead
+      if (hasConnections) {
+        const connectedUserId = connections[0].following_id
+        return this.getConnectedUserTodaysClasses(connectedUserId, date)
+      }
+
+      // Otherwise, show own classes
       // 1. Get timetable JSONB data
       const { data: timetableRow, error: timetableError } = await supabase
         .from('timetable')
