@@ -281,8 +281,32 @@ function TodaysClasses({ userId }: { userId?: string }) {
     try {
       setLoading(true)
       const todaysClasses = await TodaysClassService.getTodaysClasses(userId)
-      console.log('Loaded today\'s classes:', todaysClasses.length, 'classes')
-      setClasses(todaysClasses)
+      // Sort by start time (earliest first) - handle both 24h and 12h formats
+      const sortedClasses = todaysClasses.sort((a, b) => {
+        const timeToMinutes = (time: string) => {
+          // Handle both "09:00" and "9:00AM" formats
+          const cleanTime = time.replace(/\s/g, '').toUpperCase()
+          const isPM = cleanTime.includes('PM')
+          const isAM = cleanTime.includes('AM')
+          
+          const timeOnly = cleanTime.replace(/AM|PM/g, '')
+          const [hoursStr, minutesStr] = timeOnly.split(':')
+          let hours = parseInt(hoursStr, 10)
+          const minutes = parseInt(minutesStr || '0', 10)
+          
+          // Convert to 24-hour format if AM/PM is present
+          if (isPM && hours !== 12) {
+            hours += 12
+          } else if (isAM && hours === 12) {
+            hours = 0
+          }
+          
+          return hours * 60 + minutes
+        }
+        return timeToMinutes(a.start_time) - timeToMinutes(b.start_time)
+      })
+      console.log('Loaded today\'s classes:', sortedClasses.length, 'classes')
+      setClasses(sortedClasses)
     } catch (error) {
       console.error('Failed to fetch today\'s classes:', error)
       setClasses([])
@@ -363,7 +387,7 @@ function TodaysClasses({ userId }: { userId?: string }) {
               <div
                 key={cls.id}
                 className={`bg-white rounded-lg border-l-4 border-r border-t border-b ${cls.has_update ? 'border-blue-300' : 'border-gray-200'} hover:shadow-md transition-all relative overflow-hidden`}
-                style={{ borderLeftColor: cls.is_cancelled ? '#ef4444' : (classStatus === 'ongoing' ? '#10b981' : classStatus === 'upcoming' ? '#fbbf24' : cls.has_update ? '#3b82f6' : '#0A32F8') }}
+                style={{ borderLeftColor: cls.is_cancelled ? '#ef4444' : (classStatus === 'completed' ? '#9ca3af' : classStatus === 'ongoing' ? '#10b981' : classStatus === 'upcoming' ? '#fbbf24' : cls.has_update ? '#3b82f6' : '#0A32F8') }}
               >
                 {/* Subtle Cancellation Pattern */}
                 {cls.is_cancelled && (
