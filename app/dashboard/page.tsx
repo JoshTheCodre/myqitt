@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { HeadsetIcon, BookIcon, Users, ArrowRight, Clock, Plus, AlertCircle, MapPin } from 'lucide-react'
 import { useAuthStore, UserProfile } from '@/lib/store/authStore'
+import { supabase } from '@/lib/supabase/client'
 import { AppShell } from '@/components/layout/app-shell'
 import { CatchUpModal } from '@/components/catch-up-modal'
 import { InstallPopup } from '@/components/install-popup'
@@ -253,6 +254,7 @@ function TodaysClasses({ userId }: { userId?: string }) {
   const [loading, setLoading] = useState(true)
   const [selectedClass, setSelectedClass] = useState<MergedClass | null>(null)
   const [showUpdateModal, setShowUpdateModal] = useState(false)
+  const [isConnected, setIsConnected] = useState(false)
 
   useEffect(() => {
     let mounted = true
@@ -280,6 +282,15 @@ function TodaysClasses({ userId }: { userId?: string }) {
 
     try {
       setLoading(true)
+      
+      // Check if user is connected to someone
+      const { data: connections } = await supabase
+        .from('connections')
+        .select('following_id')
+        .eq('follower_id', userId)
+      
+      setIsConnected(connections && connections.length > 0)
+      
       const todaysClasses = await TodaysClassService.getTodaysClasses(userId)
       // Sort by start time (earliest first) - handle both 24h and 12h formats
       const sortedClasses = todaysClasses.sort((a, b) => {
@@ -316,6 +327,9 @@ function TodaysClasses({ userId }: { userId?: string }) {
   }
 
   const handleUpdateClass = (cls: MergedClass) => {
+    // Don't allow updates if viewing connected user's classes
+    if (isConnected) return
+    
     setSelectedClass(cls)
     setShowUpdateModal(true)
   }
@@ -472,13 +486,15 @@ function TodaysClasses({ userId }: { userId?: string }) {
                   )}
                 </div>
                 
-                {/* Menu Button - Top Right */}
-                <div className="absolute top-3 right-3 z-20">
-                  <ClassMenu 
-                    onUpdate={() => handleUpdateClass(cls)}
-                    hasUpdate={cls.has_update}
-                  />
-                </div>
+                {/* Menu Button - Top Right - Only show if not connected */}
+                {!isConnected && (
+                  <div className="absolute top-3 right-3 z-20">
+                    <ClassMenu 
+                      onUpdate={() => handleUpdateClass(cls)}
+                      hasUpdate={cls.has_update}
+                    />
+                  </div>
+                )}
               </div>
             )
             })
