@@ -78,8 +78,7 @@ export class TodaysClassService {
   static async getTodaysClasses(userId: string, date?: string): Promise<MergedClass[]> {
     try {
       const targetDate = date || new Date().toISOString().split('T')[0]
-      // TESTING: Force today to be Monday
-      const dayName = 'Monday' // new Date(targetDate).toLocaleDateString('en-US', { weekday: 'long' })
+      const dayName = new Date(targetDate).toLocaleDateString('en-US', { weekday: 'long' })
 
       // 1. Get timetable JSONB data
       const { data: timetableRow, error: timetableError } = await supabase
@@ -196,8 +195,7 @@ export class TodaysClassService {
   static async getConnectedUserTodaysClasses(connectedUserId: string, date?: string): Promise<MergedClass[]> {
     try {
       const targetDate = date || new Date().toISOString().split('T')[0]
-      // TESTING: Force today to be Monday
-      const dayName = 'Monday' // new Date(targetDate).toLocaleDateString('en-US', { weekday: 'long' })
+      const dayName = new Date(targetDate).toLocaleDateString('en-US', { weekday: 'long' })
 
       // Get connected user's timetable JSONB data
       const { data: timetableRow, error: timetableError } = await supabase

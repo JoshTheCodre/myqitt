@@ -465,10 +465,7 @@ function TodaysClasses({ userId }: { userId?: string }) {
             <p className="text-xs text-gray-600 mb-2">
               {new Date().getDay() === 0 || new Date().getDay() === 6 
                 ? "It's the weekend! Enjoy your day off."
-                : "No classes scheduled for Monday"} {/* TESTING: Hardcoded Monday */}
-            </p>
-            <p className="text-xs text-blue-600 font-medium mb-4">
-              🧪 Testing Mode: Showing Monday's schedule
+                : "No classes scheduled for today"}
             </p>
             {(new Date().getDay() !== 0 && new Date().getDay() !== 6) && (
               <div className="flex justify-center gap-2">
