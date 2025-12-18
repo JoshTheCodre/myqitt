@@ -455,10 +455,10 @@ function TodaysClasses({ userId }: { userId?: string }) {
                 </div>
                 
                 {/* Status and Update Badges - Top Left */}
-                <div className="absolute top-3 left-3 flex flex-wrap gap-1 z-10">
+                <div className="absolute top-3 left-3 flex items-center gap-1 z-10 max-w-[calc(100%-80px)]">
                   {/* Status Badge */}
                   {!cls.is_cancelled && (
-                    <div className={`text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${
+                    <div className={`text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border whitespace-nowrap ${
                       classStatus === 'ongoing' ? 'bg-green-500 border-green-300 animate-pulse' : 
                       classStatus === 'completed' ? 'bg-gray-400 border-gray-300' : 
                       'bg-yellow-400 border-yellow-200'
@@ -469,20 +469,20 @@ function TodaysClasses({ userId }: { userId?: string }) {
                     </div>
                   )}
                   
-                  {/* Update Badge */}
+                  {/* Update Badge - Only show if not cancelled */}
                   {cls.has_update && !cls.is_cancelled && (
-                    <div className="bg-blue-500 border border-blue-300 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-1">
+                    <div className="bg-blue-500 border border-blue-300 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-1 whitespace-nowrap">
                       <AlertCircle className="w-2.5 h-2.5" />
                       Updated
                     </div>
                   )}
                   
-                  {/* Change indicators */}
-                  {cls.time_changed && (
-                    <div className="bg-amber-500 border border-amber-300 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">Time</div>
+                  {/* Change indicators - Only show if not cancelled */}
+                  {cls.time_changed && !cls.is_cancelled && (
+                    <div className="bg-amber-500 border border-amber-300 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap">Time</div>
                   )}
-                  {cls.location_changed && (
-                    <div className="bg-purple-500 border border-purple-300 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">Venue</div>
+                  {cls.location_changed && !cls.is_cancelled && (
+                    <div className="bg-purple-500 border border-purple-300 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap">Venue</div>
                   )}
                 </div>
                 
