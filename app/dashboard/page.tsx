@@ -414,12 +414,7 @@ function TodaysClasses({ userId }: { userId?: string }) {
                 <div className="p-5 pt-12">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className={`text-lg font-bold ${cls.is_cancelled ? 'line-through text-gray-400' : 'text-gray-900'}`}>{cls.course_code}</h3>
-                        {cls.is_cancelled && (
-                          <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">Cancelled</span>
-                        )}
-                      </div>
+                      <h3 className={`text-lg font-bold ${cls.is_cancelled ? 'line-through text-gray-400' : 'text-gray-900'}`}>{cls.course_code}</h3>
                     </div>
                     
                     <div className="text-right flex-shrink-0">
@@ -456,6 +451,13 @@ function TodaysClasses({ userId }: { userId?: string }) {
                 
                 {/* Status and Update Badges - Top Left */}
                 <div className="absolute top-3 left-3 flex items-center gap-1 z-10 max-w-[calc(100%-80px)]">
+                  {/* Cancelled Badge - Highest Priority */}
+                  {cls.is_cancelled && (
+                    <div className="bg-red-500 border border-red-300 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                      Cancelled
+                    </div>
+                  )}
+                  
                   {/* Status Badge */}
                   {!cls.is_cancelled && (
                     <div className={`text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border whitespace-nowrap ${
