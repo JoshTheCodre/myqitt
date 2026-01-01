@@ -235,17 +235,13 @@ export function UpdateTodaysClassModal({
           <div className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-6 flex-shrink-0">
             <div className="flex items-center justify-between">
               <div className="flex-1 min-w-0 pr-4">
-                <h2 className="text-2xl font-bold mb-1">Update Today's Class</h2>
+                <h2 className="text-2xl font-bold mb-1">Update Today&apos;s Class</h2>
                 <p className="text-blue-100 text-sm">
-                  Changes only apply to Monday {/* TESTING: Hardcoded Monday */}
-                  {/* {new Date().toLocaleDateString('en-US', { 
+                  {new Date().toLocaleDateString('en-US', { 
                     weekday: 'long', 
                     month: 'long', 
                     day: 'numeric' 
-                  })} */}
-                </p>
-                <p className="text-blue-200 text-xs mt-1 font-semibold">
-                  🧪 Testing Mode - Showing Monday's classes
+                  })}
                 </p>
               </div>
               <button

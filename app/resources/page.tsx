@@ -1,9 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { FileText, BookOpen, GraduationCap, Search, MoreVertical, ChevronRight, Upload, FolderOpen, Sparkles, User, Calendar } from 'lucide-react'
-import { useAuthStore } from '@/lib/store/authStore'
-import { supabase } from '@/lib/supabase/client'
+import { useState } from 'react'
+import { BookOpen, Search, MoreVertical, ChevronRight, Upload, FolderOpen, Sparkles, User, Calendar } from 'lucide-react'
 import { AppShell } from '@/components/layout/app-shell'
 
 type ResourceType = 'past_questions' | 'lecture_notes' | 'study_guides'
@@ -25,12 +23,80 @@ interface Course {
   title: string
 }
 
+// Resource Card Component - defined outside main component
+function ResourceCard({ resource }: { resource: Resource }) {
+  return (
+    <div 
+      className="flex-shrink-0 w-56 bg-white rounded-xl border border-gray-200 p-4 hover:shadow-lg hover:border-blue-300 transition-all cursor-pointer group"
+      onClick={() => {
+        // TODO: Navigate to resource detail page
+        console.log('View resource:', resource.id)
+      }}
+    >
+      <h4 className="font-semibold text-gray-900 mb-1.5 text-sm line-clamp-2 leading-tight group-hover:text-blue-500 transition-colors">{resource.title}</h4>
+      <p className="text-xs text-gray-500 mb-3">{resource.course}</p>
+      
+      <div className="text-xs text-gray-500">
+        <div className="flex items-center justify-between">
+          <span className="flex items-center gap-1">
+            <User className="w-3 h-3 text-blue-500" />
+            {resource.uploadedBy}
+          </span>
+          <span className="flex items-center gap-1">
+            <Calendar className="w-3 h-3 text-purple-500" />
+            {new Date(resource.uploadDate).toLocaleDateString()}
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Resource Section Component - defined outside main component
+function ResourceSection({ 
+  title, 
+  resources
+}: { 
+  title: string
+  resources: Resource[]
+}) {
+  if (resources.length === 0) return null
+
+  return (
+    <div className="mb-8 max-w-full overflow-hidden">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <h3 className="font-semibold text-gray-900">{title}</h3>
+          <span className="px-2 py-0.5 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">
+            {resources.length}
+          </span>
+        </div>
+        <button className="flex items-center gap-1 text-[10px] text-blue-600 hover:text-blue-700 font-medium whitespace-nowrap">
+          View All
+          <ChevronRight className="w-2.5 h-2.5 mb-[2px]" />
+        </button>
+      </div>
+
+      <div className="-mx-4 px-4 flex gap-3 overflow-x-auto pb-4 scrollbar-hide">
+        {resources.map(resource => (
+          <ResourceCard key={resource.id} resource={resource} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function ResourcesPage() {
-  const { user } = useAuthStore()
   const [selectedCourse, setSelectedCourse] = useState<string>('for-you')
-  const [courses, setCourses] = useState<Course[]>([])
-  const [loading, setLoading] = useState(true)
   const [showMenu, setShowMenu] = useState(false)
+
+  // Mock courses - replace with actual query from user's timetable
+  const courses: Course[] = [
+    { id: '1', code: 'CSC 486.1', title: 'Algorithm Design' },
+    { id: '2', code: 'CSC 301.1', title: 'Data Structures' },
+    { id: '3', code: 'MTH 201.1', title: 'Calculus II' },
+    { id: '4', code: 'CSC 205.1', title: 'Computer Architecture' }
+  ]
 
   // Mock data - replace with actual Supabase query
   const resources: Resource[] = [
@@ -96,27 +162,6 @@ export default function ResourcesPage() {
     }
   ]
 
-  useEffect(() => {
-    loadCourses()
-  }, [user])
-
-  const loadCourses = async () => {
-    try {
-      // Mock courses - replace with actual query from user's timetable
-      const mockCourses: Course[] = [
-        { id: '1', code: 'CSC 486.1', title: 'Algorithm Design' },
-        { id: '2', code: 'CSC 301.1', title: 'Data Structures' },
-        { id: '3', code: 'MTH 201.1', title: 'Calculus II' },
-        { id: '4', code: 'CSC 205.1', title: 'Computer Architecture' }
-      ]
-      setCourses(mockCourses)
-      setLoading(false)
-    } catch (error) {
-      console.error('Failed to load courses:', error)
-      setLoading(false)
-    }
-  }
-
   const getResourcesByType = (type: ResourceType, courseCode?: string) => {
     return resources.filter(r => {
       const matchesType = r.type === type
@@ -129,67 +174,6 @@ export default function ResourcesPage() {
       const matchesCourse = !courseCode || r.course === courseCode
       return matchesType && matchesCourse
     })
-  }
-
-  const ResourceCard = ({ resource }: { resource: Resource }) => (
-    <div 
-      className="flex-shrink-0 w-56 bg-white rounded-xl border border-gray-200 p-4 hover:shadow-lg hover:border-blue-300 transition-all cursor-pointer group"
-      onClick={() => {
-        // TODO: Navigate to resource detail page
-        console.log('View resource:', resource.id)
-      }}
-    >
-      <h4 className="font-semibold text-gray-900 mb-1.5 text-sm line-clamp-2 leading-tight group-hover:text-blue-500 transition-colors">{resource.title}</h4>
-      <p className="text-xs text-gray-500 mb-3">{resource.course}</p>
-      
-      <div className="text-xs text-gray-500">
-        <div className="flex items-center justify-between">
-          <span className="flex items-center gap-1">
-            <User className="w-3 h-3 text-blue-500" />
-            {resource.uploadedBy}
-          </span>
-          <span className="flex items-center gap-1">
-            <Calendar className="w-3 h-3 text-purple-500" />
-            {new Date(resource.uploadDate).toLocaleDateString()}
-          </span>
-        </div>
-      </div>
-    </div>
-  )
-
-  const ResourceSection = ({ 
-    title, 
-    type
-  }: { 
-    title: string
-    type: ResourceType
-  }) => {
-    const sectionResources = getResourcesByType(type, selectedCourse)
-    
-    if (sectionResources.length === 0) return null
-
-    return (
-      <div className="mb-8 max-w-full overflow-hidden">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <h3 className="font-semibold text-gray-900">{title}</h3>
-            <span className="px-2 py-0.5 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">
-              {sectionResources.length}
-            </span>
-          </div>
-          <button className="flex items-center gap-1 text-[10px] text-blue-600 hover:text-blue-700 font-medium whitespace-nowrap">
-            View All
-            <ChevronRight className="w-2.5 h-2.5 mb-[2px]" />
-          </button>
-        </div>
-
-        <div className="-mx-4 px-4 flex gap-3 overflow-x-auto pb-4 scrollbar-hide">
-          {sectionResources.map(resource => (
-            <ResourceCard key={resource.id} resource={resource} />
-          ))}
-        </div>
-      </div>
-    )
   }
 
   return (
@@ -315,17 +299,17 @@ export default function ResourcesPage() {
           <div className="space-y-6">
             <ResourceSection
               title="Past Questions"
-              type="past_questions"
+              resources={getResourcesByType('past_questions', selectedCourse)}
             />
             
             <ResourceSection
               title="Lecture Notes"
-              type="lecture_notes"
+              resources={getResourcesByType('lecture_notes', selectedCourse)}
             />
             
             <ResourceSection
               title="Study Guides"
-              type="study_guides"
+              resources={getResourcesByType('study_guides', selectedCourse)}
             />
           </div>
 

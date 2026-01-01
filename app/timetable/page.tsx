@@ -74,7 +74,7 @@ function Header({ onAddClick, hasTimetable, connectedUsers }: { onAddClick: () =
                     </div>
                     <div>
                       <h3 className="font-bold text-gray-900 text-base mb-1">Connected to {connectedUsers[0]}</h3>
-                      <p className="text-sm text-gray-600 leading-relaxed mb-2">You're viewing a combined timetable with {connectedUsers[0]}'s classes.</p>
+                      <p className="text-sm text-gray-600 leading-relaxed mb-2">You&apos;re viewing a combined timetable with {connectedUsers[0]}&apos;s classes.</p>
                       <p className="text-sm text-gray-600 leading-relaxed">To add or update your own timetable, disconnect from {connectedUsers[0]} first.</p>
                     </div>
                   </div>
@@ -201,7 +201,7 @@ function ClassSchedule({ classesForDay, selectedDay, usersWithoutTimetable }: Cl
             <p className="text-blue-800 text-base font-medium">
               {usersWithoutTimetable.join(', ')} {usersWithoutTimetable.length === 1 ? 'Has' : 'Have'} Not Added Any Timetable Yet
             </p>
-            <p className="text-blue-600 text-sm mt-2">They haven't created their timetable yet. Check back later!</p>
+            <p className="text-blue-600 text-sm mt-2">They haven&apos;t created their timetable yet. Check back later!</p>
           </div>
         )}
       </div>

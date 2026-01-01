@@ -14,6 +14,10 @@ export interface UserProfile {
   semester?: string
   bio?: string
   avatar_url?: string
+  role?: 'user' | 'course_rep'
+  is_course_rep?: boolean
+  invite_code?: string
+  course_rep_id?: string
   created_at?: string
   updated_at?: string
 }
@@ -28,9 +32,13 @@ interface AuthState {
 interface AuthActions {
   initialize: () => Promise<void>
   register: (email: string, password: string, userData: Partial<UserProfile>) => Promise<void>
+  registerCourseRep: (email: string, password: string, userData: Partial<UserProfile>) => Promise<string>
+  registerWithInvite: (inviteCode: string, password: string, userData: Partial<UserProfile>) => Promise<void>
   login: (email: string, password: string) => Promise<void>
+  loginWithPhone: (phone: string, password: string) => Promise<void>
   logout: () => Promise<void>
   updateProfile: (profileData: Partial<UserProfile>) => Promise<void>
+  getCourseRepByInviteCode: (inviteCode: string) => Promise<UserProfile | null>
 }
 
 export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
@@ -150,6 +158,137 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
     }
   },
 
+  // Register as Course Rep
+  registerCourseRep: async (email: string, password: string, userData: Partial<UserProfile>) => {
+    set({ loading: true })
+    
+    try {
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+      })
+
+      if (authError) throw authError
+      if (!authData.user) throw new Error('User creation failed')
+
+      // Create course rep profile with role
+      const { data: profile, error: profileError } = await supabase
+        .from('users')
+        .insert({
+          id: authData.user.id,
+          email,
+          name: userData.name || '',
+          phone_number: userData.phone_number,
+          school: userData.school,
+          department: userData.department,
+          level: userData.level,
+          semester: userData.semester,
+          role: 'course_rep',
+        })
+        .select()
+        .single()
+
+      if (profileError) throw profileError
+
+      set({ user: authData.user, profile, loading: false, initialized: true })
+      toast.success('Course Rep account created successfully!')
+      
+      // Return the invite code for displaying in popup
+      return profile.invite_code
+    } catch (error: any) {
+      set({ loading: false })
+      toast.error(error.message || 'Registration failed')
+      throw error
+    }
+  },
+
+  // Register user with invite code (no email required)
+  registerWithInvite: async (inviteCode: string, password: string, userData: Partial<UserProfile>) => {
+    set({ loading: true })
+    
+    try {
+      // First, get the course rep info from invite code
+      const { data: courseRepData, error: courseRepError } = await supabase
+        .from('users')
+        .select('id, school, department, level, semester')
+        .eq('invite_code', inviteCode)
+        .eq('role', 'course_rep')
+        .single()
+
+      if (courseRepError || !courseRepData) {
+        throw new Error('Invalid invite code')
+      }
+
+      // Generate a unique email using phone number
+      const uniqueEmail = `${userData.phone_number?.replace(/[^0-9]/g, '')}@qitt.app`
+
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: uniqueEmail,
+        password,
+      })
+
+      if (authError) throw authError
+      if (!authData.user) throw new Error('User creation failed')
+
+      // Create user profile with course rep's school info
+      const { data: profile, error: profileError } = await supabase
+        .from('users')
+        .insert({
+          id: authData.user.id,
+          email: uniqueEmail,
+          name: userData.name || '',
+          phone_number: userData.phone_number,
+          school: courseRepData.school,
+          department: courseRepData.department,
+          level: courseRepData.level,
+          semester: courseRepData.semester,
+          role: 'user',
+          course_rep_id: courseRepData.id,
+        })
+        .select()
+        .single()
+
+      if (profileError) throw profileError
+
+      set({ user: authData.user, profile, loading: false, initialized: true })
+      toast.success('Account created successfully!')
+      
+      if (typeof window !== 'undefined') {
+        window.location.href = '/dashboard'
+      }
+    } catch (error: any) {
+      set({ loading: false })
+      toast.error(error.message || 'Registration failed')
+      throw error
+    }
+  },
+
+  // Get course rep info by invite code (for displaying on join page)
+  getCourseRepByInviteCode: async (inviteCode: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select(`
+          id, 
+          name, 
+          school, 
+          department, 
+          level, 
+          semester,
+          schools!users_school_fkey(name),
+          departments!users_department_fkey(name)
+        `)
+        .eq('invite_code', inviteCode)
+        .eq('role', 'course_rep')
+        .single()
+
+      if (error || !data) return null
+      return data as unknown as UserProfile
+    } catch {
+      return null
+    }
+  },
+
   // Login user
   login: async (email: string, password: string) => {
     set({ loading: true })
@@ -157,6 +296,60 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
     try {
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
+        password,
+      })
+
+      if (authError) throw authError
+      if (!authData.user) throw new Error('Login failed')
+
+      // Fetch profile
+      const { data: profile, error: profileError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', authData.user.id)
+        .single()
+
+      if (profileError) throw profileError
+
+      set({ 
+        user: authData.user, 
+        profile, 
+        loading: false, 
+        initialized: true 
+      })
+      
+      toast.success('Welcome back!')
+      
+      if (typeof window !== 'undefined') {
+        window.location.href = '/dashboard'
+      }
+      
+    } catch (error: any) {
+      set({ loading: false })
+      toast.error(error.message || 'Login failed')
+      throw error
+    }
+  },
+
+  // Login with phone number
+  loginWithPhone: async (phone: string, password: string) => {
+    set({ loading: true })
+    
+    try {
+      // First find the user's email by phone number
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('email')
+        .eq('phone_number', phone)
+        .single()
+
+      if (userError || !userData) {
+        throw new Error('No account found with this phone number')
+      }
+
+      // Then login with the email
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: userData.email,
         password,
       })
 

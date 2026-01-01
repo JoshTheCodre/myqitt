@@ -5,7 +5,8 @@ export { ClassmateService } from './classmateService'
 export { ProfileService } from './profileService'
 export { ConnectionService } from './connectionService'
 export { TodaysClassService } from './todaysClassService'
-export { NotificationService } from './notificationService'
+export { CatchUpService } from './catchUpService'
+// export { NotificationService } from './notificationService' // DISABLED: Service worker related
 
 // Re-export types
 export type {
@@ -43,5 +44,9 @@ export type {
 } from './todaysClassService'
 
 export type {
-  NotificationPayload
-} from './notificationService'
+  CatchUpItem
+} from './catchUpService'
+
+// export type {
+//   NotificationPayload
+// } from './notificationService' // DISABLED: Service worker related

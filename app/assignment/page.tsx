@@ -38,7 +38,7 @@ interface AssignmentsListProps {
 }
 
 // ============ STATS CARD COMPONENT ============
-function StatsCard({ total, hasConnectedUsers }: { total: number; hasConnectedUsers?: boolean }) {
+function StatsCard({ total }: { total: number }) {
   return (
     <div className={`bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-300 rounded-xl p-3 shadow-sm hover:shadow-md transition-all`}>
       <div className="flex items-center gap-3">
@@ -128,8 +128,7 @@ function AssignmentCard({
   assignmentCount, 
   dates,
   onDateClick,
-  isOwner = true,  // ✅ NEW
-  ownerName  // ✅ NEW
+  isOwner = true
 }: AssignmentCardProps) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 hover:shadow-md transition-all p-6">
@@ -269,7 +268,7 @@ function AssignmentsList({ router, onConnectedUsersChange }: AssignmentsListProp
         <p className="text-blue-800 text-base font-medium">
           {usersWithoutData.join(', ')} {usersWithoutData.length === 1 ? 'Has' : 'Have'} Not Added Any Assignment Yet
         </p>
-        <p className="text-blue-600 text-sm mt-2">They haven't created their assignments yet. Check back later!</p>
+        <p className="text-blue-600 text-sm mt-2">They haven&apos;t created their assignments yet. Check back later!</p>
       </div>
     )
   }
@@ -284,7 +283,7 @@ function AssignmentsList({ router, onConnectedUsersChange }: AssignmentsListProp
           <p className="text-blue-800 text-base font-medium">
             {usersWithoutData.join(', ')} {usersWithoutData.length === 1 ? 'has' : 'have'} not added any assignments yet
           </p>
-          <p className="text-blue-600 text-sm mt-2">They haven't created their assignments yet. Check back later!</p>
+          <p className="text-blue-600 text-sm mt-2">They haven&apos;t created their assignments yet. Check back later!</p>
         </div>
       )}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -295,7 +294,6 @@ function AssignmentsList({ router, onConnectedUsersChange }: AssignmentsListProp
             assignmentCount={assignment.assignmentCount}
             dates={assignment.dates}
             isOwner={assignment.isOwner}
-            ownerName={assignment.ownerName}
             onDateClick={(dateLabel) => {
               const dateData = assignment.dates.find(d => d.label === dateLabel)
               if (dateData) {
@@ -353,7 +351,7 @@ export default function AssignmentPage() {
           <Header onAddClick={() => router.push('/assignment/add')} connectedUsers={connectedUsers} />
           
           <div className="mt-6">
-            <StatsCard total={totalAssignments} hasConnectedUsers={connectedUsers.length > 0} />
+            <StatsCard total={totalAssignments} />
           </div>
           
           <div className="mt-4">

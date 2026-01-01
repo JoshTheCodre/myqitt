@@ -140,52 +140,52 @@ export function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => v
     return (
         <form onSubmit={handleSubmit} className="w-full space-y-4">
             <div>
-                <label className="block text-sm font-medium text-gray-800 mb-2">Full Name</label>
+                <label className="block text-sm font-semibold text-gray-800 mb-2">Full Name</label>
                 <input
                     type="text"
                     name="name"
-                    placeholder="eg Zewaen"
+                    placeholder="Enter your full name"
                     value={data.name}
                     onChange={handleChange}
-                    autoComplete="off"
+                    autoComplete="name"
                     disabled={loading}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent placeholder:text-gray-400 bg-white text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:border-transparent placeholder:text-gray-400 bg-white text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                     style={{ '--tw-ring-color': '#4045EF' } as React.CSSProperties}
                 />
             </div>
 
             <div>
-                <label className="block text-sm font-medium text-gray-800 mb-2">Email</label>
+                <label className="block text-sm font-semibold text-gray-800 mb-2">Email Address</label>
                 <input
                     type="email"
                     name="email"
-                    placeholder="john@example.com"
+                    placeholder="your.email@example.com"
                     value={data.email}
                     onChange={handleChange}
-                    autoComplete="off"
+                    autoComplete="email"
                     disabled={loading}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent placeholder:text-gray-400 bg-white text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:border-transparent placeholder:text-gray-400 bg-white text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                     style={{ '--tw-ring-color': '#4045EF' } as React.CSSProperties}
                 />
             </div>
 
             <div>
-                <label className="block text-sm font-medium text-gray-800 mb-2">Phone Number</label>
+                <label className="block text-sm font-semibold text-gray-800 mb-2">Phone Number</label>
                 <input
                     type="tel"
                     name="phone_number"
                     placeholder="+234 800 123 4567"
                     value={data.phone_number}
                     onChange={handleChange}
-                    autoComplete="off"
+                    autoComplete="tel"
                     disabled={loading}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent placeholder:text-gray-400 bg-white text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:border-transparent placeholder:text-gray-400 bg-white text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                     style={{ '--tw-ring-color': '#4045EF' } as React.CSSProperties}
                 />
             </div>
 
             <div>
-                <label className="block text-sm font-medium text-gray-800 mb-2">Select School</label>
+                <label className="block text-sm font-semibold text-gray-800 mb-2">School</label>
                 <div className="flex gap-2 h-16">
                     {loadingSchools ? (
                         <div className="flex-1 flex items-center justify-center text-gray-500">Loading schools...</div>
@@ -226,11 +226,11 @@ export function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => v
                         value={data.department}
                         onChange={handleChange}
                         disabled={loading || loadingDepartments || !selectedSchool}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent appearance-none bg-white text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:border-transparent appearance-none bg-white text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                         style={{ '--tw-ring-color': '#4045EF' } as React.CSSProperties}
                     >
                         <option value="">
-                            {!selectedSchool ? 'Select a school first' : loadingDepartments ? 'Loading departments...' : departments.length === 0 ? 'No departments available' : 'Select Department'}
+                            {!selectedSchool ? 'Select a school first' : loadingDepartments ? 'Loading...' : departments.length === 0 ? 'No departments available' : 'Choose your department'}
                         </option>
                         {departments.map(dept => (
                             <option key={dept.id} value={dept.department}>
@@ -244,17 +244,17 @@ export function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => v
 
             <div className="grid grid-cols-2 gap-4">
                 <div>
-                    <label className="block text-sm font-medium text-gray-800 mb-2">Level</label>
+                    <label className="block text-sm font-semibold text-gray-800 mb-2">Level</label>
                     <div className="relative">
                         <select
                             name="level"
                             value={data.level}
                             onChange={handleChange}
                             disabled={loading}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent appearance-none bg-white text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:border-transparent appearance-none bg-white text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                             style={{ '--tw-ring-color': '#4045EF' } as React.CSSProperties}
                         >
-                            <option value="">Select Level</option>
+                            <option value="">Choose level</option>
                             <option value="1">Level 1</option>
                             <option value="2">Level 2</option>
                             <option value="3">Level 3</option>
@@ -266,17 +266,17 @@ export function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => v
                     </div>
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-800 mb-2">Semester</label>
+                    <label className="block text-sm font-semibold text-gray-800 mb-2">Semester</label>
                     <div className="relative">
                         <select
                             name="semester"
                             value={data.semester}
                             onChange={handleChange}
                             disabled={loading}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent appearance-none bg-white text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:border-transparent appearance-none bg-white text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                             style={{ '--tw-ring-color': '#4045EF' } as React.CSSProperties}
                         >
-                            <option value="">Select Semester</option>
+                            <option value="">Choose semester</option>
                             <option value="1">First Semester</option>
                             <option value="2">Second Semester</option>
                         </select>
@@ -286,11 +286,11 @@ export function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => v
             </div>
 
             <div>
-                <label className="block text-sm font-medium text-gray-800 mb-2">Password</label>
+                <label className="block text-sm font-semibold text-gray-800 mb-2">Password</label>
                 <input
                     type="password"
                     name="password"
-                    placeholder="Password123"
+                    placeholder="Create a strong password"
                     value={data.password}
                     onChange={handleChange}
                     autoComplete="off"
@@ -309,12 +309,12 @@ export function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => v
                         }`}
                     style={agreedToTerms ? { backgroundColor: '#4045EF', borderColor: '#4045EF' } : {}}
                 >
-                    {agreedToTerms && <Check size={16} className="text-white" />}
+                    {agreedToTerms && <Check size={14} className="text-white" strokeWidth={3} />}
                 </button>
-                <span className="text-sm text-gray-700">
-                    I agree to{' '}
-                    <a href="#" className="hover:underline font-semibold" style={{ color: '#4045EF' }}>
-                        Term & Condition
+                <span className="text-sm text-gray-700 leading-relaxed">
+                    I agree to the{' '}
+                    <a href="#" className="hover:underline font-semibold transition-colors" style={{ color: '#4045EF' }}>
+                        Terms and Conditions
                     </a>
                 </span>
             </div>
@@ -322,10 +322,10 @@ export function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => v
             <button
                 type="submit"
                 disabled={loading}
-                className="w-full text-white font-semibold py-3 px-4 rounded-xl transition-colors hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full text-white font-semibold py-3.5 px-4 rounded-xl transition-all hover:shadow-lg hover:scale-[1.01] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none"
                 style={{ backgroundColor: '#4045EF' }}
             >
-                {loading ? 'Creating account...' : 'Sign up'}
+                {loading ? 'Creating your account...' : 'Create Account'}
             </button>
         </form>
     )

@@ -8,7 +8,7 @@ import toast from 'react-hot-toast'
 import { useCourseStore } from '@/lib/store/courseStore'
 import { useAuthStore } from '@/lib/store/authStore'
 import { supabase } from '@/lib/supabase/client'
-import { NotificationService } from '@/lib/services/notificationService'
+// import { NotificationService } from '@/lib/services/notificationService' // DISABLED: Service worker related
 
 interface ClassEntry {
   id: string
@@ -351,6 +351,8 @@ export default function AddTimetablePage() {
       toast.success(`${filledClasses.length} class(es) ${existing ? 'updated' : 'added'} successfully!`)
       
       // Send push notifications to connected users (only if updating)
+      // DISABLED: Service worker related notifications
+      /*
       if (existing) {
         try {
           await NotificationService.notifyConnectedUsers(
@@ -373,6 +375,7 @@ export default function AddTimetablePage() {
           // Don't show error to user - notifications are best-effort
         }
       }
+      */
       
       router.push('/timetable')
     } catch (error) {

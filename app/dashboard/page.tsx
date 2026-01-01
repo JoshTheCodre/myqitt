@@ -2,17 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
-import { HeadsetIcon, BookIcon, Users, ArrowRight, Clock, Plus, AlertCircle, MapPin } from 'lucide-react'
+import { HeadsetIcon, ArrowRight, Clock, Plus, AlertCircle, MapPin, Megaphone, ChevronRight } from 'lucide-react'
 import { useAuthStore, UserProfile } from '@/lib/store/authStore'
 import { supabase } from '@/lib/supabase/client'
 import { AppShell } from '@/components/layout/app-shell'
-import { CatchUpModal } from '@/components/catch-up-modal'
-import { InstallPopup } from '@/components/install-popup'
 import { ClassMenu } from '@/components/class-menu'
 import { UpdateTodaysClassModal } from '@/components/update-todays-class-modal'
 import { TodaysClassService, type MergedClass } from '@/lib/services'
-import { CatchUpService, type CatchUpItem } from '@/lib/services/catchUpService'
 
 // ============ HELPER FUNCTIONS ============
 const getInitials = (name?: string) => {
@@ -109,49 +105,73 @@ function Header({ profile }: { profile: UserProfile | null }) {
 }
 
 // ============ CATCH UP SECTION ============
-function CatchUpSection({ onItemClick, profile }: { onItemClick: (item: CatchUpItem) => void; profile: UserProfile | null }) {
-  const [items, setItems] = useState<CatchUpItem[]>([])
+// Dummy data for catch-up items with different types
+interface CatchUpDisplayItem {
+  id: string
+  type: 'deadline' | 'reminder' | 'update' | 'announcement'
+  title: string
+  subtitle?: string
+  time?: string
+}
+
+const dummyCatchUpItems: CatchUpDisplayItem[] = [
+  { id: '1', type: 'deadline', title: 'CSC 401 Assignment Due', subtitle: 'Data Structures', time: 'Tomorrow' },
+  { id: '2', type: 'reminder', title: 'Group Meeting', subtitle: 'Project Discussion', time: '2:00 PM' },
+  { id: '3', type: 'update', title: 'Lecture Venue Changed', subtitle: 'CSC 305 moved to Hall B', time: '1h ago' },
+  { id: '4', type: 'announcement', title: 'New Course Material', subtitle: 'Check department page', time: '3h ago' },
+]
+
+function CatchUpSection() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    async function loadCatchUpItems() {
-      if (!profile?.school || !profile?.department) {
-        setLoading(false)
-        return
-      }
+    // Simulate loading
+    const timer = setTimeout(() => setLoading(false), 500)
+    return () => clearTimeout(timer)
+  }, [])
 
-      try {
-        const userProfile = {
-          school: profile.school,
-          department: profile.department,
-          level: profile.level || 1,
-          semester: profile.semester || 'first'
-        }
-
-        console.log('Loading catch-up items for:', userProfile)
-        const catchUpItems = await CatchUpService.getUnviewedItems(userProfile)
-        console.log('Loaded catch-up items:', catchUpItems.length)
-        setItems(catchUpItems)
-      } catch (error) {
-        console.error('Error loading catch-up items:', error)
-        setItems([])
-      } finally {
-        setLoading(false)
-      }
+  const getItemIcon = (type: CatchUpDisplayItem['type']) => {
+    switch (type) {
+      case 'deadline':
+        return (
+          <div className="w-6 h-6 rounded-md bg-red-50 flex items-center justify-center flex-shrink-0">
+            <Clock className="w-3 h-3 text-red-400" />
+          </div>
+        )
+      case 'reminder':
+        return (
+          <div className="w-6 h-6 rounded-md bg-amber-50 flex items-center justify-center flex-shrink-0">
+            <AlertCircle className="w-3 h-3 text-amber-400" />
+          </div>
+        )
+      case 'update':
+        return (
+          <div className="w-6 h-6 rounded-md bg-emerald-50 flex items-center justify-center flex-shrink-0">
+            <ArrowRight className="w-3 h-3 text-emerald-400" />
+          </div>
+        )
+      case 'announcement':
+        return (
+          <div className="w-6 h-6 rounded-md bg-blue-50 flex items-center justify-center flex-shrink-0">
+            <Megaphone className="w-3 h-3 text-blue-400" />
+          </div>
+        )
     }
-
-    loadCatchUpItems()
-  }, [profile?.school, profile?.department, profile?.level, profile?.semester])
+  }
 
   if (loading) {
     return (
       <section>
-        <div className="relative rounded-2xl p-4 md:p-8 border border-purple-100 overflow-hidden animate-pulse">
-          <div className="space-y-3 md:space-y-5">
+        <div className="rounded-xl p-4 border border-gray-200 bg-white animate-pulse">
+          <div className="h-5 bg-gray-200 rounded w-24 mb-3"></div>
+          <div className="space-y-2">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="flex items-center gap-3 md:gap-4">
-                <div className="w-4 h-4 md:w-5 md:h-5 rounded-full bg-gray-200" />
-                <div className="h-4 bg-gray-200 rounded w-48" />
+              <div key={i} className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-gray-200" />
+                <div className="flex-1">
+                  <div className="h-3 bg-gray-200 rounded w-3/4 mb-1.5" />
+                  <div className="h-2.5 bg-gray-100 rounded w-1/2" />
+                </div>
               </div>
             ))}
           </div>
@@ -160,18 +180,18 @@ function CatchUpSection({ onItemClick, profile }: { onItemClick: (item: CatchUpI
     )
   }
 
-  if (items.length === 0) {
+  if (dummyCatchUpItems.length === 0) {
     return (
       <section>
-        <div className="relative rounded-2xl p-6 md:p-8 border border-gray-200 bg-gradient-to-br from-gray-50 to-white overflow-hidden">
+        <div className="rounded-xl p-5 border border-gray-200 bg-gradient-to-br from-gray-50 to-white">
           <div className="text-center">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-50 flex items-center justify-center">
-              <svg className="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-emerald-50 flex items-center justify-center">
+              <svg className="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">You're All Caught Up! 🎉</h3>
-            <p className="text-sm text-gray-600">No new announcements at the moment. Check back later for updates.</p>
+            <h3 className="text-sm font-semibold text-gray-900 mb-1">You&apos;re All Caught Up! 🎉</h3>
+            <p className="text-xs text-gray-500">No new items at the moment.</p>
           </div>
         </div>
       </section>
@@ -180,71 +200,31 @@ function CatchUpSection({ onItemClick, profile }: { onItemClick: (item: CatchUpI
 
   return (
     <section>
-      <div className="relative rounded-2xl p-4 md:p-8 border border-purple-100 overflow-hidden">
-        <Image src="/catchup-bg.png" alt="" fill className="object-cover opacity-20" loading="eager" sizes="(max-width: 768px) 100vw, (max-width: 1200px) 90vw, 80vw" />
-        <div className="relative z-10">
-          <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-4 md:mb-6">Catch Up</h2>
-          <ul className="space-y-3 md:space-y-5">
-            {items.map((item) => (
-              <li 
-                key={item.id} 
-                className="flex items-center gap-3 md:gap-4 cursor-pointer group"
-                onClick={() => onItemClick(item)}
-              >
-                <div className="w-4 h-4 md:w-5 md:h-5 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-600 transition-colors">
-                  <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-white" />
-                </div>
-                <div className='flex items-center group-hover:text-blue-600 transition-colors flex-1'>
-                  <span className="text-md md:text-lg flex items-center gap-3">
-                    {item.title} 
-                    <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                  </span>
-                </div>
-              </li>
-            ))}
-          </ul>
+      <div className="rounded-xl p-4 border border-gray-200 bg-white">
+        <h2 className="text-sm font-bold text-gray-900 mb-3">Catch Up</h2>
+        <div className="space-y-2">
+          {dummyCatchUpItems.map((item) => (
+            <div 
+              key={item.id} 
+              className="flex items-start gap-2.5 p-2 -mx-2 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors group"
+            >
+              {getItemIcon(item.type)}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-gray-900 group-hover:text-emerald-600 transition-colors truncate leading-tight">
+                  {item.title}
+                </p>
+                <p className="text-[10px] text-gray-500 truncate leading-tight mt-0.5">
+                  {item.subtitle}
+                </p>
+              </div>
+              {item.time && (
+                <span className="text-[10px] text-gray-400 flex-shrink-0 mt-0.5">{item.time}</span>
+              )}
+            </div>
+          ))}
         </div>
       </div>
     </section>
-  )
-}
-
-// ============ ACTION CARDS COMPONENT ============
-function ActionCards() {
-  return (
-    <div className="grid grid-cols-2 gap-3 md:gap-6">
-      <Link href="/courses">
-        <div className="relative rounded-xl md:rounded-2xl p-3 md:p-8 text-white cursor-pointer hover:shadow-lg transition-shadow overflow-hidden h-36 md:h-auto">
-          <Image src="/courses-card-bg.png" alt="" fill className="object-cover" sizes="(max-width: 768px) 50vw, 25vw" />
-          <div className="absolute inset-0 z-[1]" style={{ background: 'linear-gradient(to bottom right, rgba(10, 50, 248, 0.85), rgba(8, 40, 201, 0.85))' }} />
-          <div className="relative z-10 flex flex-col justify-between h-full">
-            <div className="bg-[#001A0D36] rounded-full p-1.5 md:p-2 w-fit">
-              <BookIcon className="w-4 h-4 md:w-6 md:h-6" />
-            </div>
-            <div>
-              <h3 className="text-lg md:text-2xl font-bold">Courses</h3>
-              <p className="text-white/90 mt-0.5 md:mt-2 text-xs md:text-base">View All Courses</p>
-            </div>
-          </div>
-        </div>
-      </Link>
-
-      <Link href="/classmates">
-        <div className="relative rounded-xl md:rounded-2xl p-4 md:p-8 text-white cursor-pointer hover:shadow-lg transition-shadow overflow-hidden h-36 md:h-auto">
-          <Image src="/classmates-card-bg.png" alt="" fill className="object-cover" sizes="(max-width: 768px) 50vw, 25vw" />
-          <div className="absolute inset-0 z-[1]" style={{ background: 'linear-gradient(to bottom right, rgba(70, 210, 143, 0.85), rgba(58, 185, 121, 0.85))' }} />
-          <div className="relative z-10 flex flex-col justify-between h-full">
-            <div className="bg-[#001A0D36] rounded-full p-1.5 md:p-2 w-fit">
-              <Users className="w-4 h-4 md:w-6 md:h-6" />
-            </div>
-            <div>
-              <h3 className="text-lg md:text-2xl font-bold">Classmates</h3>
-              <p className="text-white/90 mt-0.5 md:mt-2 text-xs md:text-base">Connect With Peers</p>
-            </div>
-          </div>
-        </div>
-      </Link>
-    </div>
   )
 }
 
@@ -566,14 +546,7 @@ function TodaysClasses({ userId }: { userId?: string }) {
 
 // ============ MAIN PAGE COMPONENT ============
 export default function Page() {
-  const [modalOpen, setModalOpen] = useState(false)
-  const [selectedItem, setSelectedItem] = useState<CatchUpItem | null>(null)
   const { profile, user } = useAuthStore()
-
-  const handleItemClick = (item: CatchUpItem) => {
-    setSelectedItem(item)
-    setModalOpen(true)
-  }
 
   return (
     <AppShell>
@@ -581,25 +554,37 @@ export default function Page() {
         <div className="w-full max-w-2xl px-3 md:px-4 py-4 md:py-8 pb-24 lg:pb-8">
           <Header profile={profile} />
           <div className="mt-5 md:mt-12">
-            <CatchUpSection onItemClick={handleItemClick} profile={profile} />
+            <CatchUpSection />
           </div>
+          
+          {/* Department Button - WhatsApp Style */}
           <div className="mt-5 md:mt-8">
-            <ActionCards />
+            <Link href="/department">
+              <div className="bg-white rounded-xl border border-gray-200 hover:bg-gray-50 transition-all cursor-pointer group">
+                <div className="flex items-center p-4">
+                  {/* Avatar/Icon */}
+                  <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center flex-shrink-0">
+                    <Megaphone className="w-6 h-6 text-white" />
+                  </div>
+                  
+                  {/* Content */}
+                  <div className="flex-1 min-w-0 ml-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-semibold text-gray-900">Department</h3>
+                      <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-gray-600 group-hover:translate-x-0.5 transition-all" />
+                    </div>
+                    <p className="text-sm text-gray-500 mt-0.5">Announcements, Courses & Classmates</p>
+                  </div>
+                </div>
+              </div>
+            </Link>
           </div>
-          <div className="mt-5 md:mt-12">
+
+          <div className="mt-5 md:mt-8">
             <TodaysClasses userId={user?.id} />
           </div>
         </div>
       </div>
-      <CatchUpModal
-        isOpen={modalOpen}
-        item={selectedItem}
-        onClose={() => {
-          setModalOpen(false)
-          setSelectedItem(null)
-        }}
-      />
-      <InstallPopup />
     </AppShell>
   )
 }

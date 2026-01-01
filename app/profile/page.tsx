@@ -4,12 +4,13 @@ import { useState } from 'react'
 import Image from 'next/image'
 import { AppShell } from '@/components/layout/app-shell'
 import { EditProfileModal } from '@/components/edit-profile-modal'
-import { NotificationSettings } from '@/components/notification-settings'
+// import { NotificationSettings } from '@/components/notification-settings' // DISABLED: Service worker related
 import { useAuthStore } from '@/lib/store/authStore'
-import { Mail, Phone, GraduationCap, Building2, BookOpen, Calendar, LogOut, Edit, Bell } from 'lucide-react'
+import { Mail, Phone, GraduationCap, Building2, BookOpen, Calendar, LogOut, Edit, Bell, Link2, Copy, Share2, Users } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import type { LucideIcon } from 'lucide-react'
 import { formatDepartmentName } from '@/lib/hooks/useDepartments'
+import toast from 'react-hot-toast'
 
 // ============ PROFILE CARD COMPONENT ============
 function ProfileCard({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string | number | null | undefined }) {
@@ -40,7 +41,7 @@ export default function ProfilePage() {
     const { user, profile, logout } = useAuthStore()
     const router = useRouter()
     const [isEditModalOpen, setIsEditModalOpen] = useState(false)
-    const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false)
+    // const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false) // DISABLED: Service worker related
 
     const handleLogout = async () => {
         try {
@@ -136,6 +137,59 @@ export default function ProfilePage() {
                         </div>
                     </div>
 
+                    {/* Course Rep Invite Link Section */}
+                    {profile?.is_course_rep && profile?.invite_code && (
+                        <div className="mb-6">
+                            <h2 className="text-lg font-bold text-gray-900 px-1 mb-3 flex items-center gap-2">
+                                <Users className="w-5 h-5 text-blue-600" />
+                                Invite Your Classmates
+                            </h2>
+                            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-5 border border-blue-200">
+                                <p className="text-sm text-gray-600 mb-4">
+                                    Share this link with your classmates so they can join and see your timetable and assignments.
+                                </p>
+                                <div className="bg-white rounded-lg p-3 border border-gray-200 mb-4">
+                                    <p className="text-xs text-gray-500 mb-1">Your invite link:</p>
+                                    <p className="text-sm font-mono text-blue-600 break-all">
+                                        {typeof window !== 'undefined' ? `${window.location.origin}/join/${profile.invite_code}` : `https://qitt.app/join/${profile.invite_code}`}
+                                    </p>
+                                </div>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => {
+                                            const link = `${window.location.origin}/join/${profile.invite_code}`
+                                            navigator.clipboard.writeText(link)
+                                            toast.success('Link copied!')
+                                        }}
+                                        className="flex-1 py-2.5 px-4 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+                                    >
+                                        <Copy className="w-4 h-4" />
+                                        Copy Link
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            const link = `${window.location.origin}/join/${profile.invite_code}`
+                                            if (navigator.share) {
+                                                navigator.share({
+                                                    title: 'Join my class on Qitt',
+                                                    text: `Join my class on Qitt to see our timetable and assignments!`,
+                                                    url: link
+                                                })
+                                            } else {
+                                                navigator.clipboard.writeText(link)
+                                                toast.success('Link copied!')
+                                            }
+                                        }}
+                                        className="flex-1 py-2.5 px-4 bg-blue-600 rounded-lg text-sm font-medium text-white hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                                    >
+                                        <Share2 className="w-4 h-4" />
+                                        Share
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Action Buttons */}
                     <div className="space-y-3">
                         <button
@@ -146,6 +200,7 @@ export default function ProfilePage() {
                             Edit Profile
                         </button>
                         
+                        {/* DISABLED: Service worker related notifications
                         <button
                             className="w-full py-3 px-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl font-semibold hover:from-indigo-600 hover:to-purple-700 transition-colors flex items-center justify-center gap-2"
                             onClick={() => setIsNotificationModalOpen(true)}
@@ -153,6 +208,7 @@ export default function ProfilePage() {
                             <Bell className="w-5 h-5" />
                             Notification Settings
                         </button>
+                        */}
                         
                         <button
                             className="w-full py-3 px-4 bg-red-50 text-red-600 rounded-xl font-semibold hover:bg-red-100 transition-colors flex items-center justify-center gap-2 border border-red-200"
@@ -165,7 +221,7 @@ export default function ProfilePage() {
                 </div>
             </div>
             <EditProfileModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} />
-            <NotificationSettings isOpen={isNotificationModalOpen} onClose={() => setIsNotificationModalOpen(false)} />
+            {/* <NotificationSettings isOpen={isNotificationModalOpen} onClose={() => setIsNotificationModalOpen(false)} /> */} {/* DISABLED: Service worker related */}
         </AppShell>
     )
 }

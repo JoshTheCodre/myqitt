@@ -171,7 +171,7 @@ export function ConnectionModal({
                 </div>
                 <p className="text-gray-600 font-medium">No shared content available</p>
                 <p className="text-sm text-gray-500 mt-1">
-                  This user hasn't added a timetable or assignments yet
+                  This user hasn&apos;t added a timetable or assignments yet
                 </p>
               </div>
             ) : (

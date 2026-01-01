@@ -17,8 +17,8 @@ export function BottomNav() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 lg:hidden z-50">
-      <div className="max-w-2xl mx-auto ">
-        <div className="flex items-center justify-around h-20">
+      <div className="max-w-md mx-auto px-4">
+        <div className="flex items-center justify-center gap-8 h-16">
           {items.map((item) => {
             const Icon = item.icon
             const active = isActive(item.href)
@@ -26,7 +26,7 @@ export function BottomNav() {
               <button
                 key={item.id}
                 onClick={() => router.push(item.href)}
-                className="flex flex-col items-center gap-1.5 py-2 px-3 rounded-lg transition-colors flex-1"
+                className="flex flex-col items-center gap-1 py-2 px-4 rounded-lg transition-colors"
               >
                 <Icon
                   className={`w-6 h-6 ${active ? 'text-blue-600' : 'text-gray-500'

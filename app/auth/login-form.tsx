@@ -33,58 +33,58 @@ export function LoginForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="w-full space-y-4">
+    <form onSubmit={handleSubmit} className="w-full space-y-5">
       <div>
-        <label className="block text-sm font-medium text-gray-800 mb-2">Email</label>
+        <label className="block text-sm font-semibold text-gray-800 mb-2">Email Address</label>
         <input
           type="email"
           name="email"
-          placeholder="john@example.com"
+          placeholder="Enter your email"
           value={data.email}
           onChange={handleChange}
-          autoComplete="off"
+          autoComplete="email"
           disabled={loading}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent placeholder:text-gray-400 bg-white text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:border-transparent placeholder:text-gray-400 bg-white text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           style={{ '--tw-ring-color': '#4045EF' } as React.CSSProperties}
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-800 mb-2">Password</label>
+        <label className="block text-sm font-semibold text-gray-800 mb-2">Password</label>
         <input
           type="password"
           name="password"
-          placeholder="Password123"
+          placeholder="Enter your password"
           value={data.password}
           onChange={handleChange}
-          autoComplete="off"
+          autoComplete="current-password"
           disabled={loading}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent placeholder:text-gray-400 bg-white text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:border-transparent placeholder:text-gray-400 bg-white text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           style={{ '--tw-ring-color': '#4045EF' } as React.CSSProperties}
         />
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2.5">
         <input
           type="checkbox"
           id="rememberMe"
           checked={rememberMe}
           onChange={(e) => setRememberMe(e.target.checked)}
           disabled={loading}
-          className="w-4 h-4 rounded border border-gray-300 cursor-pointer accent-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-4 h-4 rounded border-gray-300 cursor-pointer accent-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
         />
-        <label htmlFor="rememberMe" className="text-sm text-gray-700 cursor-pointer">
-          Remember me
+        <label htmlFor="rememberMe" className="text-sm font-medium text-gray-700 cursor-pointer select-none">
+          Keep me signed in
         </label>
       </div>
 
       <button
         type="submit"
         disabled={loading}
-        className="w-full text-white font-semibold py-3 px-4 rounded-xl transition-colors hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full text-white font-semibold py-3.5 px-4 rounded-xl transition-all hover:shadow-lg hover:scale-[1.01] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none"
         style={{ backgroundColor: '#4045EF' }}
       >
-        {loading ? 'Logging in...' : 'Login'}
+        {loading ? 'Signing in...' : 'Sign In'}
       </button>
     </form>
   )
