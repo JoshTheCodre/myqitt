@@ -223,7 +223,7 @@ function CatchUpSection() {
             </div>
           ))}
         </div>
-        <button className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-1 px-2 py-1 text-[11px] font-semibold text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors">
+        <button className="absolute left-1/2 transform -translate-x-1/2 -bottom-1 flex items-center gap-1 px-2 py-1 text-[11px] font-semibold text-blue-600 border border-blue-300 rounded-lg bg-white hover:bg-blue-50 transition-colors">
           More
           <span className="inline-flex items-center justify-center w-4 h-4 bg-blue-600 text-white text-[9px] font-bold rounded-full">
             {dummyCatchUpItems.length - 3}
