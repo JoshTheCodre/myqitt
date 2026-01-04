@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { Home, Clock, FileText, LogOut, BookOpen } from 'lucide-react'
+import { Home, Clock, FileText, LogOut, Notebook } from 'lucide-react'
 import { useAuthStore } from '@/lib/store/authStore'
 import { useRouter, usePathname } from 'next/navigation'
 
@@ -60,7 +60,7 @@ export function Sidebar() {
                   ? 'bg-blue-100 text-blue-600'
                   : 'text-gray-600 hover:bg-gray-100'
               }`}>
-                <BookOpen size={20} />
+                <Notebook size={20} />
                 <span>Courses</span>
               </button>
             </Link>
@@ -71,7 +71,7 @@ export function Sidebar() {
                   : 'text-gray-600 hover:bg-gray-100'
               }`}>
                 <FileText size={20} />
-                <span>Tasks</span>
+                <span>Assignments</span>
               </button>
             </Link>
           </nav>
