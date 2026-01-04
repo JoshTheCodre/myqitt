@@ -123,12 +123,21 @@ const dummyCatchUpItems: CatchUpDisplayItem[] = [
 
 function CatchUpSection() {
   const [loading, setLoading] = useState(true)
+  const [showAllItems, setShowAllItems] = useState(false)
 
   useEffect(() => {
     // Simulate loading
     const timer = setTimeout(() => setLoading(false), 500)
     return () => clearTimeout(timer)
   }, [])
+
+  const handleMoreClick = () => {
+    setShowAllItems(true)
+  }
+
+  const handleCloseModal = () => {
+    setShowAllItems(false)
+  }
 
   const getItemIcon = (type: CatchUpDisplayItem['type']) => {
     switch (type) {
@@ -199,38 +208,95 @@ function CatchUpSection() {
   }
 
   return (
-    <section>
-      <div className="rounded-xl p-4 border border-gray-200 bg-white relative">
-        <h2 className="text-sm font-bold text-gray-900 mb-3">Catch Up</h2>
-        <div className="space-y-2">
-          {dummyCatchUpItems.slice(0, 3).map((item) => (
-            <div 
-              key={item.id} 
-              className="flex items-start gap-2.5 p-2 -mx-2 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors group"
-            >
-              {getItemIcon(item.type)}
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-gray-900 group-hover:text-emerald-600 transition-colors truncate leading-tight">
-                  {item.title}
-                </p>
-                <p className="text-[10px] text-gray-500 truncate leading-tight mt-0.5">
-                  {item.subtitle}
-                </p>
+    <>
+      <section>
+        <div className="rounded-xl p-4 border border-gray-200 bg-white relative">
+          <h2 className="text-sm font-bold text-gray-900 mb-3">Catch Up</h2>
+          <div className="space-y-2">
+            {dummyCatchUpItems.slice(0, 3).map((item) => (
+              <div 
+                key={item.id} 
+                className="flex items-start gap-2.5 p-2 -mx-2 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors group"
+              >
+                {getItemIcon(item.type)}
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-gray-900 group-hover:text-emerald-600 transition-colors truncate leading-tight">
+                    {item.title}
+                  </p>
+                  <p className="text-[10px] text-gray-500 truncate leading-tight mt-0.5">
+                    {item.subtitle}
+                  </p>
+                </div>
+                {item.time && (
+                  <span className="text-[10px] text-gray-400 flex-shrink-0 mt-0.5">{item.time}</span>
+                )}
               </div>
-              {item.time && (
-                <span className="text-[10px] text-gray-400 flex-shrink-0 mt-0.5">{item.time}</span>
-              )}
-            </div>
-          ))}
+            ))}
+          </div>
+          <button 
+            onClick={handleMoreClick}
+            className="absolute left-1/2 transform -translate-x-1/2 -bottom-2.5 flex items-center gap-1 px-2 py-1 text-[11px] font-semibold text-blue-600 border border-blue-300 rounded-lg bg-white hover:bg-blue-50 transition-colors"
+          >
+            More
+            <span className="inline-flex items-center justify-center w-4 h-4 bg-blue-600 text-white text-[9px] font-bold rounded-full">
+              {dummyCatchUpItems.length - 3}
+            </span>
+          </button>
         </div>
-        <button className="absolute left-1/2 transform -translate-x-1/2 -bottom-2.5 flex items-center gap-1 px-2 py-1 text-[11px] font-semibold text-blue-600 border border-blue-300 rounded-lg bg-white hover:bg-blue-50 transition-colors">
-          More
-          <span className="inline-flex items-center justify-center w-4 h-4 bg-blue-600 text-white text-[9px] font-bold rounded-full">
-            {dummyCatchUpItems.length - 3}
-          </span>
-        </button>
-      </div>
-    </section>
+      </section>
+
+      {/* Modal/Bottom Sheet */}
+      {showAllItems && (
+        <div className="fixed inset-0 z-50">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/50 lg:bg-black/30"
+            onClick={handleCloseModal}
+          ></div>
+          
+          {/* Modal Content - Bottom sheet on mobile, center modal on desktop */}
+          <div className="absolute bottom-0 left-0 right-0 lg:top-1/2 lg:left-1/2 lg:transform lg:-translate-x-1/2 lg:-translate-y-1/2 lg:bottom-auto lg:left-auto lg:right-auto lg:w-96 bg-white lg:rounded-xl shadow-xl">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">All Catch Up Items</h3>
+              <button 
+                onClick={handleCloseModal}
+                className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            {/* Content */}
+            <div className="p-4 max-h-96 lg:max-h-80 overflow-y-auto">
+              <div className="space-y-3">
+                {dummyCatchUpItems.map((item) => (
+                  <div 
+                    key={item.id} 
+                    className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors group"
+                  >
+                    {getItemIcon(item.type)}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 group-hover:text-emerald-600 transition-colors">
+                        {item.title}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {item.subtitle}
+                      </p>
+                    </div>
+                    {item.time && (
+                      <span className="text-xs text-gray-400 flex-shrink-0">{item.time}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   )
 }
 
