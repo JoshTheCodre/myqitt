@@ -200,10 +200,10 @@ function CatchUpSection() {
 
   return (
     <section>
-      <div className="rounded-xl p-4 border border-gray-200 bg-white">
+      <div className="rounded-xl p-4 border border-gray-200 bg-white relative">
         <h2 className="text-sm font-bold text-gray-900 mb-3">Catch Up</h2>
         <div className="space-y-2">
-          {dummyCatchUpItems.map((item) => (
+          {dummyCatchUpItems.slice(0, 3).map((item) => (
             <div 
               key={item.id} 
               className="flex items-start gap-2.5 p-2 -mx-2 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors group"
@@ -223,6 +223,12 @@ function CatchUpSection() {
             </div>
           ))}
         </div>
+        <button className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-1 px-2 py-1 text-[11px] font-semibold text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors">
+          More
+          <span className="inline-flex items-center justify-center w-4 h-4 bg-blue-600 text-white text-[9px] font-bold rounded-full">
+            {dummyCatchUpItems.length - 3}
+          </span>
+        </button>
       </div>
     </section>
   )
