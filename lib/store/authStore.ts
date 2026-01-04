@@ -14,7 +14,7 @@ export interface UserProfile {
   semester?: string
   bio?: string
   avatar_url?: string
-  role?: 'user' | 'course_rep'
+  roles?: string[]
   is_course_rep?: boolean
   invite_code?: string
   course_rep_id?: string
@@ -171,7 +171,7 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
       if (authError) throw authError
       if (!authData.user) throw new Error('User creation failed')
 
-      // Create course rep profile with role
+      // Create course rep profile with roles array
       const { data: profile, error: profileError } = await supabase
         .from('users')
         .insert({
@@ -183,7 +183,7 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
           department: userData.department,
           level: userData.level,
           semester: userData.semester,
-          role: 'course_rep',
+          roles: ['course_rep', 'student'],
         })
         .select()
         .single()
@@ -212,7 +212,7 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
         .from('users')
         .select('id, school, department, level, semester')
         .eq('invite_code', inviteCode)
-        .eq('role', 'course_rep')
+        .contains('roles', ['course_rep'])
         .single()
 
       if (courseRepError || !courseRepData) {
@@ -242,7 +242,7 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
           department: courseRepData.department,
           level: courseRepData.level,
           semester: courseRepData.semester,
-          role: 'user',
+          roles: ['student'],
           course_rep_id: courseRepData.id,
         })
         .select()
@@ -279,7 +279,7 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
           departments!users_department_fkey(name)
         `)
         .eq('invite_code', inviteCode)
-        .eq('role', 'course_rep')
+        .contains('roles', ['course_rep'])
         .single()
 
       if (error || !data) return null

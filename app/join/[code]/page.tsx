@@ -46,7 +46,7 @@ export default function JoinPage({ params }: { params: Promise<{ code: string }>
                         departments!inner(name)
                     `)
                     .eq('invite_code', inviteCode)
-                    .eq('role', 'course_rep')
+                    .contains('roles', ['course_rep'])
                     .single()
 
                 if (error || !repData) {

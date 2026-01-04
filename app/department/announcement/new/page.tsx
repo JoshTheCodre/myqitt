@@ -52,7 +52,7 @@ export default function NewAnnouncementPage() {
   }
 
   // Only course reps can access this page
-  if (!profile?.is_course_rep && profile?.role !== 'course_rep') {
+  if (!profile?.is_course_rep && !profile?.roles?.includes('course_rep')) {
     return (
       <AppShell>
         <div className="h-full flex items-center justify-center p-4">

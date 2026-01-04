@@ -2,13 +2,15 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { HeadsetIcon, ArrowRight, Clock, Plus, AlertCircle, MapPin, Megaphone, ChevronRight } from 'lucide-react'
+import { HeadsetIcon, ArrowRight, Clock, Plus, AlertCircle, MapPin, Megaphone, ChevronRight, Users, FileText } from 'lucide-react'
 import { useAuthStore, UserProfile } from '@/lib/store/authStore'
 import { supabase } from '@/lib/supabase/client'
 import { AppShell } from '@/components/layout/app-shell'
 import { ClassMenu } from '@/components/class-menu'
 import { UpdateTodaysClassModal } from '@/components/update-todays-class-modal'
-import { TodaysClassService, type MergedClass } from '@/lib/services'
+import { ConnectionModal } from '@/components/connection-modal'
+import { TodaysClassService, type MergedClass, ClassmateService, type Classmate } from '@/lib/services'
+import { ConnectionService } from '@/lib/services/connectionService'
 
 // ============ HELPER FUNCTIONS ============
 const getInitials = (name?: string) => {
@@ -225,6 +227,202 @@ function CatchUpSection() {
         </div>
       </div>
     </section>
+  )
+}
+
+// ============ CLASSMATES SECTION ============
+function ClassmatesSection({ userId, profile }: { userId?: string, profile: UserProfile | null }) {
+  const [classmates, setClassmates] = useState<Classmate[]>([])
+  const [loading, setLoading] = useState(true)
+  const [connectingId, setConnectingId] = useState<string | null>(null)
+  const [selectedClassmate, setSelectedClassmate] = useState<Classmate | null>(null)
+  const [showModal, setShowModal] = useState(false)
+
+  useEffect(() => {
+    if (userId && profile?.school && profile?.department && profile?.level) {
+      fetchClassmates()
+    } else {
+      setLoading(false)
+    }
+  }, [userId, profile?.school, profile?.department, profile?.level])
+
+  const fetchClassmates = async () => {
+    if (!userId || !profile?.school || !profile?.department || !profile?.level) return
+
+    try {
+      setLoading(true)
+      const data = await ClassmateService.getClassmates(
+        userId,
+        profile.school,
+        profile.department,
+        profile.level
+      )
+      setClassmates(data)
+    } catch (error) {
+      console.error('Error fetching classmates:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleConnect = async (classmate: Classmate) => {
+    if (!userId) return
+    
+    if (classmate.isConnected) {
+      setConnectingId(classmate.id)
+      try {
+        await ConnectionService.disconnectUser(userId, classmate.id)
+        setClassmates(prev => prev.map(c => 
+          c.id === classmate.id ? { ...c, isConnected: false } : c
+        ))
+      } catch (error) {
+        console.error('Error disconnecting:', error)
+      } finally {
+        setConnectingId(null)
+      }
+    } else {
+      setSelectedClassmate(classmate)
+      setShowModal(true)
+    }
+  }
+
+  const handleConnectionComplete = async (type: 'timetable' | 'assignments' | 'both') => {
+    if (!userId || !selectedClassmate) return
+    
+    setConnectingId(selectedClassmate.id)
+    try {
+      await ConnectionService.connectToUser(userId, selectedClassmate.id, type)
+      setClassmates(prev => prev.map(c => 
+        c.id === selectedClassmate.id ? { ...c, isConnected: true } : c
+      ))
+    } catch (error) {
+      console.error('Error connecting:', error)
+    } finally {
+      setConnectingId(null)
+      setShowModal(false)
+      setSelectedClassmate(null)
+    }
+  }
+
+  if (loading) {
+    return (
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-gray-900">Classmates</h2>
+          <Link href="/classmates" className="text-sm text-blue-600 font-medium hover:text-blue-700">
+            See All
+          </Link>
+        </div>
+        <div className="flex gap-3 overflow-x-auto pb-2 -mx-3 px-3 scrollbar-hide">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="flex-shrink-0 w-32 bg-white rounded-xl p-3 border border-gray-200 animate-pulse">
+              <div className="w-12 h-12 bg-gray-200 rounded-full mx-auto mb-2"></div>
+              <div className="h-3 bg-gray-200 rounded w-3/4 mx-auto mb-1"></div>
+              <div className="h-6 bg-gray-100 rounded-full w-16 mx-auto mt-2"></div>
+            </div>
+          ))}
+        </div>
+      </section>
+    )
+  }
+
+  if (classmates.length === 0) {
+    return (
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-gray-900">Classmates</h2>
+        </div>
+        <div className="bg-white rounded-xl p-6 border border-gray-200 text-center">
+          <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+            <Users className="w-6 h-6 text-gray-400" />
+          </div>
+          <p className="text-sm text-gray-600">No classmates found yet</p>
+        </div>
+      </section>
+    )
+  }
+
+  return (
+    <>
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-gray-900">Classmates</h2>
+          <Link href="/classmates" className="text-sm text-blue-600 font-medium hover:text-blue-700">
+            See All
+          </Link>
+        </div>
+        <div className="flex gap-3 overflow-x-auto pb-2 -mx-3 px-3 scrollbar-hide">
+          {classmates.slice(0, 6).map(classmate => (
+            <div key={classmate.id} className="flex-shrink-0 w-32 bg-white rounded-xl p-3 border border-gray-200 hover:border-blue-200 hover:shadow-md transition-all">
+              {/* Avatar */}
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center mx-auto text-white font-bold text-lg">
+                {classmate.name.charAt(0).toUpperCase()}
+              </div>
+              
+              {/* Name */}
+              <p className="text-xs font-medium text-gray-900 text-center mt-2 truncate">
+                {classmate.name.split(' ')[0]}
+              </p>
+              
+              {/* Connection indicators */}
+              {classmate.isConnected && (
+                <div className="flex items-center justify-center gap-1 mt-1">
+                  {classmate.hasTimetable && (
+                    <span className="text-emerald-600">
+                      <Clock className="w-3 h-3" />
+                    </span>
+                  )}
+                  {classmate.hasAssignments && (
+                    <span className="text-blue-600">
+                      <FileText className="w-3 h-3" />
+                    </span>
+                  )}
+                </div>
+              )}
+              
+              {/* Connect Button */}
+              <button
+                onClick={() => handleConnect(classmate)}
+                disabled={connectingId === classmate.id}
+                className={`w-full mt-2 px-2 py-1.5 rounded-full text-xs font-medium transition-all ${
+                  connectingId === classmate.id
+                    ? 'bg-gray-100 text-gray-400'
+                    : classmate.isConnected
+                    ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                }`}
+              >
+                {connectingId === classmate.id 
+                  ? '...' 
+                  : classmate.isConnected 
+                  ? 'Connected' 
+                  : 'Connect'}
+              </button>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Connection Modal */}
+      {selectedClassmate && userId && (
+        <ConnectionModal
+          isOpen={showModal}
+          onClose={() => {
+            setShowModal(false)
+            setSelectedClassmate(null)
+          }}
+          classmate={{
+            id: selectedClassmate.id,
+            name: selectedClassmate.name,
+            bio: selectedClassmate.bio,
+            hasTimetable: selectedClassmate.hasTimetable,
+            hasAssignments: selectedClassmate.hasAssignments
+          }}
+          currentUserId={userId}
+          onConnect={handleConnectionComplete}
+        />
+      )}
+    </>
   )
 }
 
@@ -557,6 +755,11 @@ export default function Page() {
             <CatchUpSection />
           </div>
           
+          {/* Classmates Section */}
+          <div className="mt-5 md:mt-8">
+            <ClassmatesSection userId={user?.id} profile={profile} />
+          </div>
+          
           {/* Department Button - WhatsApp Style */}
           <div className="mt-5 md:mt-8">
             <Link href="/department">
@@ -573,7 +776,7 @@ export default function Page() {
                       <h3 className="font-semibold text-gray-900">Department</h3>
                       <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-gray-600 group-hover:translate-x-0.5 transition-all" />
                     </div>
-                    <p className="text-sm text-gray-500 mt-0.5">Announcements, Courses & Classmates</p>
+                    <p className="text-sm text-gray-500 mt-0.5">Announcements & Updates</p>
                   </div>
                 </div>
               </div>
