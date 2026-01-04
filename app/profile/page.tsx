@@ -119,7 +119,7 @@ export default function ProfilePage() {
                         </div>
                     )}
 
-                    {/* Course Rep Invite Link Section */
+                    {/* Course Rep Invite Link Section */}
                     {profile?.is_course_rep && profile?.invite_code && (
                         <div className="mb-6">
                             <h2 className="text-lg font-bold text-gray-900 px-1 mb-3 flex items-center gap-2">
