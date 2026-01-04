@@ -305,19 +305,19 @@ function ClassmatesSection() {
   return (
     <Link href="/classmates">
       <div className="bg-white rounded-xl border border-gray-200 hover:bg-gray-50 transition-all cursor-pointer group">
-        <div className="flex items-center p-3">
+        <div className="flex items-center p-2.5">
           {/* Avatar/Icon */}
-          <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-xl flex items-center justify-center flex-shrink-0">
-            <UsersRound className="w-6 h-6 text-white" />
+          <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center flex-shrink-0">
+            <UsersRound className="w-5 h-5 text-white" />
           </div>
           
           {/* Content */}
-          <div className="flex-1 min-w-0 ml-4">
+          <div className="flex-1 min-w-0 ml-3">
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-gray-900">Classmates</h3>
-              <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-gray-600 group-hover:translate-x-0.5 transition-all" />
+              <h3 className="text-sm font-semibold text-gray-900">Classmates</h3>
+              <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-gray-600 group-hover:translate-x-0.5 transition-all" />
             </div>
-            <p className="text-sm text-gray-500 mt-0.5">Connect with your class</p>
+            <p className="text-xs text-gray-500 mt-0.5">Connect with your class</p>
           </div>
         </div>
       </div>
@@ -658,19 +658,19 @@ export default function Page() {
           <div className="mt-3 md:mt-4">
             <Link href="/department">
               <div className="bg-white rounded-xl border border-gray-200 hover:bg-gray-50 transition-all cursor-pointer group">
-                <div className="flex items-center p-3">
+                <div className="flex items-center p-2.5">
                   {/* Avatar/Icon */}
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Megaphone className="w-6 h-6 text-white" />
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Megaphone className="w-5 h-5 text-white" />
                   </div>
                   
                   {/* Content */}
-                  <div className="flex-1 min-w-0 ml-4">
+                  <div className="flex-1 min-w-0 ml-3">
                     <div className="flex items-center justify-between">
-                      <h3 className="font-semibold text-gray-900">Department</h3>
-                      <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-gray-600 group-hover:translate-x-0.5 transition-all" />
+                      <h3 className="text-sm font-semibold text-gray-900">Department</h3>
+                      <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-gray-600 group-hover:translate-x-0.5 transition-all" />
                     </div>
-                    <p className="text-sm text-gray-500 mt-0.5">Announcements & Updates</p>
+                    <p className="text-xs text-gray-500 mt-0.5">Announcements & Updates</p>
                   </div>
                 </div>
               </div>
