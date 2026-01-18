@@ -7,7 +7,7 @@ import { ArrowLeft, Clock, MapPin, BookOpen, Save, Plus, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useCourseStore } from '@/lib/store/courseStore'
 import { useAuthStore } from '@/lib/store/authStore'
-import { supabase } from '@/lib/supabase/client'
+import { TimetableService } from '@/lib/services'
 // import { NotificationService } from '@/lib/services/notificationService' // DISABLED: Service worker related
 
 interface ClassEntry {
@@ -107,22 +107,10 @@ export default function AddTimetablePage() {
     if (!user) return
 
     try {
-      const { data: timetableRecord, error } = await supabase
-        .from('timetable')
-        .select('timetable_data')
-        .eq('user_id', user.id)
-        .single()
-
-      if (error) {
-        if (error.code !== 'PGRST116') {
-          console.error('Error fetching timetable:', error)
-        }
-        return
-      }
-
-      if (timetableRecord && timetableRecord.timetable_data) {
+      const data = await TimetableService.getTimetable(user.id)
+      
+      if (data.hasTimetable) {
         setIsUpdateMode(true)
-        const jsonData = timetableRecord.timetable_data as Record<string, Array<{ time: string; course: string; venue: string }>>
         
         const groupedClasses: DayClasses = {
           Monday: [],
@@ -132,8 +120,8 @@ export default function AddTimetablePage() {
           Friday: [],
         }
 
-        // Parse the JSON data back to form format
-        Object.entries(jsonData).forEach(([day, classes]) => {
+        // Parse the timetable data back to form format
+        Object.entries(data.timetable).forEach(([day, classes]) => {
           if (day in groupedClasses) {
             classes.forEach((classItem, index) => {
               // Parse time string like "8am-10am" back to "08:00" - "10:00"
@@ -155,23 +143,15 @@ export default function AddTimetablePage() {
                 id: `${day}-${index}`,
                 startTime: parseTimeToInput(startStr),
                 endTime: parseTimeToInput(endStr),
-                title: classItem.course.replace(/\s+/g, ''), // Remove spaces to match course codes (e.g., "CSC 486.1" -> "CSC486.1")
-                location: classItem.venue
-              })
-              
-              console.log(`Loaded class for ${day}:`, {
-                course: classItem.course,
-                normalizedCourse: classItem.course.replace(/\s+/g, ''),
-                venue: classItem.venue,
-                startTime: parseTimeToInput(startStr),
-                endTime: parseTimeToInput(endStr)
+                title: classItem.title.replace(/\s+/g, ''),
+                location: classItem.location
               })
             })
           }
         })
 
         // Add empty entry for days with no classes
-        Object.keys(groupedClasses).forEach((day, index) => {
+        Object.keys(groupedClasses).forEach((day) => {
           if (groupedClasses[day].length === 0) {
             groupedClasses[day] = [{ id: `${day}-0`, startTime: '', endTime: '', title: '', location: '' }]
           }
@@ -182,10 +162,10 @@ export default function AddTimetablePage() {
         
         // Extract unique venues from timetable and add to venues list
         const extractedVenues = new Set<string>()
-        Object.values(jsonData).forEach(classes => {
+        Object.values(data.timetable).forEach(classes => {
           classes.forEach(cls => {
-            if (cls.venue) {
-              extractedVenues.add(cls.venue)
+            if (cls.location) {
+              extractedVenues.add(cls.location)
             }
           })
         })
@@ -197,7 +177,6 @@ export default function AddTimetablePage() {
             localStorage.setItem('timetable_venues', JSON.stringify(combined))
             return combined
           })
-          console.log('✅ Extracted venues from timetable:', newVenues)
         }
       }
     } catch (error) {
@@ -297,7 +276,7 @@ export default function AddTimetablePage() {
       }
 
       // Build timetable data in JSON format
-      const timetableData: Record<string, Array<{ time: string; course: string; venue: string }>> = {
+      const timetableData: Record<string, Array<{ time: string; course_code: string; venue: string }>> = {
         Monday: [],
         Tuesday: [],
         Wednesday: [],
@@ -309,78 +288,19 @@ export default function AddTimetablePage() {
         if (c.day in timetableData) {
           timetableData[c.day].push({
             time: `${formatTime(c.startTime)}-${formatTime(c.endTime)}`,
-            course: c.title,
+            course_code: c.title,
             venue: c.location
           })
         }
       })
 
-      // Check if user already has a timetable
-      const { data: existing } = await supabase
-        .from('timetable')
-        .select('id')
-        .eq('user_id', user.id)
-        .single()
+      // Save timetable using service (handles course rep check and department matching)
+      await TimetableService.saveTimetable(user.id, timetableData)
 
-      let error
-
-      if (existing) {
-        // Update existing timetable
-        const result = await supabase
-          .from('timetable')
-          .update({ timetable_data: timetableData })
-          .eq('user_id', user.id)
-        error = result.error
-      } else {
-        // Insert new timetable
-        const result = await supabase
-          .from('timetable')
-          .insert({
-            user_id: user.id,
-            timetable_data: timetableData
-          })
-        error = result.error
-      }
-
-      if (error) {
-        console.error('Error saving timetable:', error)
-        toast.error('Failed to save timetable')
-        return
-      }
-
-      toast.success(`${filledClasses.length} class(es) ${existing ? 'updated' : 'added'} successfully!`)
-      
-      // Send push notifications to connected users (only if updating)
-      // DISABLED: Service worker related notifications
-      /*
-      if (existing) {
-        try {
-          await NotificationService.notifyConnectedUsers(
-            user.id,
-            'timetable',
-            {
-              type: 'timetable_updated',
-              title: 'Timetable Updated',
-              body: `${profile?.name || 'A classmate'} has updated their timetable with ${filledClasses.length} class(es)`,
-              data: {
-                userId: user.id,
-                userName: profile?.name || 'Unknown',
-                classCount: filledClasses.length.toString()
-              }
-            }
-          )
-          console.log('✅ Sent timetable update notifications')
-        } catch (notifError) {
-          console.error('Failed to send notifications:', notifError)
-          // Don't show error to user - notifications are best-effort
-        }
-      }
-      */
-      
       router.push('/timetable')
     } catch (error) {
       console.error('Error saving timetable:', error)
-      toast.error('Failed to save timetable')
+      // Error toast is handled by service
     }
   }
 

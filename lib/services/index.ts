@@ -3,40 +3,39 @@ export { AssignmentService } from './assignmentService'
 export { TimetableService } from './timetableService'
 export { ClassmateService } from './classmateService'
 export { ProfileService } from './profileService'
-export { ConnectionService } from './connectionService'
 export { TodaysClassService } from './todaysClassService'
 export { CatchUpService } from './catchUpService'
+export { CourseService } from './courseService'
 // export { NotificationService } from './notificationService' // DISABLED: Service worker related
 
 // Re-export types
 export type {
   Assignment,
   AssignmentDate,
+  GroupedAssignment,
   CreateAssignmentData
 } from './assignmentService'
 
 export type {
   TimetableEntry,
-  CreateTimetableData,
-  DaySchedule
+  Timetable,
+  CreateTimetableEntryData,
+  DaySchedule,
+  UserClassGroupInfo
 } from './timetableService'
 
 export type {
-  Classmate,
-  Connection
+  Classmate
 } from './classmateService'
 
 export type {
   School,
+  Faculty,
   Department,
-  UserProfile
+  Level,
+  Session,
+  Semester
 } from './profileService'
-
-export type {
-  ConnectionType,
-  ConnectionDetails,
-  ExistingConnections
-} from './connectionService'
 
 export type {
   TodaysClass,
@@ -46,6 +45,12 @@ export type {
 export type {
   CatchUpItem
 } from './catchUpService'
+
+export type {
+  Course,
+  CourseItem,
+  GroupedCourses
+} from './courseService'
 
 // export type {
 //   NotificationPayload

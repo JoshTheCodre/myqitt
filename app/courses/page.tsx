@@ -9,12 +9,18 @@ import { BookOpen, Loader2 } from 'lucide-react'
 
 // ============ HEADER COMPONENT ============
 function Header({ profile }: { profile: UserProfile | null }) {
+    // Get level and semester from new schema
+    const classGroup = profile?.class_group as { level?: { level_number: number } } | undefined
+    const currentSemester = profile?.current_semester as { name: string } | undefined
+    const levelNumber = classGroup?.level?.level_number
+    const semesterName = currentSemester?.name
+
     return (
         <div>
             <h1 className="text-3xl lg:text-4xl font-bold tracking-tight text-gray-900">My Courses</h1>
             <p className="text-sm text-gray-500 mt-2">
-                {profile?.level && profile?.semester && (
-                    <>{profile.level}00 Level • {profile.semester === 'first' ? 'First' : 'Second'} Semester</>
+                {levelNumber && semesterName && (
+                    <>{levelNumber}00 Level • {semesterName}</>
                 )}
             </p>
         </div>
@@ -22,7 +28,7 @@ function Header({ profile }: { profile: UserProfile | null }) {
 }
 
 export default function CoursesPage() {
-    const { user, profile } = useAuthStore()
+    const { user, profile, initialized } = useAuthStore()
     const { userCourses, loading, error, fetchUserCourses } = useCourseStore()
     const { hasUserCourses } = useCourseSelectors()
 
@@ -31,7 +37,9 @@ export default function CoursesPage() {
         let mounted = true
         
         const loadData = async () => {
-            if (user?.id && mounted) {
+            if (!initialized) return
+            
+            if (user?.id && profile && mounted) {
                 await fetchUserCourses(user.id)
             }
         }
@@ -42,7 +50,7 @@ export default function CoursesPage() {
             mounted = false
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user?.id])
+    }, [user?.id, profile?.id, initialized])
 
     // ============ MAIN RENDER ============
     return (

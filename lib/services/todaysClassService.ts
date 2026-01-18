@@ -1,25 +1,34 @@
 import { supabase } from '@/lib/supabase/client'
+import { TimetableService } from './timetableService'
 
 export interface TodaysClass {
   id: string
-  user_id: string
   date: string
-  timetable_id?: string
-  course_code: string
-  course_title: string
+  class_group_id: string
+  semester_id: string
+  timetable_entry_id?: string
+  course_id: string
   start_time: string
   end_time: string
   location: string
   is_cancelled: boolean
   notes?: string
-  created_at: string
-  updated_at: string
+  created_by: string
+  created_at?: string
+  updated_at?: string
+  // Joined data
+  course?: {
+    id: string
+    code: string
+    title: string
+  }
 }
 
 export interface MergedClass {
   id: string
-  timetable_id?: string
+  timetable_entry_id?: string
   course_code: string
+  course_title?: string
   start_time: string
   end_time: string
   location: string
@@ -37,121 +46,116 @@ export interface MergedClass {
   original_end_time?: string
 }
 
-interface TimetableClass {
-  time: string
-  venue: string
-  course: string
-}
-
 export class TodaysClassService {
-  // Parse time range like "9am-11am" or "9:00am-11:00am"
-  private static parseTimeRange(timeStr: string): { start: string; end: string } {
-    const [start, end] = timeStr.split('-').map(t => t.trim())
+  // Format time from HH:MM:SS to display format
+  private static formatTime(timeStr: string): string {
+    if (!timeStr) return ''
+    const [hours, minutes] = timeStr.split(':')
+    let hour = parseInt(hours)
+    const period = hour >= 12 ? 'pm' : 'am'
+    if (hour > 12) hour -= 12
+    if (hour === 0) hour = 12
     
-    // Normalize time format (e.g., "9am" -> "9:00am", "11am" -> "11:00am")
-    const normalizeTime = (time: string): string => {
-      // If already has colon, return as is
-      if (time.includes(':')) return time
+    if (minutes && minutes !== '00') {
+      return `${hour}:${minutes}${period}`
+    }
+    return `${hour}${period}`
+  }
+
+  // Parse time input to HH:MM:SS format
+  private static parseTimeInput(timeStr: string): string {
+    if (/^\d{2}:\d{2}(:\d{2})?$/.test(timeStr)) {
+      return timeStr.length === 5 ? `${timeStr}:00` : timeStr
+    }
+    
+    const match = timeStr.match(/(\d+)(?::(\d+))?\s*(am|pm)/i)
+    if (match) {
+      let hour = parseInt(match[1])
+      const minutes = match[2] || '00'
+      const period = match[3].toLowerCase()
       
-      // Extract hour and am/pm
-      const match = time.match(/(\d+)(am|pm)/i)
-      if (match) {
-        const hour = match[1]
-        const period = match[2].toLowerCase()
-        return `${hour}:00${period}`
-      }
-      return time
+      if (period === 'pm' && hour !== 12) hour += 12
+      if (period === 'am' && hour === 12) hour = 0
+      
+      return `${hour.toString().padStart(2, '0')}:${minutes.padStart(2, '0')}:00`
     }
     
-    return { 
-      start: normalizeTime(start), 
-      end: normalizeTime(end) 
-    }
+    return timeStr
   }
 
-  // Generate consistent ID for timetable entries (used as timetable_id)
-  private static generateTimetableId(userId: string, day: string, index: number): string {
-    return `${userId}-${day}-${index}`
-  }
-
-  // Get today's classes for a user (with overrides applied)
+  // Get today's classes with any overrides applied
   static async getTodaysClasses(userId: string, date?: string): Promise<MergedClass[]> {
     try {
       const targetDate = date || new Date().toISOString().split('T')[0]
       const dayName = new Date(targetDate).toLocaleDateString('en-US', { weekday: 'long' })
 
-      // Check for connections first
-      const { data: connections } = await supabase
-        .from('connections')
-        .select('following_id')
-        .eq('follower_id', userId)
-
-      const hasConnections = connections && connections.length > 0
-
-      // If connected to someone, show their classes instead
-      if (hasConnections) {
-        const connectedUserId = connections[0].following_id
-        return this.getConnectedUserTodaysClasses(connectedUserId, date)
+      // Get user's class group info
+      const userInfo = await TimetableService.getUserClassGroupInfo(userId)
+      if (!userInfo) {
+        return []
       }
 
-      // Otherwise, show own classes
-      // 1. Get timetable JSONB data
-      const { data: timetableRow, error: timetableError } = await supabase
-        .from('timetable')
-        .select('timetable_data')
-        .eq('user_id', userId)
-        .maybeSingle()
+      // 1. Get timetable entries for this day
+      const { timetable } = await TimetableService.getTimetable(userId)
+      const dayClasses = timetable[dayName] || []
 
-      if (timetableError) {
-        console.error('Timetable error:', timetableError)
-      }
-
-      // Extract classes for the specific day from JSONB
-      const dayClasses: TimetableClass[] = timetableRow?.timetable_data?.[dayName] || []
-
-      // 2. Get today's class overrides
+      // 2. Get today's class overrides for this class group
       const { data: todaysData, error: todaysError } = await supabase
         .from('todays_classes')
-        .select('*')
-        .eq('user_id', userId)
+        .select(`
+          *,
+          course:courses!todays_classes_course_id_fkey(
+            id,
+            code,
+            title
+          )
+        `)
+        .eq('class_group_id', userInfo.class_group_id)
         .eq('date', targetDate)
 
       if (todaysError) {
         console.error('Todays classes error:', todaysError)
       }
 
-      // Create a map of updates by timetable_id
+      // Create a map of updates by timetable_entry_id
       const updatesMap = new Map<string, TodaysClass>()
       const standaloneUpdates: TodaysClass[] = []
 
       todaysData?.forEach(update => {
-        if (update.timetable_id) {
-          updatesMap.set(update.timetable_id, update)
+        if (update.timetable_entry_id) {
+          updatesMap.set(update.timetable_entry_id, update)
         } else {
           standaloneUpdates.push(update)
         }
       })
 
-      // 3. Convert timetable classes to MergedClass format and merge with updates
-      const mergedClasses: MergedClass[] = dayClasses.map((cls: TimetableClass, index: number) => {
-        const timetableId = this.generateTimetableId(userId, dayName, index)
-        const { start, end } = this.parseTimeRange(cls.time)
-        
-        // Find any update for this class
-        const update = updatesMap.get(timetableId)
+      // 3. Merge timetable entries with any updates
+      const mergedClasses: MergedClass[] = dayClasses.map((cls, index) => {
+        const entryId = cls.id || `${dayName}-${index}`
+        const update = cls.id ? updatesMap.get(cls.id) : undefined
+
+        // Parse original times
+        const timeParts = cls.time.split('-')
+        const originalStartTime = timeParts[0] || ''
+        const originalEndTime = timeParts[1] || ''
 
         if (update) {
-          // Check what changed
-          const timeChanged = update.start_time !== start || update.end_time !== end
-          const locationChanged = update.location !== cls.venue
-          const courseChanged = update.course_code !== cls.course
+          const updateStartTime = this.formatTime(update.start_time)
+          const updateEndTime = this.formatTime(update.end_time)
+          
+          const timeChanged = 
+            updateStartTime !== originalStartTime || 
+            updateEndTime !== originalEndTime
+          const locationChanged = update.location !== cls.location
+          const courseChanged = (update.course as any)?.code !== cls.title
 
           return {
-            id: timetableId,
-            timetable_id: timetableId,
-            course_code: update.course_code,
-            start_time: update.start_time,
-            end_time: update.end_time,
+            id: entryId,
+            timetable_entry_id: cls.id,
+            course_code: (update.course as any)?.code || cls.title,
+            course_title: (update.course as any)?.title,
+            start_time: updateStartTime,
+            end_time: updateEndTime,
             location: update.location,
             day: dayName,
             is_cancelled: update.is_cancelled,
@@ -161,32 +165,32 @@ export class TodaysClassService {
             time_changed: timeChanged,
             location_changed: locationChanged,
             course_changed: courseChanged,
-            original_location: cls.venue,
-            original_start_time: start,
-            original_end_time: end
+            original_location: locationChanged ? cls.location : undefined,
+            original_start_time: timeChanged ? originalStartTime : undefined,
+            original_end_time: timeChanged ? originalEndTime : undefined
           }
         }
 
-        // No update, return timetable class
         return {
-          id: timetableId,
-          timetable_id: timetableId,
-          course_code: cls.course,
-          start_time: start,
-          end_time: end,
-          location: cls.venue,
+          id: entryId,
+          timetable_entry_id: cls.id,
+          course_code: cls.title,
+          start_time: originalStartTime,
+          end_time: originalEndTime,
+          location: cls.location,
           day: dayName,
           has_update: false
         }
       })
 
-      // Add standalone updates (classes not in regular timetable)
+      // 4. Add any standalone updates (new classes not in timetable)
       standaloneUpdates.forEach(update => {
         mergedClasses.push({
           id: update.id,
-          course_code: update.course_code,
-          start_time: update.start_time,
-          end_time: update.end_time,
+          course_code: (update.course as any)?.code || 'TBD',
+          course_title: (update.course as any)?.title,
+          start_time: this.formatTime(update.start_time),
+          end_time: this.formatTime(update.end_time),
           location: update.location,
           day: dayName,
           is_cancelled: update.is_cancelled,
@@ -201,161 +205,183 @@ export class TodaysClassService {
 
       return mergedClasses
     } catch (error: any) {
-      console.error('Error getting today\'s classes:', error)
+      console.error('Failed to fetch today\'s classes:', error)
       return []
     }
   }
 
-  // Get today's classes for a connected user
-  static async getConnectedUserTodaysClasses(connectedUserId: string, date?: string): Promise<MergedClass[]> {
+  // Create or update today's class override (course rep only)
+  static async createTodaysClassUpdate(
+    userId: string,
+    data: {
+      date: string
+      timetable_entry_id?: string
+      course_id: string
+      start_time: string
+      end_time: string
+      location: string
+      is_cancelled?: boolean
+      notes?: string
+    }
+  ): Promise<void> {
     try {
-      const targetDate = date || new Date().toISOString().split('T')[0]
-      const dayName = new Date(targetDate).toLocaleDateString('en-US', { weekday: 'long' })
-
-      // Get connected user's timetable JSONB data
-      const { data: timetableRow, error: timetableError } = await supabase
-        .from('timetable')
-        .select('timetable_data')
-        .eq('user_id', connectedUserId)
-        .maybeSingle()
-
-      if (timetableError) {
-        console.error('Connected user timetable error:', timetableError)
+      const userInfo = await TimetableService.getUserClassGroupInfo(userId)
+      if (!userInfo) {
+        throw new Error('Could not get user info')
       }
 
-      // Extract classes for the specific day
-      const dayClasses: TimetableClass[] = timetableRow?.timetable_data?.[dayName] || []
+      if (!userInfo.isCourseRep) {
+        throw new Error('Only course reps can update classes')
+      }
 
-      // Get connected user's today's updates (RLS allows viewing connected user's updates)
-      const { data: todaysData, error: todaysError } = await supabase
+      if (!userInfo.semester_id) {
+        throw new Error('Please set your current semester')
+      }
+
+      // Check if update already exists for this entry and date
+      if (data.timetable_entry_id) {
+        const { data: existing } = await supabase
+          .from('todays_classes')
+          .select('id')
+          .eq('class_group_id', userInfo.class_group_id)
+          .eq('date', data.date)
+          .eq('timetable_entry_id', data.timetable_entry_id)
+          .single()
+
+        if (existing) {
+          // Update existing
+          const { error } = await supabase
+            .from('todays_classes')
+            .update({
+              course_id: data.course_id,
+              start_time: this.parseTimeInput(data.start_time),
+              end_time: this.parseTimeInput(data.end_time),
+              location: data.location,
+              is_cancelled: data.is_cancelled || false,
+              notes: data.notes,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existing.id)
+
+          if (error) throw error
+          return
+        }
+      }
+
+      // Create new entry
+      const { error } = await supabase
         .from('todays_classes')
-        .select('*')
-        .eq('user_id', connectedUserId)
-        .eq('date', targetDate)
-
-      if (todaysError) {
-        console.error('Connected user todays classes error:', todaysError)
-      }
-
-      // Create a map of updates
-      const updatesMap = new Map<string, TodaysClass>()
-      const standaloneUpdates: TodaysClass[] = []
-
-      todaysData?.forEach(update => {
-        if (update.timetable_id) {
-          updatesMap.set(update.timetable_id, update)
-        } else {
-          standaloneUpdates.push(update)
-        }
-      })
-
-      // Convert and merge
-      const mergedClasses: MergedClass[] = dayClasses.map((cls: TimetableClass, index: number) => {
-        const timetableId = this.generateTimetableId(connectedUserId, dayName, index)
-        const { start, end } = this.parseTimeRange(cls.time)
-        
-        const update = updatesMap.get(timetableId)
-
-        if (update) {
-          const timeChanged = update.start_time !== start || update.end_time !== end
-          const locationChanged = update.location !== cls.venue
-          const courseChanged = update.course_code !== cls.course
-
-          return {
-            id: timetableId,
-            timetable_id: timetableId,
-            course_code: update.course_code,
-            start_time: update.start_time,
-            end_time: update.end_time,
-            location: update.location,
-            day: dayName,
-            is_cancelled: update.is_cancelled,
-            notes: update.notes,
-            has_update: true,
-            todays_class_id: update.id,
-            time_changed: timeChanged,
-            location_changed: locationChanged,
-            course_changed: courseChanged,
-            original_location: cls.venue,
-            original_start_time: start,
-            original_end_time: end
-          }
-        }
-
-        return {
-          id: timetableId,
-          timetable_id: timetableId,
-          course_code: cls.course,
-          start_time: start,
-          end_time: end,
-          location: cls.venue,
-          day: dayName,
-          has_update: false
-        }
-      })
-
-      // Add standalone updates
-      standaloneUpdates.forEach(update => {
-        mergedClasses.push({
-          id: update.id,
-          course_code: update.course_code,
-          start_time: update.start_time,
-          end_time: update.end_time,
-          location: update.location,
-          day: dayName,
-          is_cancelled: update.is_cancelled,
-          notes: update.notes,
-          has_update: true,
-          todays_class_id: update.id
+        .insert({
+          date: data.date,
+          class_group_id: userInfo.class_group_id,
+          semester_id: userInfo.semester_id,
+          timetable_entry_id: data.timetable_entry_id,
+          course_id: data.course_id,
+          start_time: this.parseTimeInput(data.start_time),
+          end_time: this.parseTimeInput(data.end_time),
+          location: data.location,
+          is_cancelled: data.is_cancelled || false,
+          notes: data.notes,
+          created_by: userId
         })
-      })
 
-      // Sort by start time
-      mergedClasses.sort((a, b) => a.start_time.localeCompare(b.start_time))
-
-      return mergedClasses
+      if (error) throw error
     } catch (error: any) {
-      console.error('Error getting connected user\'s today\'s classes:', error)
-      return []
+      console.error('Error creating today\'s class update:', error)
+      throw error
     }
   }
 
-  // Get a specific today's class update
-  static async getTodaysClassUpdate(userId: string, timetableId: string, date?: string): Promise<TodaysClass | null> {
+  // Cancel a class for today (course rep only)
+  static async cancelClass(
+    userId: string,
+    date: string,
+    timetableEntryId: string,
+    courseId: string,
+    notes?: string
+  ): Promise<void> {
     try {
-      const targetDate = date || new Date().toISOString().split('T')[0]
+      const userInfo = await TimetableService.getUserClassGroupInfo(userId)
+      if (!userInfo) {
+        throw new Error('Could not get user info')
+      }
 
-      const { data, error } = await supabase
+      if (!userInfo.isCourseRep) {
+        throw new Error('Only course reps can cancel classes')
+      }
+
+      // Check if entry exists
+      const { data: existing } = await supabase
         .from('todays_classes')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('timetable_id', timetableId)
-        .eq('date', targetDate)
+        .select('id')
+        .eq('class_group_id', userInfo.class_group_id)
+        .eq('date', date)
+        .eq('timetable_entry_id', timetableEntryId)
         .single()
 
-      if (error && error.code !== 'PGRST116') throw error
-      return data || null
+      if (existing) {
+        const { error } = await supabase
+          .from('todays_classes')
+          .update({
+            is_cancelled: true,
+            notes: notes || 'Class cancelled',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existing.id)
+
+        if (error) throw error
+      } else {
+        // Need to get original class info to create cancel entry
+        if (!userInfo.semester_id) {
+          throw new Error('Please set your current semester')
+        }
+
+        const { error } = await supabase
+          .from('todays_classes')
+          .insert({
+            date,
+            class_group_id: userInfo.class_group_id,
+            semester_id: userInfo.semester_id,
+            timetable_entry_id: timetableEntryId,
+            course_id: courseId,
+            start_time: '00:00:00',
+            end_time: '00:00:00',
+            location: '',
+            is_cancelled: true,
+            notes: notes || 'Class cancelled',
+            created_by: userId
+          })
+
+        if (error) throw error
+      }
     } catch (error: any) {
-      console.error('Error getting today\'s class update:', error)
-      return null
+      console.error('Error cancelling class:', error)
+      throw error
     }
   }
 
-  // Delete old updates (cleanup)
-  static async cleanupOldUpdates(): Promise<void> {
+  // Delete today's class override (restore to timetable default)
+  static async deleteTodaysClassUpdate(userId: string, todaysClassId: string): Promise<void> {
     try {
-      const sevenDaysAgo = new Date()
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-      const cutoffDate = sevenDaysAgo.toISOString().split('T')[0]
+      const userInfo = await TimetableService.getUserClassGroupInfo(userId)
+      if (!userInfo) {
+        throw new Error('Could not get user info')
+      }
+
+      if (!userInfo.isCourseRep) {
+        throw new Error('Only course reps can delete class updates')
+      }
 
       const { error } = await supabase
         .from('todays_classes')
         .delete()
-        .lt('date', cutoffDate)
+        .eq('id', todaysClassId)
+        .eq('class_group_id', userInfo.class_group_id)
 
       if (error) throw error
     } catch (error: any) {
-      console.error('Error cleaning up old updates:', error)
+      console.error('Error deleting today\'s class update:', error)
+      throw error
     }
   }
 }

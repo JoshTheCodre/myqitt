@@ -1,11 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, ChevronDown, Loader2 } from 'lucide-react'
+import { X, Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '@/lib/store/authStore'
-import { ProfileService } from '@/lib/services'
-import type { School, Department } from '@/lib/services'
 
 interface EditProfileModalProps {
   isOpen: boolean
@@ -22,61 +20,12 @@ function formatDepartmentName(dept: string): string {
 
 export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
   const { profile, user, updateProfile } = useAuthStore()
-  const [schools, setSchools] = useState<School[]>([])
-  const [departments, setDepartments] = useState<Department[]>([])
   const [loading, setLoading] = useState(false)
-  const [loadingSchools, setLoadingSchools] = useState(true)
-  const [loadingDepartments, setLoadingDepartments] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     phone_number: '',
-    school: '',
-    department: '',
-    level: '',
-    semester: '',
     bio: '',
   })
-
-  // Load schools on mount
-  useEffect(() => {
-    const fetchSchools = async () => {
-      try {
-        const schoolsData = await ProfileService.getSchools()
-        setSchools(schoolsData)
-      } catch (error) {
-        // Error already handled in service
-      } finally {
-        setLoadingSchools(false)
-      }
-    }
-
-    if (isOpen) {
-      fetchSchools()
-    }
-  }, [isOpen])
-
-  // Load departments when school changes
-  useEffect(() => {
-    const fetchDepartments = async () => {
-      if (!formData.school) {
-        setDepartments([])
-        return
-      }
-
-      setLoadingDepartments(true)
-      try {
-        const departmentsData = await ProfileService.getDepartments(formData.school)
-        setDepartments(departmentsData)
-      } catch (error) {
-        // Error already handled in service
-        setDepartments([])
-      } finally {
-        setLoadingDepartments(false)
-      }
-    }
-
-    fetchDepartments()
-  }, [formData.school])
 
   // Populate form with current profile data only when modal opens
   useEffect(() => {
@@ -84,10 +33,6 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
       setFormData({
         name: profile.name || '',
         phone_number: profile.phone_number || '',
-        school: profile.school || '',
-        department: profile.department || '',
-        level: profile.level ? String(profile.level) : '',
-        semester: profile.semester || '',
         bio: profile.bio || '',
       })
     }
@@ -111,26 +56,15 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
 
     // Validate
     if (!formData.name.trim()) return toast.error('Name is required')
-    if (!formData.level) return toast.error('Level is required')
-    if (!formData.semester) return toast.error('Semester is required')
 
     setLoading(true)
     
     try {
-      // Convert semester from "1"/"2" to "first"/"second" if needed
-      let semester = formData.semester
-      if (semester === '1') semester = 'first'
-      if (semester === '2') semester = 'second'
-
-      // Prepare update data
+      // Prepare update data - only editable fields
       const updateData = {
         name: formData.name,
         phone_number: formData.phone_number || undefined,
-        department: formData.department || undefined,
-        level: parseInt(formData.level),
-        semester: semester,
         bio: formData.bio || undefined,
-        school: formData.school || undefined,
       }
 
       await updateProfile(updateData)
@@ -198,97 +132,16 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
             />
           </div>
 
-          {/* School */}
-          <div>
-            <label className="block text-sm font-medium text-gray-800 mb-2">School</label>
-            <div className="relative">
-              <select
-                name="school"
-                value={formData.school}
-                onChange={handleChange}
-                disabled={loading || loadingSchools}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent appearance-none bg-white text-gray-900 disabled:opacity-50"
-                style={{ '--tw-ring-color': '#4045EF' } as React.CSSProperties}
-              >
-                <option value="">Select School</option>
-                {schools.map(school => (
-                  <option key={school.id} value={school.id}>
-                    {school.name}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown size={16} className="absolute right-4 top-4 text-gray-600 pointer-events-none" />
+          {/* Class Info (Read Only) */}
+          <div className="bg-gray-50 rounded-lg p-4">
+            <label className="block text-sm font-medium text-gray-800 mb-2">Class Information</label>
+            <div className="text-sm text-gray-600 space-y-1">
+              <p><span className="font-medium">School:</span> {typeof profile?.school === 'object' ? profile?.school?.name : profile?.school || 'Not set'}</p>
+              <p><span className="font-medium">Department:</span> {profile?.class_group?.department?.name ? formatDepartmentName(profile.class_group.department.name) : 'Not set'}</p>
+              <p><span className="font-medium">Level:</span> {profile?.class_group?.level?.level_number ? `${profile.class_group.level.level_number}00 Level` : 'Not set'}</p>
+              <p><span className="font-medium">Semester:</span> {profile?.current_semester?.name || 'Not set'}</p>
             </div>
-          </div>
-
-          {/* Department */}
-          <div>
-            <label className="block text-sm font-medium text-gray-800 mb-2">Department</label>
-            <div className="relative">
-              <select
-                name="department"
-                value={formData.department}
-                onChange={handleChange}
-                disabled={loading || loadingDepartments || !formData.school}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent appearance-none bg-white text-gray-900 disabled:opacity-50"
-                style={{ '--tw-ring-color': '#4045EF' } as React.CSSProperties}
-              >
-                <option value="">
-                  {!formData.school ? 'Select a school first' : loadingDepartments ? 'Loading departments...' : departments.length === 0 ? 'No departments available' : 'Select Department'}
-                </option>
-                {departments.map(dept => (
-                  <option key={dept.id} value={dept.department}>
-                    {formatDepartmentName(dept.department)}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown size={16} className="absolute right-4 top-4 text-gray-600 pointer-events-none" />
-            </div>
-          </div>
-
-          {/* Level and Semester */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-800 mb-2">Level</label>
-              <div className="relative">
-                <select
-                  name="level"
-                  value={formData.level}
-                  onChange={handleChange}
-                  disabled={loading}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent appearance-none bg-white text-gray-900 disabled:opacity-50"
-                  style={{ '--tw-ring-color': '#4045EF' } as React.CSSProperties}
-                >
-                  <option value="">Select Level</option>
-                  <option value="1">Level 1</option>
-                  <option value="2">Level 2</option>
-                  <option value="3">Level 3</option>
-                  <option value="4">Level 4</option>
-                  <option value="5">Level 5</option>
-                  <option value="6">Level 6</option>
-                </select>
-                <ChevronDown size={16} className="absolute right-4 top-4 text-gray-600 pointer-events-none" />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-800 mb-2">Semester</label>
-              <div className="relative">
-                <select
-                  name="semester"
-                  value={formData.semester}
-                  onChange={handleChange}
-                  disabled={loading}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent appearance-none bg-white text-gray-900 disabled:opacity-50"
-                  style={{ '--tw-ring-color': '#4045EF' } as React.CSSProperties}
-                >
-                  <option value="">Select Semester</option>
-                  <option value="first">First Semester</option>
-                  <option value="second">Second Semester</option>
-                </select>
-                <ChevronDown size={16} className="absolute right-4 top-4 text-gray-600 pointer-events-none" />
-              </div>
-            </div>
+            <p className="text-xs text-gray-500 mt-2">Contact your course rep to change class information.</p>
           </div>
 
           {/* Bio */}

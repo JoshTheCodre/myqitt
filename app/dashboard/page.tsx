@@ -3,8 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { HeadsetIcon, ArrowRight, Clock, Plus, AlertCircle, MapPin, Megaphone, ChevronRight, Users, FileText, UsersRound } from 'lucide-react'
-import { useAuthStore, UserProfile } from '@/lib/store/authStore'
-import { supabase } from '@/lib/supabase/client'
+import { useAuthStore, UserProfileWithDetails } from '@/lib/store/authStore'
 import { AppShell } from '@/components/layout/app-shell'
 import { ClassMenu } from '@/components/class-menu'
 import { UpdateTodaysClassModal } from '@/components/update-todays-class-modal'
@@ -20,21 +19,15 @@ const getInitials = (name?: string) => {
   return parts[0].substring(0, 2).toUpperCase()
 }
 
-const formatDepartmentDisplay = (dept?: string) => {
-  if (!dept) return 'N/A'
-  
-  // Convert snake_case to Title Case and remove underscores
-  const formatted = dept
-    .split('_')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ')
-  
-  // Limit to first 2 words, add ellipsis if longer
-  const words = formatted.split(' ')
-  if (words.length > 2) {
-    return words.slice(0, 2).join(' ') + '...'
-  }
-  return formatted
+const getDepartmentName = (profile: UserProfileWithDetails | null): string => {
+  if (!profile?.class_group) return 'N/A'
+  return profile.class_group?.department?.name || 'N/A'
+}
+
+const getLevelDisplay = (profile: UserProfileWithDetails | null): string => {
+  if (!profile?.class_group) return 'N/A'
+  const levelNum = profile.class_group?.level?.level_number
+  return levelNum ? `${levelNum}00 Level` : 'N/A'
 }
 
 // Get class status based on current time
@@ -77,12 +70,12 @@ const getClassStatus = (startTime: string, endTime: string): 'upcoming' | 'ongoi
 }
 
 // ============ HEADER COMPONENT ============
-function Header({ profile }: { profile: UserProfile | null }) {
+function Header({ profile }: { profile: UserProfileWithDetails | null }) {
   return (
     <div className="flex items-start justify-between ">
       <div>
         <h1 className="text-2xl md:text-4xl font-extrabold tracking-tight">Hello, {profile?.name || 'Guest'}</h1>
-        <p className="text-xs font-semibold text-gray-700 mt-1 md:mt-2">{formatDepartmentDisplay(profile?.department)} <span className="text-green-500">•</span> {profile?.level ? `${profile.level}00 Level` : 'N/A'}</p>
+        <p className="text-xs font-semibold text-gray-700 mt-1 md:mt-2">{getDepartmentName(profile)} <span className="text-green-500">•</span> {getLevelDisplay(profile)}</p>
       </div>
       <div className="flex items-center gap-3">
         <button 
@@ -331,12 +324,14 @@ function TodaysClasses({ userId }: { userId?: string }) {
   const [loading, setLoading] = useState(true)
   const [selectedClass, setSelectedClass] = useState<MergedClass | null>(null)
   const [showUpdateModal, setShowUpdateModal] = useState(false)
-  const [isConnected, setIsConnected] = useState(false)
+  const { initialized } = useAuthStore()
 
   useEffect(() => {
     let mounted = true
     
     const loadData = async () => {
+      if (!initialized) return
+      
       if (userId && mounted) {
         await fetchTodaysClasses()
       } else if (mounted) {
@@ -352,21 +347,13 @@ function TodaysClasses({ userId }: { userId?: string }) {
       mounted = false
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId])
+  }, [userId, initialized])
 
   const fetchTodaysClasses = async () => {
     if (!userId) return
 
     try {
       setLoading(true)
-      
-      // Check if user is connected to someone
-      const { data: connections } = await supabase
-        .from('connections')
-        .select('following_id')
-        .eq('follower_id', userId)
-
-      setIsConnected(!!(connections && connections.length > 0))
 
       const todaysClasses = await TodaysClassService.getTodaysClasses(userId)
       // Sort by start time (earliest first) - handle both 24h and 12h formats
@@ -404,9 +391,6 @@ function TodaysClasses({ userId }: { userId?: string }) {
   }
 
   const handleUpdateClass = (cls: MergedClass) => {
-    // Don't allow updates if viewing connected user's classes
-    if (isConnected) return
-    
     setSelectedClass(cls)
     setShowUpdateModal(true)
   }
@@ -565,15 +549,13 @@ function TodaysClasses({ userId }: { userId?: string }) {
                   )}
                 </div>
                 
-                {/* Menu Button - Top Right - Only show if not connected */}
-                {!isConnected && (
-                  <div className="absolute top-3 right-3 z-20">
-                    <ClassMenu 
-                      onUpdate={() => handleUpdateClass(cls)}
-                      hasUpdate={cls.has_update}
-                    />
-                  </div>
-                )}
+                {/* Menu Button - Top Right */}
+                <div className="absolute top-3 right-3 z-20">
+                  <ClassMenu 
+                    onUpdate={() => handleUpdateClass(cls)}
+                    hasUpdate={cls.has_update}
+                  />
+                </div>
               </div>
             )
             })
@@ -587,19 +569,11 @@ function TodaysClasses({ userId }: { userId?: string }) {
                 : "No classes scheduled for today"}
             </p>
             {(new Date().getDay() !== 0 && new Date().getDay() !== 6) && (
-              <div className="flex justify-center gap-2">
+              <div className="flex justify-center">
                 <Link href="/timetable">
                   <button className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg font-semibold text-xs hover:from-blue-700 hover:to-blue-600 transition-all shadow-md hover:shadow-lg flex items-center gap-2">
                     <Plus className="w-3.5 h-3.5" />
                     Add Timetable
-                  </button>
-                </Link>
-                <Link href="/classmates">
-                  <button className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg font-semibold text-xs hover:from-emerald-600 hover:to-teal-600 transition-all shadow-md hover:shadow-lg flex items-center gap-2">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                    </svg>
-                    Connect
                   </button>
                 </Link>
               </div>
@@ -616,7 +590,7 @@ function TodaysClasses({ userId }: { userId?: string }) {
           onClose={handleCloseModal}
           userId={userId}
           originalClass={{
-            id: selectedClass.timetable_id || selectedClass.id,
+            id: selectedClass.timetable_entry_id || selectedClass.id,
             course_code: selectedClass.course_code,
             start_time: selectedClass.start_time,
             end_time: selectedClass.end_time,
@@ -625,7 +599,7 @@ function TodaysClasses({ userId }: { userId?: string }) {
           }}
           existingUpdate={selectedClass.has_update ? {
             id: selectedClass.todays_class_id,
-            timetable_id: selectedClass.timetable_id,
+            timetable_entry_id: selectedClass.timetable_entry_id,
             course_code: selectedClass.course_code,
             start_time: selectedClass.start_time,
             end_time: selectedClass.end_time,

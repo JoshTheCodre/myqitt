@@ -94,6 +94,22 @@ export function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => v
         setData(prev => ({ ...prev, [name]: value }))
     }
 
+    // Check if all required fields are filled
+    const isFormComplete = () => {
+        return (
+            data.name.trim() !== '' &&
+            data.email.trim() !== '' &&
+            data.phone_number.trim() !== '' &&
+            selectedSchool !== null &&
+            data.department !== '' &&
+            data.level !== '' &&
+            data.semester !== '' &&
+            data.password.trim() !== '' &&
+            data.password.length >= 6 &&
+            agreedToTerms
+        )
+    }
+
     const validate = () => {
         if (!data.name.trim()) return toast.error('Full name is required')
         if (!data.email.trim()) return toast.error('Email is required')
@@ -233,8 +249,8 @@ export function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => v
                             {!selectedSchool ? 'Select a school first' : loadingDepartments ? 'Loading...' : departments.length === 0 ? 'No departments available' : 'Choose your department'}
                         </option>
                         {departments.map(dept => (
-                            <option key={dept.id} value={dept.department}>
-                                {formatDepartmentName(dept.department)}
+                            <option key={dept.id} value={dept.name}>
+                                {formatDepartmentName(dept.name)}
                             </option>
                         ))}
                     </select>
@@ -321,7 +337,7 @@ export function RegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => v
 
             <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || !isFormComplete()}
                 className="w-full text-white font-semibold py-3.5 px-4 rounded-xl transition-all hover:shadow-lg hover:scale-[1.01] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none"
                 style={{ backgroundColor: '#4045EF' }}
             >

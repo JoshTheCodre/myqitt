@@ -145,7 +145,7 @@ export function CatchUpModal({ isOpen, item, onClose }: CatchUpModalProps) {
 
       {/* Desktop Modal */}
       <div className="hidden lg:flex fixed inset-0 bg-black/50 z-50 items-center justify-center p-4" onClick={handleClose}>
-        <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col mx-auto" onClick={(e) => e.stopPropagation()}>
           {/* Image (if present) */}
           {item.image_url && (
             <div className="w-full h-64 bg-gradient-to-br from-blue-50 to-indigo-100 relative overflow-hidden flex-shrink-0">

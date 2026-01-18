@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AppShell } from '@/components/layout/app-shell'
-import { useAuthStore } from '@/lib/store/authStore'
+import { useAuthStore, type UserProfileWithDetails } from '@/lib/store/authStore'
 import { supabase } from '@/lib/supabase/client'
 import { ArrowLeft, Send } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -12,16 +12,22 @@ import Link from 'next/link'
 export default function NewAnnouncementPage() {
   const router = useRouter()
   const { profile, user } = useAuthStore()
+  const typedProfile = profile as UserProfileWithDetails | null
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [loading, setLoading] = useState(false)
+  
+  // Check if user is course rep
+  const isCourseRep = typedProfile?.user_roles?.some(
+    (ur: { role?: { name: string } }) => ur.role?.name === 'course_rep'
+  ) || false
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!title.trim()) return toast.error('Title is required')
     if (!content.trim()) return toast.error('Content is required')
-    if (!profile?.school || !profile?.department || !profile?.level) {
+    if (!typedProfile?.class_group_id) {
       return toast.error('Profile incomplete')
     }
 
@@ -34,9 +40,7 @@ export default function NewAnnouncementPage() {
           title: title.trim(),
           content: content.trim(),
           user_id: user?.id,
-          school: profile.school,
-          department: profile.department,
-          level: profile.level,
+          class_group_id: typedProfile.class_group_id,
         })
 
       if (error) throw error
@@ -52,7 +56,7 @@ export default function NewAnnouncementPage() {
   }
 
   // Only course reps can access this page
-  if (!profile?.is_course_rep && !profile?.roles?.includes('course_rep')) {
+  if (!isCourseRep) {
     return (
       <AppShell>
         <div className="h-full flex items-center justify-center p-4">

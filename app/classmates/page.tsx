@@ -2,11 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { AppShell } from '@/components/layout/app-shell'
-import { Users, FileText, Clock } from 'lucide-react'
 import { useAuthStore } from '@/lib/store/authStore'
 import { ClassmateService, type Classmate } from '@/lib/services'
-import { ConnectionModal } from '@/components/connection-modal'
-import { ConnectionService, type ConnectionType } from '@/lib/services/connectionService'
 
 interface HeaderProps {
   classmateCount: number
@@ -14,18 +11,11 @@ interface HeaderProps {
 
 interface ClassmateCardProps {
   name: string
-  followers: number
-  hasAssignments: boolean
-  hasTimetable: boolean
-  isConnected: boolean
-  onConnect: (id: string) => void
   classmateId: string
-  isLoading?: boolean
   isCurrentUser?: boolean
 }
 
 interface ClassmatesListProps {
-  onConnectionChange: () => void
   onCountUpdate: (count: number) => void
 }
 
@@ -46,32 +36,13 @@ function Header({ classmateCount }: HeaderProps) {
 // ============ CLASSMATE CARD COMPONENT ============
 function ClassmateCard({ 
   name, 
-  followers,
-  hasAssignments,
-  hasTimetable,
-  isConnected,
-  onConnect,
   classmateId,
-  isLoading = false,
   isCurrentUser = false
 }: ClassmateCardProps) {
   return (
   <div className="bg-white rounded-xl border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all duration-300 overflow-hidden group relative">
-    <div className="p-5 flex flex-col gap-4">
-      {/* Connect button - top right rectangular (hidden for current user) */}
-      {!isCurrentUser && (
-        <button
-          onClick={() => onConnect(classmateId)}
-          disabled={isLoading}
-          className={`absolute top-4 right-4 px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 border disabled:opacity-50 disabled:cursor-not-allowed ${
-            isConnected
-              ? 'bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100'
-              : 'bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100'
-          }`}
-        >
-          {isLoading ? '...' : isConnected ? '✓ Connected' : 'Connect'}
-        </button>
-      )}
+    <div className="p-5">
+      {/* Current user badge */}
       {isCurrentUser && (
         <div className="absolute top-4 right-4 px-4 py-1.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-600 border border-blue-200">
           You
@@ -79,51 +50,12 @@ function ClassmateCard({
       )}
 
       {/* Avatar and header */}
-      <div className="flex items-center gap-3 pr-20">
+      <div className="flex items-center gap-3">
         <div className="w-14 h-14 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center flex-shrink-0 text-blue-600 font-bold text-lg border border-blue-100 group-hover:border-blue-200 transition-colors">
           {name.charAt(0).toUpperCase()}
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="text-sm font-bold text-gray-900 truncate">{name}</h3>
-          <div className="flex items-center gap-1.5 text-xs text-gray-600 mt-1">
-            <Users className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="font-medium">{followers} followers</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Status items */}
-      <div className="space-y-2">
-        {/* Assignments */}
-        <div className="flex items-center gap-2.5">
-          <FileText className={`w-4 h-4 flex-shrink-0 ${
-            hasAssignments ? 'text-blue-600' : 'text-gray-300'
-          }`} />
-          <div className="min-w-0 flex-1">
-            <p className="text-xs text-gray-600">
-              <span className="font-semibold text-gray-700">Assignments</span>
-              <span className="text-gray-500 mx-1.5">•</span>
-              <span className={hasAssignments ? 'font-medium text-gray-700' : 'text-gray-400'}>
-                {hasAssignments ? 'Shared' : 'None'}
-              </span>
-            </p>
-          </div>
-        </div>
-
-        {/* Timetable */}
-        <div className="flex items-center gap-2.5">
-          <Clock className={`w-4 h-4 flex-shrink-0 ${
-            hasTimetable ? 'text-blue-600' : 'text-gray-300'
-          }`} />
-          <div className="min-w-0 flex-1">
-            <p className="text-xs text-gray-600">
-              <span className="font-semibold text-gray-700">Timetable</span>
-              <span className="text-gray-500 mx-1.5">•</span>
-              <span className={hasTimetable ? 'font-medium text-gray-700' : 'text-gray-400'}>
-                {hasTimetable ? 'Shared' : 'None'}
-              </span>
-            </p>
-          </div>
         </div>
       </div>
     </div>
@@ -132,17 +64,14 @@ function ClassmateCard({
 }
 
 // ============ CLASSMATES LIST COMPONENT ============
-function ClassmatesList({ onConnectionChange, onCountUpdate }: ClassmatesListProps) {
+function ClassmatesList({ onCountUpdate }: ClassmatesListProps) {
   const { user, profile } = useAuthStore()
   const [classmates, setClassmates] = useState<Classmate[]>([])
   const [loading, setLoading] = useState(true)
-  const [connectingId, setConnectingId] = useState<string | null>(null)
-  const [selectedClassmate, setSelectedClassmate] = useState<Classmate | null>(null)
-  const [showModal, setShowModal] = useState(false)
 
   useEffect(() => {
     const loadClassmates = async () => {
-      if (!user || !profile?.school || !profile?.department || !profile?.level) {
+      if (!user || !profile?.class_group_id) {
         setLoading(false)
         return
       }
@@ -150,11 +79,8 @@ function ClassmatesList({ onConnectionChange, onCountUpdate }: ClassmatesListPro
       try {
         const data = await ClassmateService.getClassmates(
           user.id,
-          profile.school,
-          profile.department,
-          profile.level
+          profile.class_group_id
         )
-        // Don't filter out current user - they should see themselves with "You" badge
         setClassmates(data)
         onCountUpdate(data.length)
       } catch (error) {
@@ -167,68 +93,7 @@ function ClassmatesList({ onConnectionChange, onCountUpdate }: ClassmatesListPro
     }
 
     loadClassmates()
-  }, [user?.id, profile?.school, profile?.department, profile?.level, onCountUpdate])
-
-  const handleOpenModal = (classmateId: string) => {
-    const classmate = classmates.find(c => c.id === classmateId)
-    if (!classmate) return
-
-    // If already connected, disconnect directly
-    if (classmate.isConnected) {
-      toggleDisconnect(classmateId)
-      return
-    }
-
-    // If no content available, show message and return
-    if (!classmate.hasAssignments && !classmate.hasTimetable) {
-      return // The modal will show "no content" message
-    }
-
-    setSelectedClassmate(classmate)
-    setShowModal(true)
-  }
-
-  const toggleDisconnect = async (classmateId: string) => {
-    if (!user || connectingId) return
-
-    setConnectingId(classmateId)
-    try {
-      await ConnectionService.disconnectUser(user.id, classmateId)
-      setClassmates(prev =>
-        prev.map(c =>
-          c.id === classmateId
-            ? { ...c, isConnected: false, followers: Math.max(0, c.followers - 1) }
-            : c
-        )
-      )
-      onConnectionChange()
-    } catch (error) {
-      // Error already handled in service
-    } finally {
-      setConnectingId(null)
-    }
-  }
-
-  const handleConnect = async (type: ConnectionType) => {
-    if (!user || !selectedClassmate || connectingId) return
-
-    setConnectingId(selectedClassmate.id)
-    try {
-      await ConnectionService.connectToUser(user.id, selectedClassmate.id, type)
-      setClassmates(prev =>
-        prev.map(c =>
-          c.id === selectedClassmate.id
-            ? { ...c, isConnected: true, followers: c.followers + 1 }
-            : c
-        )
-      )
-      onConnectionChange()
-    } catch (error) {
-      // Error already handled in service
-    } finally {
-      setConnectingId(null)
-    }
-  }
+  }, [user?.id, profile?.class_group_id, onCountUpdate])
 
   if (loading) {
     return (
@@ -277,44 +142,16 @@ function ClassmatesList({ onConnectionChange, onCountUpdate }: ClassmatesListPro
   }
 
   return (
-    <>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {classmates.map((classmate) => (
-          <ClassmateCard
-            key={classmate.id}
-            classmateId={classmate.id}
-            name={classmate.name}
-            followers={classmate.followers}
-            hasAssignments={classmate.hasAssignments}
-            hasTimetable={classmate.hasTimetable}
-            isConnected={classmate.isConnected}
-            onConnect={handleOpenModal}
-            isLoading={connectingId === classmate.id}
-            isCurrentUser={classmate.id === user?.id}
-          />
-        ))}
-      </div>
-
-      {/* Connection Modal */}
-      {selectedClassmate && (
-        <ConnectionModal
-          isOpen={showModal}
-          onClose={() => {
-            setShowModal(false)
-            setSelectedClassmate(null)
-          }}
-          classmate={{
-            id: selectedClassmate.id,
-            name: selectedClassmate.name,
-            bio: selectedClassmate.bio,
-            hasTimetable: selectedClassmate.hasTimetable,
-            hasAssignments: selectedClassmate.hasAssignments
-          }}
-          currentUserId={user?.id || ''}
-          onConnect={handleConnect}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {classmates.map((classmate) => (
+        <ClassmateCard
+          key={classmate.id}
+          classmateId={classmate.id}
+          name={classmate.name}
+          isCurrentUser={classmate.id === user?.id}
         />
-      )}
-    </>
+      ))}
+    </div>
   )
 }
 
@@ -329,7 +166,6 @@ export default function ClassmatesPage() {
           <Header classmateCount={classmateCount} />
           <div className="mt-12">
             <ClassmatesList 
-              onConnectionChange={() => {}} 
               onCountUpdate={setClassmateCount}
             />
           </div>

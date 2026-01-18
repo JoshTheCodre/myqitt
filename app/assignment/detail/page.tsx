@@ -6,10 +6,13 @@ import { ArrowLeft, Calendar, FileText, Trash2, Edit, X } from 'lucide-react'
 import { Suspense, useState } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
+import { useAuthStore, type UserProfileWithDetails } from '@/lib/store/authStore'
 
 function AssignmentDetailContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { profile } = useAuthStore()
+  const typedProfile = profile as UserProfileWithDetails | null
   const [deleting, setDeleting] = useState(false)
   const [showUpdateModal, setShowUpdateModal] = useState(false)
   const [updating, setUpdating] = useState(false)
@@ -24,7 +27,11 @@ function AssignmentDetailContent() {
   const title = searchParams.get('title') || ''
   const description = searchParams.get('description') || ''
   const dueDate = searchParams.get('dueDate') || ''
-  const isOwner = searchParams.get('isOwner') === 'true'
+  
+  // Check if user is course rep - they can edit any assignment in their class
+  const isCourseRep = typedProfile?.user_roles?.some(
+    (ur: { role?: { name: string } }) => ur.role?.name === 'course_rep'
+  ) || false
 
   // Initialize form data when modal opens
   const handleOpenModal = () => {
@@ -163,7 +170,7 @@ function AssignmentDetailContent() {
           </div>
 
           {/* Action Buttons */}
-          {isOwner ? (
+          {isCourseRep && (
             <div className="mt-8 grid grid-cols-2 gap-4">
               <button 
                 onClick={handleOpenModal}
@@ -180,12 +187,6 @@ function AssignmentDetailContent() {
                 <Trash2 className="w-5 h-5" />
                 <span>{deleting ? 'Deleting...' : 'Delete'}</span>
               </button>
-            </div>
-          ) : (
-            <div className="mt-8 p-6 bg-blue-50 rounded-2xl border border-blue-200">
-              <p className="text-blue-800 font-medium text-center">
-                You can only edit or delete assignments you created. This assignment belongs to a connected classmate.
-              </p>
             </div>
           )}
         </div>

@@ -5,13 +5,19 @@ import { ChevronDown, Check, Copy, Share2, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '@/lib/store/authStore'
 import { supabase } from '@/lib/supabase/client'
-import { useDepartments, formatDepartmentName } from '@/lib/hooks/useDepartments'
+import { ProfileService } from '@/lib/services'
 
 interface SchoolOption {
     id: string
     name: string
     logo: string
     initials: string
+}
+
+interface DepartmentOption {
+    id: string
+    name: string
+    faculty_id: string
 }
 
 interface InviteLinkPopupProps {
@@ -97,51 +103,35 @@ function InviteLinkPopup({ inviteCode, onClose }: InviteLinkPopupProps) {
 export function CourseRepRegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) {
     const { registerCourseRep, loading } = useAuthStore()
     const [schools, setSchools] = useState<SchoolOption[]>([])
+    const [departments, setDepartments] = useState<DepartmentOption[]>([])
     const [loadingSchools, setLoadingSchools] = useState(true)
+    const [loadingDepartments, setLoadingDepartments] = useState(false)
     const [showInvitePopup, setShowInvitePopup] = useState(false)
     const [generatedInviteCode, setGeneratedInviteCode] = useState('')
     const [data, setData] = useState({
         name: '',
         email: '',
         phone_number: '',
-        department: '',
+        department_id: '',
         level: '',
-        semester: '',
         password: '',
     })
     const [selectedSchool, setSelectedSchool] = useState<string | null>(null)
     const [agreedToTerms, setAgreedToTerms] = useState(false)
-    
-    const { departments, loading: loadingDepartments } = useDepartments(selectedSchool)
 
+    // Fetch schools
     useEffect(() => {
         const fetchSchools = async () => {
             try {
-                const cachedSchools = localStorage.getItem('schools_cache')
-                const cacheTimestamp = localStorage.getItem('schools_cache_timestamp')
-                const now = Date.now()
-                const ONE_HOUR = 60 * 60 * 1000
-
-                if (cachedSchools && cacheTimestamp && (now - parseInt(cacheTimestamp)) < ONE_HOUR) {
-                    const formattedSchools: SchoolOption[] = JSON.parse(cachedSchools)
-                    setSchools(formattedSchools)
-                    setLoadingSchools(false)
-                    return
-                }
-
-                const { data: schoolsData, error } = await supabase
-                    .from('schools')
-                    .select('id, name')
+                const schoolsData = await ProfileService.getSchools()
                 
-                if (error) throw error
-                
-                const formattedSchools: SchoolOption[] = schoolsData.map((school: { id: string; name: string }) => {
+                const formattedSchools: SchoolOption[] = schoolsData.map((school) => {
                     const logoMap: Record<string, string> = {
                         'University of Port Harcourt': '/uniport.png',
                         'University of Calabar': '/unical.jpeg'
                     }
                     
-                    const logoPath = logoMap[school.name] || `/schools/${school.name.toLowerCase().replace(/\s+/g, '')}.png`
+                    const logoPath = school.logo_url || logoMap[school.name] || `/schools/${school.name.toLowerCase().replace(/\s+/g, '')}.png`
                     
                     return {
                         id: school.id,
@@ -150,9 +140,6 @@ export function CourseRepRegisterForm({ onRegisterSuccess }: { onRegisterSuccess
                         initials: school.name.substring(0, 1),
                     }
                 })
-                
-                localStorage.setItem('schools_cache', JSON.stringify(formattedSchools))
-                localStorage.setItem('schools_cache_timestamp', now.toString())
                 
                 setSchools(formattedSchools)
             } catch (error) {
@@ -166,9 +153,53 @@ export function CourseRepRegisterForm({ onRegisterSuccess }: { onRegisterSuccess
         fetchSchools()
     }, [])
 
+    // Fetch departments when school changes
+    useEffect(() => {
+        const fetchDepartments = async () => {
+            if (!selectedSchool) {
+                setDepartments([])
+                return
+            }
+
+            setLoadingDepartments(true)
+            try {
+                const depts = await ProfileService.getDepartmentsBySchool(selectedSchool)
+                setDepartments(depts.map(d => ({
+                    id: d.id,
+                    name: d.name,
+                    faculty_id: d.faculty_id
+                })))
+            } catch (error) {
+                console.error('Failed to fetch departments:', error)
+                setDepartments([])
+            } finally {
+                setLoadingDepartments(false)
+            }
+        }
+
+        fetchDepartments()
+        // Reset department when school changes
+        setData(prev => ({ ...prev, department_id: '' }))
+    }, [selectedSchool])
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target
         setData(prev => ({ ...prev, [name]: value }))
+    }
+
+    // Check if all required fields are filled
+    const isFormComplete = () => {
+        return (
+            data.name.trim() !== '' &&
+            data.email.trim() !== '' &&
+            data.phone_number.trim() !== '' &&
+            selectedSchool !== null &&
+            data.department_id !== '' &&
+            data.level !== '' &&
+            data.password.trim() !== '' &&
+            data.password.length >= 6 &&
+            agreedToTerms
+        )
     }
 
     const validate = () => {
@@ -176,9 +207,8 @@ export function CourseRepRegisterForm({ onRegisterSuccess }: { onRegisterSuccess
         if (!data.email.trim()) return toast.error('Email is required')
         if (!data.phone_number.trim()) return toast.error('Phone number is required')
         if (!selectedSchool) return toast.error('Please select a school')
-        if (!data.department) return toast.error('Please select a department')
+        if (!data.department_id) return toast.error('Please select a department')
         if (!data.level) return toast.error('Please select a level')
-        if (!data.semester) return toast.error('Please select a semester')
         if (!data.password.trim()) return toast.error('Password is required')
         if (data.password.length < 6) return toast.error('Password must be at least 6 characters')
         if (!agreedToTerms) return toast.error('Please agree to the terms')
@@ -190,19 +220,13 @@ export function CourseRepRegisterForm({ onRegisterSuccess }: { onRegisterSuccess
         if (!validate()) return
 
         try {
-            const semesterMap: { [key: string]: string } = {
-                '1': 'first',
-                '2': 'second'
-            }
-
+            // Use new CourseRepRegistrationData format
             const inviteCode = await registerCourseRep(data.email, data.password, {
                 name: data.name,
-                email: data.email,
                 phone_number: data.phone_number,
-                school: selectedSchool!,
-                department: data.department,
-                level: parseInt(data.level),
-                semester: semesterMap[data.semester],
+                school_id: selectedSchool!,
+                department_id: data.department_id,
+                level_number: parseInt(data.level),
             })
             
             setGeneratedInviteCode(inviteCode)
@@ -310,8 +334,8 @@ export function CourseRepRegisterForm({ onRegisterSuccess }: { onRegisterSuccess
                     <label className="block text-sm font-medium text-gray-800 mb-2">Department</label>
                     <div className="relative">
                         <select
-                            name="department"
-                            value={data.department}
+                            name="department_id"
+                            value={data.department_id}
                             onChange={handleChange}
                             disabled={loading || loadingDepartments || !selectedSchool}
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent bg-white text-gray-900 appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
@@ -321,54 +345,33 @@ export function CourseRepRegisterForm({ onRegisterSuccess }: { onRegisterSuccess
                                 {!selectedSchool ? 'Select a school first' : loadingDepartments ? 'Loading departments...' : 'Select Department'}
                             </option>
                             {departments.map(dept => (
-                                <option key={dept.id} value={dept.id}>{formatDepartmentName(dept.department)}</option>
+                                <option key={dept.id} value={dept.id}>{dept.name}</option>
                             ))}
                         </select>
                         <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-800 mb-2">Level</label>
-                        <div className="relative">
-                            <select
-                                name="level"
-                                value={data.level}
-                                onChange={handleChange}
-                                disabled={loading}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent bg-white text-gray-900 appearance-none disabled:opacity-50"
-                                style={{ '--tw-ring-color': '#4045EF' } as React.CSSProperties}
-                            >
-                                <option value="">Level</option>
-                                <option value="100">100</option>
-                                <option value="200">200</option>
-                                <option value="300">300</option>
-                                <option value="400">400</option>
-                                <option value="500">500</option>
-                                <option value="600">600</option>
-                            </select>
-                            <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-800 mb-2">Semester</label>
-                        <div className="relative">
-                            <select
-                                name="semester"
-                                value={data.semester}
-                                onChange={handleChange}
-                                disabled={loading}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent bg-white text-gray-900 appearance-none disabled:opacity-50"
-                                style={{ '--tw-ring-color': '#4045EF' } as React.CSSProperties}
-                            >
-                                <option value="">Semester</option>
-                                <option value="1">1st Semester</option>
-                                <option value="2">2nd Semester</option>
-                            </select>
-                            <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-                        </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-800 mb-2">Level</label>
+                    <div className="relative">
+                        <select
+                            name="level"
+                            value={data.level}
+                            onChange={handleChange}
+                            disabled={loading}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent bg-white text-gray-900 appearance-none disabled:opacity-50"
+                            style={{ '--tw-ring-color': '#4045EF' } as React.CSSProperties}
+                        >
+                            <option value="">Select Level</option>
+                            <option value="1">100 Level</option>
+                            <option value="2">200 Level</option>
+                            <option value="3">300 Level</option>
+                            <option value="4">400 Level</option>
+                            <option value="5">500 Level</option>
+                            <option value="6">600 Level</option>
+                        </select>
+                        <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
                     </div>
                 </div>
 
@@ -405,7 +408,7 @@ export function CourseRepRegisterForm({ onRegisterSuccess }: { onRegisterSuccess
 
                 <button
                     type="submit"
-                    disabled={loading}
+                    disabled={loading || !isFormComplete()}
                     className="w-full py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     {loading ? 'Creating Account...' : 'Register as Course Rep'}

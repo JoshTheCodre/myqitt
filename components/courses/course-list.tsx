@@ -9,27 +9,15 @@ interface CourseCardProps {
 }
 
 export function CourseCard({ course, onClick, selected }: CourseCardProps) {
-  const isCompulsory = course.category === 'COMPULSORY'
-  
-  // Generate consistent color based on course code
-  const getColorIndex = (code: string) => {
-    let hash = 0
-    for (let i = 0; i < code.length; i++) {
-      hash = code.charCodeAt(i) + ((hash << 5) - hash)
-    }
-    return Math.abs(hash) % 6
+  // Use light blue top bar with gray content for hierarchy
+  const color = {
+    topBar: 'bg-gradient-to-r from-blue-100 to-blue-200',
+    badge: 'bg-gray-100',
+    code: 'text-gray-900',
+    title: 'text-gray-500',
+    units: 'text-gray-800',
+    border: 'hover:border-blue-300'
   }
-  
-  const colors = [
-    { bg: 'bg-gradient-to-br from-blue-50 to-blue-100', badge: 'bg-blue-50', code: 'text-blue-600', border: 'hover:border-blue-300' },
-    { bg: 'bg-gradient-to-br from-cyan-50 to-cyan-100', badge: 'bg-cyan-50', code: 'text-cyan-600', border: 'hover:border-cyan-300' },
-    { bg: 'bg-gradient-to-br from-emerald-50 to-emerald-100', badge: 'bg-emerald-50', code: 'text-emerald-600', border: 'hover:border-emerald-300' },
-    { bg: 'bg-gradient-to-br from-amber-50 to-amber-100', badge: 'bg-amber-50', code: 'text-amber-600', border: 'hover:border-amber-300' },
-    { bg: 'bg-gradient-to-br from-purple-50 to-purple-100', badge: 'bg-purple-50', code: 'text-purple-600', border: 'hover:border-purple-300' },
-    { bg: 'bg-gradient-to-br from-rose-50 to-rose-100', badge: 'bg-rose-50', code: 'text-rose-600', border: 'hover:border-rose-300' },
-  ]
-  
-  const color = colors[getColorIndex(course.courseCode)]
   
   return (
     <div
@@ -38,8 +26,8 @@ export function CourseCard({ course, onClick, selected }: CourseCardProps) {
       }`}
       onClick={() => onClick?.(course)}
     >
-      {/* Gradient bar at top */}
-      <div className={`h-2 ${color.bg}`} />
+      {/* Light blue bar at top */}
+      <div className={`h-1 ${color.topBar}`} />
       
       <div className="px-5 py-3 flex flex-col gap-4">
         {/* Course details */}
@@ -50,19 +38,10 @@ export function CourseCard({ course, onClick, selected }: CourseCardProps) {
               <div className='flex justify-between items-start'>
                 <p className={`text-md font-bold ${color.code} uppercase tracking-wider`}>{course.courseCode}</p>
                 <div className={`${color.badge} px-3 py-1.5 rounded-lg`}>
-                  <p className={`text-xs font-bold ${color.code}`}>{course.courseUnit} units</p>
+                  <p className={`text-xs font-semibold ${color.units}`}>{course.courseUnit} units</p>
                 </div>
               </div>
-              <p className="text-sm font-bold text-gray-900">{course.courseTitle}</p>
-              <div className="pt-2">
-                <span className={`text-xs font-medium px-2 py-1 rounded-full inline-block ${
-                  isCompulsory
-                    ? 'bg-gray-100 text-gray-600'
-                    : 'bg-gray-100 text-gray-600'
-                }`}>
-                  {isCompulsory ? 'Compulsory' : 'Elective'}
-                </span>
-              </div>
+              <p className={`text-sm font-semibold ${color.title}`}>{course.courseTitle}</p>
             </div>
           </div>
         </div>

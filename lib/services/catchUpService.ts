@@ -15,17 +15,17 @@ export interface CatchUpItem {
     schools: string[]
     departments: string[]
     levels: number[]
-    semester: string[]
+    class_groups: string[]
   }
   expires_at?: string | null
   created_at: string
 }
 
 export interface UserProfile {
-  school: string
-  department: string
-  level: number
-  semester: string
+  school_id?: string
+  department_id?: string
+  level_number?: number
+  class_group_id?: string
 }
 
 export class CatchUpService {
@@ -64,11 +64,11 @@ export class CatchUpService {
           targetSchools: targets.schools,
           targetDepts: targets.departments,
           targetLevels: targets.levels,
-          targetSemester: targets.semester,
-          userSchool: userProfile.school,
-          userDept: userProfile.department,
-          userLevel: userProfile.level,
-          userSemester: userProfile.semester
+          targetClassGroups: targets.class_groups,
+          userSchoolId: userProfile.school_id,
+          userDeptId: userProfile.department_id,
+          userLevel: userProfile.level_number,
+          userClassGroupId: userProfile.class_group_id
         })
 
         // If global, show to everyone
@@ -79,15 +79,15 @@ export class CatchUpService {
 
         // For non-global items, ALL specified criteria must match (AND logic)
         // If a criteria is empty/not specified, it's considered a match
-        const matchesSchool = targets.schools.length === 0 || targets.schools.includes(userProfile.school)
-        const matchesDepartment = targets.departments.length === 0 || targets.departments.includes(userProfile.department)
-        const matchesLevel = targets.levels.length === 0 || targets.levels.includes(userProfile.level)
-        const matchesSemester = targets.semester.length === 0 || targets.semester.includes(userProfile.semester)
+        const matchesSchool = targets.schools.length === 0 || (userProfile.school_id && targets.schools.includes(userProfile.school_id))
+        const matchesDepartment = targets.departments.length === 0 || (userProfile.department_id && targets.departments.includes(userProfile.department_id))
+        const matchesLevel = targets.levels.length === 0 || (userProfile.level_number && targets.levels.includes(userProfile.level_number))
+        const matchesClassGroup = !targets.class_groups?.length || (userProfile.class_group_id && targets.class_groups.includes(userProfile.class_group_id))
 
         // ALL criteria must match (AND logic)
-        const matches = matchesSchool && matchesDepartment && matchesLevel && matchesSemester
+        const matches = matchesSchool && matchesDepartment && matchesLevel && matchesClassGroup
         
-        console.log(`  School: ${matchesSchool}, Dept: ${matchesDepartment}, Level: ${matchesLevel}, Semester: ${matchesSemester}`)
+        console.log(`  School: ${matchesSchool}, Dept: ${matchesDepartment}, Level: ${matchesLevel}, ClassGroup: ${matchesClassGroup}`)
         console.log(`${matches ? '✅' : '❌'} "${item.title}" - ${matches ? 'Matched' : 'Not matched'}`)
         
         return matches
@@ -163,13 +163,13 @@ export class CatchUpService {
       parts.push(`${item.targets.schools.length} school(s)`)
     }
     if (item.targets.departments.length > 0) {
-      parts.push(item.targets.departments.join(', '))
+      parts.push(`${item.targets.departments.length} department(s)`)
     }
     if (item.targets.levels.length > 0) {
       parts.push(`Level ${item.targets.levels.join(', ')}`)
     }
-    if (item.targets.semester.length > 0) {
-      parts.push(item.targets.semester.join(', '))
+    if (item.targets.class_groups?.length > 0) {
+      parts.push(`${item.targets.class_groups.length} class group(s)`)
     }
 
     return parts.length > 0 ? parts.join(' • ') : 'Specific users'

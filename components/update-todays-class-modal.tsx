@@ -16,7 +16,7 @@ interface TimetableClass {
 
 interface TodaysClass {
   id?: string
-  timetable_id?: string
+  timetable_entry_id?: string
   course_code: string
   start_time: string
   end_time: string
@@ -70,7 +70,7 @@ export function UpdateTodaysClassModal({
   }
 
   const [formData, setFormData] = useState<TodaysClass>({
-    timetable_id: originalClass.id,
+    timetable_entry_id: originalClass.id,
     course_code: originalClass.course_code,
     start_time: convertTo24Hour(originalClass.start_time),
     end_time: convertTo24Hour(originalClass.end_time),
@@ -87,7 +87,7 @@ export function UpdateTodaysClassModal({
     if (existingUpdate) {
       setFormData({
         id: existingUpdate.id,
-        timetable_id: existingUpdate.timetable_id,
+        timetable_entry_id: existingUpdate.timetable_entry_id,
         course_code: existingUpdate.course_code,
         start_time: convertTo24Hour(existingUpdate.start_time),
         end_time: convertTo24Hour(existingUpdate.end_time),
@@ -98,7 +98,7 @@ export function UpdateTodaysClassModal({
       })
     } else {
       setFormData({
-        timetable_id: originalClass.id,
+        timetable_entry_id: originalClass.id,
         course_code: originalClass.course_code,
         start_time: convertTo24Hour(originalClass.start_time),
         end_time: convertTo24Hour(originalClass.end_time),
@@ -127,6 +127,7 @@ export function UpdateTodaysClassModal({
     try {
       const dataToSave = {
         user_id: userId,
+        timetable_entry_id: formData.timetable_entry_id,
         course_code: formData.course_code,
         start_time: formData.start_time,
         end_time: formData.end_time,

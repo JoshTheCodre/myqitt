@@ -3,9 +3,8 @@ import { supabase } from '@/lib/supabase/client'
 
 export interface Department {
   id: string
-  department: string
-  description: string | null
-  school: string
+  name: string
+  faculty_id?: string
 }
 
 /**
@@ -23,14 +22,21 @@ export function useDepartments(schoolId?: string | null) {
         setLoading(true)
         setError(null)
 
+        // Query departments table directly
+        // If schoolId is provided, we need to join through faculties
         let query = supabase
-          .from('courses')
-          .select('id, department, description, school')
-          .order('department', { ascending: true })
+          .from('departments')
+          .select(`
+            id,
+            name,
+            faculty_id,
+            faculty:faculties!inner(school_id)
+          `)
+          .order('name', { ascending: true })
 
-        // Filter by school if provided
+        // Filter by school if provided (via faculty)
         if (schoolId) {
-          query = query.eq('school', schoolId)
+          query = query.eq('faculty.school_id', schoolId)
         }
 
         const { data, error: fetchError } = await query
@@ -40,7 +46,14 @@ export function useDepartments(schoolId?: string | null) {
           throw fetchError
         }
 
-        setDepartments(data || [])
+        // Map to simpler structure
+        const formattedDepts: Department[] = (data || []).map((d: { id: string; name: string; faculty_id: string }) => ({
+          id: d.id,
+          name: d.name,
+          faculty_id: d.faculty_id
+        }))
+
+        setDepartments(formattedDepts)
       } catch (err) {
         console.error('Failed to fetch departments:', err)
         setError(err instanceof Error ? err.message : 'Failed to fetch departments')

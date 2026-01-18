@@ -6,23 +6,21 @@ import { useRouter } from 'next/navigation'
 import { Check, Users, BookOpen, Clock, AlertCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '@/lib/store/authStore'
-import { supabase } from '@/lib/supabase/client'
 
-interface CourseRepInfo {
-    id: string
-    name: string
+interface InviteInfo {
+    level_rep_name: string
     school_name: string
     department_name: string
-    level: number
-    semester: string
+    level_number: number
+    level_name: string
 }
 
 export default function JoinPage({ params }: { params: Promise<{ code: string }> }) {
     const resolvedParams = use(params)
     const inviteCode = resolvedParams.code
     const router = useRouter()
-    const { registerWithInvite, loading } = useAuthStore()
-    const [courseRep, setCourseRep] = useState<CourseRepInfo | null>(null)
+    const { registerWithInvite, getInviteInfo, loading } = useAuthStore()
+    const [inviteInfo, setInviteInfo] = useState<InviteInfo | null>(null)
     const [loadingInfo, setLoadingInfo] = useState(true)
     const [invalidCode, setInvalidCode] = useState(false)
     const [data, setData] = useState({
@@ -33,45 +31,42 @@ export default function JoinPage({ params }: { params: Promise<{ code: string }>
     const [agreedToTerms, setAgreedToTerms] = useState(false)
 
     useEffect(() => {
-        const fetchCourseRepInfo = async () => {
+        const fetchInviteInfo = async () => {
             try {
-                const { data: repData, error } = await supabase
-                    .from('users')
-                    .select(`
-                        id,
-                        name,
-                        level,
-                        semester,
-                        schools!inner(name),
-                        departments!inner(name)
-                    `)
-                    .eq('invite_code', inviteCode)
-                    .contains('roles', ['course_rep'])
-                    .single()
+                const result = await getInviteInfo(inviteCode)
 
-                if (error || !repData) {
+                if (!result || !result.class_group) {
                     setInvalidCode(true)
                     return
                 }
 
-                setCourseRep({
-                    id: repData.id,
-                    name: repData.name,
-                    school_name: (repData.schools as any)?.name || 'Unknown School',
-                    department_name: (repData.departments as any)?.name || 'Unknown Department',
-                    level: repData.level,
-                    semester: repData.semester,
+                const classGroup = result.class_group as {
+                    school?: { name: string }
+                    department?: { name: string }
+                    level?: { level_number: number; name: string }
+                }
+                
+                const levelRep = result.level_rep as {
+                    user?: { name: string }
+                }
+
+                setInviteInfo({
+                    level_rep_name: levelRep?.user?.name || 'Course Rep',
+                    school_name: classGroup?.school?.name || 'Unknown School',
+                    department_name: classGroup?.department?.name || 'Unknown Department',
+                    level_number: classGroup?.level?.level_number || 100,
+                    level_name: classGroup?.level?.name || 'Level',
                 })
             } catch (error) {
-                console.error('Error fetching course rep info:', error)
+                console.error('Error fetching invite info:', error)
                 setInvalidCode(true)
             } finally {
                 setLoadingInfo(false)
             }
         }
 
-        fetchCourseRepInfo()
-    }, [inviteCode])
+        fetchInviteInfo()
+    }, [inviteCode, getInviteInfo])
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target
@@ -151,26 +146,22 @@ export default function JoinPage({ params }: { params: Promise<{ code: string }>
                             </div>
                             <div>
                                 <p className="text-xs text-gray-500">Course Rep</p>
-                                <p className="font-semibold text-gray-900">{courseRep?.name}</p>
+                                <p className="font-semibold text-gray-900">{inviteInfo?.level_rep_name}</p>
                             </div>
                         </div>
                         
                         <div className="grid grid-cols-2 gap-3 text-sm">
                             <div className="bg-gray-50 rounded-lg p-2">
                                 <p className="text-xs text-gray-500">School</p>
-                                <p className="font-medium text-gray-800 truncate">{courseRep?.school_name}</p>
+                                <p className="font-medium text-gray-800 truncate">{inviteInfo?.school_name}</p>
                             </div>
                             <div className="bg-gray-50 rounded-lg p-2">
                                 <p className="text-xs text-gray-500">Department</p>
-                                <p className="font-medium text-gray-800 truncate">{courseRep?.department_name}</p>
+                                <p className="font-medium text-gray-800 truncate">{inviteInfo?.department_name}</p>
                             </div>
-                            <div className="bg-gray-50 rounded-lg p-2">
+                            <div className="col-span-2 bg-gray-50 rounded-lg p-2">
                                 <p className="text-xs text-gray-500">Level</p>
-                                <p className="font-medium text-gray-800">{courseRep?.level} Level</p>
-                            </div>
-                            <div className="bg-gray-50 rounded-lg p-2">
-                                <p className="text-xs text-gray-500">Semester</p>
-                                <p className="font-medium text-gray-800 capitalize">{courseRep?.semester} Semester</p>
+                                <p className="font-medium text-gray-800">{inviteInfo?.level_number} Level</p>
                             </div>
                         </div>
                     </div>

@@ -1,6 +1,5 @@
 import { create } from 'zustand'
-import type { CourseItem, CourseFilters, GroupedCourses } from '@/lib/types/course'
-import { CourseService } from '@/lib/services/courseService'
+import { CourseService, type CourseItem, type GroupedCourses } from '@/lib/services/courseService'
 
 interface CourseState {
   // State
@@ -12,16 +11,12 @@ interface CourseState {
   loading: boolean
   error: string | null
   
-  // Filters
-  filters: CourseFilters
+  // Search term
   searchTerm: string
 
   // Actions
-  fetchCourses: (filters?: CourseFilters) => Promise<void>
-  fetchGroupedCourses: (filters?: CourseFilters) => Promise<void>
   fetchUserCourses: (userId: string) => Promise<void>
-  searchCourses: (searchTerm: string, filters?: CourseFilters) => Promise<void>
-  setFilters: (filters: CourseFilters) => void
+  searchCourses: (searchTerm: string, departmentId: string) => Promise<void>
   setSearchTerm: (term: string) => void
   toggleCourseSelection: (courseCode: string) => void
   clearSelection: () => void
@@ -36,38 +31,11 @@ const initialState = {
   selectedCourses: [],
   loading: false,
   error: null,
-  filters: {},
   searchTerm: '',
 }
 
-export const useCourseStore = create<CourseState>((set, get) => ({
+export const useCourseStore = create<CourseState>((set) => ({
   ...initialState,
-
-  fetchCourses: async (filters?: CourseFilters) => {
-    set({ loading: true, error: null })
-    try {
-      const courses = await CourseService.getCourses(filters)
-      set({ courses, loading: false })
-    } catch (error) {
-      set({ 
-        error: error instanceof Error ? error.message : 'Failed to fetch courses',
-        loading: false 
-      })
-    }
-  },
-
-  fetchGroupedCourses: async (filters?: CourseFilters) => {
-    set({ loading: true, error: null })
-    try {
-      const groupedCourses = await CourseService.getGroupedCourses(filters)
-      set({ groupedCourses, loading: false })
-    } catch (error) {
-      set({ 
-        error: error instanceof Error ? error.message : 'Failed to fetch courses',
-        loading: false 
-      })
-    }
-  },
 
   fetchUserCourses: async (userId: string) => {
     set({ loading: true, error: null })
@@ -82,7 +50,7 @@ export const useCourseStore = create<CourseState>((set, get) => ({
     }
   },
 
-  searchCourses: async (searchTerm: string, filters?: CourseFilters) => {
+  searchCourses: async (searchTerm: string, departmentId: string) => {
     if (!searchTerm.trim()) {
       set({ searchResults: [] })
       return
@@ -90,7 +58,7 @@ export const useCourseStore = create<CourseState>((set, get) => ({
 
     set({ loading: true, error: null })
     try {
-      const searchResults = await CourseService.searchCourses(searchTerm, filters)
+      const searchResults = await CourseService.searchCourses(searchTerm, departmentId)
       set({ searchResults, searchTerm, loading: false })
     } catch (error) {
       set({ 
@@ -100,19 +68,8 @@ export const useCourseStore = create<CourseState>((set, get) => ({
     }
   },
 
-  setFilters: (filters: CourseFilters) => {
-    set({ filters })
-    // Automatically refetch with new filters
-    get().fetchGroupedCourses(filters)
-  },
-
   setSearchTerm: (searchTerm: string) => {
     set({ searchTerm })
-    // Debounce search
-    const timeoutId = setTimeout(() => {
-      get().searchCourses(searchTerm, get().filters)
-    }, 300)
-    return () => clearTimeout(timeoutId)
   },
 
   toggleCourseSelection: (courseCode: string) => {

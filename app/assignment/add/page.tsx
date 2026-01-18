@@ -7,7 +7,7 @@ import { ArrowLeft, Calendar, FileText, Save, BookOpen, Upload, X } from 'lucide
 import toast from 'react-hot-toast'
 import { useCourseStore } from '@/lib/store/courseStore'
 import { useAuthStore } from '@/lib/store/authStore'
-import { AssignmentService } from '@/lib/services'
+import { AssignmentService, CourseService } from '@/lib/services'
 
 export default function AddAssignmentPage() {
   const router = useRouter()
@@ -67,14 +67,18 @@ export default function AddAssignmentPage() {
     }
 
     try {
-      await AssignmentService.createAssignment({
+      // Get the course_id from the course code
+      const courseId = await CourseService.getCourseIdByCode(user.id, formData.courseCode)
+      if (!courseId) {
+        toast.error('Could not find the selected course')
+        return
+      }
+
+      await AssignmentService.createAssignment(user.id, {
         title: `${formData.courseCode} Assignment`,
         description: formData.description,
-        courseCode: formData.courseCode,
-        lecturer: 'TBA',
-        dueDate: formData.dueDate,
-        submissionType: 'PDF Report',
-        userId: user.id
+        course_id: courseId,
+        due_at: formData.dueDate,
       })
 
       router.push('/assignment')

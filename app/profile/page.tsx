@@ -2,12 +2,21 @@
 
 import Image from 'next/image'
 import { AppShell } from '@/components/layout/app-shell'
-import { useAuthStore } from '@/lib/store/authStore'
+import { useAuthStore, type UserProfileWithDetails } from '@/lib/store/authStore'
 import { Mail, Phone, GraduationCap, Building2, BookOpen, Calendar, LogOut, Copy, Share2, Users } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import type { LucideIcon } from 'lucide-react'
-import { formatDepartmentName } from '@/lib/hooks/useDepartments'
+import { ClassmateService } from '@/lib/services'
 import toast from 'react-hot-toast'
+import { useState, useEffect } from 'react'
+
+// Helper function to format department names
+function formatDepartmentName(dept: string): string {
+    return dept
+        .split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ')
+}
 
 // ============ PROFILE CARD COMPONENT ============
 function ProfileCard({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string | number | null | undefined }) {
@@ -24,18 +33,66 @@ function ProfileCard({ icon: Icon, label, value }: { icon: LucideIcon; label: st
     )
 }
 
-// Map school IDs to names
-function getSchoolName(schoolId: string | undefined) {
-    if (!schoolId) return 'Not set'
-    const schoolMap: Record<string, string> = {
-        '2e7f32f4-2087-4e4f-a8b5-717e2786d2b4': 'University of Port Harcourt',
-        '301b1d88-a1d6-4211-9dd8-e3fe0e732932': 'University of Calabar'
-    }
-    return schoolMap[schoolId] || schoolId
-}
-
 export default function ProfilePage() {
-    const { user, profile, logout } = useAuthStore()
+    const { user, profile, initialized, logout } = useAuthStore()
+    const typedProfile = profile as UserProfileWithDetails | null
+    const [courseRepName, setCourseRepName] = useState<string | null>(null)
+    const [loadingCourseRep, setLoadingCourseRep] = useState(true)
+    const [inviteCode, setInviteCode] = useState<string | null>(null)
+    
+    // Get level and semester from class_group
+    const levelNumber = typedProfile?.class_group?.level?.level_number
+    const departmentName = typedProfile?.class_group?.department?.name
+    const semesterName = typedProfile?.current_semester?.name
+    const schoolName = typeof typedProfile?.school === 'object' ? typedProfile?.school?.name : null
+    
+    // Check if user is course rep
+    const isCourseRep = typedProfile?.user_roles?.some(
+        (ur: { role?: { name: string } }) => ur.role?.name === 'course_rep'
+    ) || false
+
+    useEffect(() => {
+        const fetchCourseRep = async () => {
+            if (!initialized || !user?.id || !profile) return
+            
+            try {
+                const courseRep = await ClassmateService.getCourseRep(user.id)
+                setCourseRepName(courseRep?.name || null)
+            } catch (error) {
+                console.error('Error fetching course rep:', error)
+                setCourseRepName(null)
+            } finally {
+                setLoadingCourseRep(false)
+            }
+        }
+
+        fetchCourseRep()
+    }, [user?.id, profile?.id, initialized])
+    
+    // Fetch invite code if user is course rep
+    useEffect(() => {
+        const fetchInviteCode = async () => {
+            if (!initialized || !user?.id || !isCourseRep || !typedProfile?.class_group_id) return
+            
+            try {
+                // Look up invite in level_invites by class_group_id
+                const { data, error } = await (await import('@/lib/supabase/client')).supabase
+                    .from('level_invites')
+                    .select('invite_code')
+                    .eq('class_group_id', typedProfile.class_group_id)
+                    .eq('is_active', true)
+                    .single()
+                
+                if (!error && data) {
+                    setInviteCode(data.invite_code)
+                }
+            } catch (error) {
+                console.error('Error fetching invite code:', error)
+            }
+        }
+        
+        fetchInviteCode()
+    }, [user?.id, isCourseRep, typedProfile?.class_group_id])
 
     const handleLogout = async () => {
         try {
@@ -86,9 +143,9 @@ export default function ProfilePage() {
                             </div>
                             <h1 className="text-2xl font-bold mb-1">{profile?.name || 'User'}</h1>
                             <p className="text-blue-100 text-sm">{profile?.email}</p>
-                            {profile?.level && profile?.semester && (
+                            {levelNumber && semesterName && (
                                 <div className="mt-3 px-4 py-1.5 bg-white/20 backdrop-blur-sm rounded-full text-sm font-medium">
-                                    {profile.level}00 Level • {profile.semester === 'first' ? 'First' : 'Second'} Semester
+                                    {levelNumber}00 Level • {semesterName}
                                 </div>
                             )}
                         </div>
@@ -100,13 +157,28 @@ export default function ProfilePage() {
                         
                         <ProfileCard icon={Mail} label="Email Address" value={profile?.email} />
                         <ProfileCard icon={Phone} label="Phone Number" value={profile?.phone_number} />
-                        <ProfileCard icon={Building2} label="School" value={getSchoolName(profile?.school)} />
-                        <ProfileCard icon={GraduationCap} label="Department" value={profile?.department ? formatDepartmentName(profile.department) : 'Not set'} />
+                        <ProfileCard icon={Building2} label="School" value={schoolName || 'Not set'} />
+                        <ProfileCard icon={GraduationCap} label="Department" value={departmentName ? formatDepartmentName(departmentName) : 'Not set'} />
                         
                         <div className="grid grid-cols-2 gap-3">
-                            <ProfileCard icon={BookOpen} label="Level" value={profile?.level ? `${profile.level}00 Level` : undefined} />
-                            <ProfileCard icon={Calendar} label="Semester" value={profile?.semester ? (profile.semester === 'first' ? 'First' : 'Second') : undefined} />
+                            <ProfileCard icon={BookOpen} label="Level" value={levelNumber ? `${levelNumber}00 Level` : undefined} />
+                            <ProfileCard icon={Calendar} label="Semester" value={semesterName || undefined} />
                         </div>
+
+                        {/* Course Rep Name */}
+                        {!isCourseRep && (
+                            <div className="flex items-center gap-3 p-4 bg-white rounded-xl border border-gray-200">
+                                <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                                    <Users className="w-5 h-5 text-blue-600" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-xs text-gray-500">Class Representative</p>
+                                    <p className="text-sm font-semibold text-gray-900 truncate">
+                                        {loadingCourseRep ? 'Loading...' : courseRepName || 'Not assigned'}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Bio */}
@@ -120,7 +192,7 @@ export default function ProfilePage() {
                     )}
 
                     {/* Course Rep Invite Link Section */}
-                    {profile?.is_course_rep && profile?.invite_code && (
+                    {isCourseRep && inviteCode && (
                         <div className="mb-6">
                             <h2 className="text-lg font-bold text-gray-900 px-1 mb-3 flex items-center gap-2">
                                 <Users className="w-5 h-5 text-blue-600" />
@@ -133,13 +205,13 @@ export default function ProfilePage() {
                                 <div className="bg-white rounded-lg p-3 border border-gray-200 mb-4">
                                     <p className="text-xs text-gray-500 mb-1">Your invite link:</p>
                                     <p className="text-sm font-mono text-blue-600 break-all">
-                                        {typeof window !== 'undefined' ? `${window.location.origin}/join/${profile.invite_code}` : `https://qitt.app/join/${profile.invite_code}`}
+                                        {typeof window !== 'undefined' ? `${window.location.origin}/join/${inviteCode}` : `https://qitt.app/join/${inviteCode}`}
                                     </p>
                                 </div>
                                 <div className="flex gap-2">
                                     <button
                                         onClick={() => {
-                                            const link = `${window.location.origin}/join/${profile.invite_code}`
+                                            const link = `${window.location.origin}/join/${inviteCode}`
                                             navigator.clipboard.writeText(link)
                                             toast.success('Link copied!')
                                         }}
@@ -150,7 +222,7 @@ export default function ProfilePage() {
                                     </button>
                                     <button
                                         onClick={() => {
-                                            const link = `${window.location.origin}/join/${profile.invite_code}`
+                                            const link = `${window.location.origin}/join/${inviteCode}`
                                             if (navigator.share) {
                                                 navigator.share({
                                                     title: 'Join my class on Qitt',

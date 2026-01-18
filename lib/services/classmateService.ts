@@ -5,224 +5,206 @@ export interface Classmate {
   id: string
   name: string
   email: string
-  school: string
-  department: string
-  level: number
-  semester: string
-  bio?: string
   avatar_url?: string
   phone_number?: string
-  followers: number
-  hasAssignments: boolean
-  hasTimetable: boolean
-  isConnected: boolean
-}
-
-export interface Connection {
-  id: string
-  follower_id: string
-  following_id: string
-  created_at: string
+  bio?: string
+  isCourseRep: boolean
+  // Display info from joined data
+  schoolName?: string
+  departmentName?: string
+  levelNumber?: number
 }
 
 export class ClassmateService {
-  // Get classmates (users in same school/department/level)
-  static async getClassmates(
-    userId: string, 
-    userSchool: string, 
-    userDepartment: string,
-    userLevel: number
-  ): Promise<Classmate[]> {
+  // Get classmates (users in same class_group)
+  static async getClassmates(userId: string): Promise<Classmate[]> {
     try {
-      // Get users in same school, department AND level (including current user)
-      const { data: users, error: usersError } = await supabase
+      // First get the user's class_group_id
+      const { data: userData, error: userError } = await supabase
         .from('users')
-        .select('*')
-        .eq('school', userSchool)
-        .eq('department', userDepartment)
-        .eq('level', userLevel)
-      
-      if (usersError) throw usersError
+        .select('class_group_id')
+        .eq('id', userId)
+        .single()
 
-      // Get current user's connections
-      const { data: connections, error: connectError } = await supabase
-        .from('connections')
-        .select('following_id')
-        .eq('follower_id', userId)
-
-      if (connectError) throw connectError
-
-      const connectedIds = connections?.map(c => c.following_id) || []
-
-      if (!users?.length) {
+      if (userError || !userData?.class_group_id) {
+        console.error('User not in a class group')
         return []
       }
 
-      const userIds = users.map(u => u.id)
-
-      // Batch fetch all data at once
-      const [followersData, assignmentsData, timetablesData] = await Promise.all([
-        supabase.from('connections').select('following_id').in('following_id', userIds),
-        supabase.from('assignments').select('user_id').in('user_id', userIds),
-        supabase.from('timetable').select('user_id').in('user_id', userIds)
-      ])
-
-      // Create lookup maps
-      const followerCounts = new Map<string, number>()
-      const hasAssignments = new Set<string>()
-      const hasTimetables = new Set<string>()
-
-      followersData.data?.forEach(f => {
-        followerCounts.set(f.following_id, (followerCounts.get(f.following_id) || 0) + 1)
-      })
-
-      assignmentsData.data?.forEach(a => hasAssignments.add(a.user_id))
-      timetablesData.data?.forEach(t => hasTimetables.add(t.user_id))
-
-      // Build classmates array efficiently
-      const classmates: Classmate[] = users.map(user => ({
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        school: user.school,
-        department: user.department,
-        level: user.level,
-        semester: user.semester,
-        bio: user.bio,
-        avatar_url: user.avatar_url,
-        phone_number: user.phone_number,
-        followers: followerCounts.get(user.id) || 0,
-        hasAssignments: hasAssignments.has(user.id),
-        hasTimetable: hasTimetables.has(user.id),
-        isConnected: connectedIds.includes(user.id)
-      }))
-
-      return classmates
-    } catch (error: any) {
-      toast.error('Failed to load classmates')
-      throw error
-    }
-  }
-
-  // Connect to user (simplified - no pending status)
-  static async connectToUser(userId: string, targetUserId: string): Promise<void> {
-    try {
-      // Check if already connected
-      const { data: existing } = await supabase
-        .from('connections')
-        .select('*')
-        .eq('follower_id', userId)
-        .eq('following_id', targetUserId)
-        .single()
-
-      if (existing) {
-        toast.error('Already connected to this user')
-        return
-      }
-
-      // Check if user has existing connection (single connection constraint)
-      const { data: existingConnection, error: connectionError } = await supabase
-        .from('connections')
-        .select('following_id')
-        .eq('follower_id', userId)
-        .limit(1)
-        .single()
-
-      if (connectionError && connectionError.code !== 'PGRST116') {
-        throw connectionError
-      }
-
-      if (existingConnection) {
-        toast.error('You can only connect to one classmate at a time')
-        return
-      }
-
-      const { error } = await supabase
-        .from('connections')
-        .insert({
-          follower_id: userId,
-          following_id: targetUserId
-        })
-
-      if (error) throw error
-      toast.success('Connected successfully!')
-    } catch (error: any) {
-      if (error.message?.includes('already connected')) return
-      toast.error(error.message || 'Failed to connect')
-      throw error
-    }
-  }
-
-  // Disconnect from user
-  static async disconnectUser(userId: string, targetUserId: string): Promise<void> {
-    try {
-      const { error } = await supabase
-        .from('connections')
-        .delete()
-        .eq('follower_id', userId)
-        .eq('following_id', targetUserId)
-
-      if (error) throw error
-      toast.success('Disconnected successfully!')
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to disconnect')
-      throw error
-    }
-  }
-
-  // Get connected user (since only one connection allowed)
-  static async getConnectedUser(userId: string): Promise<Classmate | null> {
-    try {
-      const { data: connection, error } = await supabase
-        .from('connections')
+      // Get all users in the same class group
+      const { data: classmates, error: classmatesError } = await supabase
+        .from('users')
         .select(`
-          following_id,
-          users!connections_following_id_fkey(
-            id, name, email, school, department, level, semester, bio, avatar_url, phone_number
+          id,
+          name,
+          email,
+          avatar_url,
+          phone_number,
+          bio,
+          user_roles(role:roles(name)),
+          school:schools!users_school_id_fkey(name),
+          class_group:class_groups!users_class_group_id_fkey(
+            department:departments!class_groups_department_id_fkey(name),
+            level:levels!class_groups_level_id_fkey(level_number)
           )
         `)
-        .eq('follower_id', userId)
+        .eq('class_group_id', userData.class_group_id)
+        .order('name')
+
+      if (classmatesError) {
+        throw classmatesError
+      }
+
+      if (!classmates?.length) {
+        return []
+      }
+
+      // Transform to Classmate interface
+      const result: Classmate[] = classmates.map(user => {
+        const isCourseRep = user.user_roles?.some(
+          (ur: any) => ur.role?.name === 'course_rep'
+        ) || false
+
+        return {
+          id: user.id,
+          name: user.name || 'Unknown',
+          email: user.email,
+          avatar_url: user.avatar_url || undefined,
+          phone_number: user.phone_number || undefined,
+          bio: user.bio || undefined,
+          isCourseRep,
+          schoolName: (user.school as any)?.name,
+          departmentName: (user.class_group as any)?.department?.name,
+          levelNumber: (user.class_group as any)?.level?.level_number
+        }
+      })
+
+      // Sort: course rep first, then alphabetically by name
+      result.sort((a, b) => {
+        if (a.isCourseRep && !b.isCourseRep) return -1
+        if (!a.isCourseRep && b.isCourseRep) return 1
+        return (a.name || '').localeCompare(b.name || '')
+      })
+
+      return result
+    } catch (error: any) {
+      toast.error('Failed to load classmates')
+      console.error('Error fetching classmates:', error)
+      return []
+    }
+  }
+
+  // Get classmates count
+  static async getClassmatesCount(userId: string): Promise<number> {
+    try {
+      const { data: userData } = await supabase
+        .from('users')
+        .select('class_group_id')
+        .eq('id', userId)
         .single()
 
-      if (error || !connection?.users) return null
+      if (!userData?.class_group_id) return 0
 
-      const user = Array.isArray(connection.users) ? connection.users[0] : connection.users
+      const { count, error } = await supabase
+        .from('users')
+        .select('id', { count: 'exact', head: true })
+        .eq('class_group_id', userData.class_group_id)
 
-      // Get follower count
-      const { count: followerCount } = await supabase
-        .from('connections')
-        .select('*', { count: 'exact', head: true })
-        .eq('following_id', user.id)
+      if (error) return 0
+      return count || 0
+    } catch {
+      return 0
+    }
+  }
 
-      // Check for assignments and timetable
-      const { count: assignmentCount } = await supabase
-        .from('assignments')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
+  // Get course rep for user's class group
+  static async getCourseRep(userId: string): Promise<Classmate | null> {
+    try {
+      const { data: userData } = await supabase
+        .from('users')
+        .select('class_group_id')
+        .eq('id', userId)
+        .single()
 
-      const { count: timetableCount } = await supabase
-        .from('timetable')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
+      if (!userData?.class_group_id) return null
 
+      // Find the level rep for this class group
+      const { data: levelRep, error } = await supabase
+        .from('level_reps')
+        .select(`
+          user:users!level_reps_user_id_fkey(
+            id,
+            name,
+            email,
+            avatar_url,
+            phone_number,
+            bio
+          )
+        `)
+        .eq('class_group_id', userData.class_group_id)
+        .eq('is_active', true)
+        .single()
+
+      if (error || !levelRep?.user) return null
+
+      const user = levelRep.user as any
       return {
         id: user.id,
-        name: user.name,
+        name: user.name || 'Unknown',
         email: user.email,
-        school: user.school,
-        department: user.department,
-        level: user.level,
-        semester: user.semester,
-        bio: user.bio,
         avatar_url: user.avatar_url,
         phone_number: user.phone_number,
-        followers: followerCount || 0,
-        hasAssignments: (assignmentCount || 0) > 0,
-        hasTimetable: (timetableCount || 0) > 0,
-        isConnected: true
+        bio: user.bio,
+        isCourseRep: true
       }
-    } catch (error: any) {
+    } catch {
       return null
+    }
+  }
+
+  // Search classmates by name
+  static async searchClassmates(userId: string, searchTerm: string): Promise<Classmate[]> {
+    try {
+      const { data: userData } = await supabase
+        .from('users')
+        .select('class_group_id')
+        .eq('id', userId)
+        .single()
+
+      if (!userData?.class_group_id) return []
+
+      const { data: classmates, error } = await supabase
+        .from('users')
+        .select(`
+          id,
+          name,
+          email,
+          avatar_url,
+          phone_number,
+          bio,
+          user_roles(role:roles(name))
+        `)
+        .eq('class_group_id', userData.class_group_id)
+        .ilike('name', `%${searchTerm}%`)
+        .order('name')
+        .limit(20)
+
+      if (error) throw error
+
+      return (classmates || []).map(user => ({
+        id: user.id,
+        name: user.name || 'Unknown',
+        email: user.email,
+        avatar_url: user.avatar_url || undefined,
+        phone_number: user.phone_number || undefined,
+        bio: user.bio || undefined,
+        isCourseRep: user.user_roles?.some(
+          (ur: any) => ur.role?.name === 'course_rep'
+        ) || false
+      }))
+    } catch (error) {
+      console.error('Error searching classmates:', error)
+      return []
     }
   }
 }

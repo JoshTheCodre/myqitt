@@ -1,114 +1,131 @@
 import { supabase } from '@/lib/supabase/client'
-import type { CourseFilters, GroupedCourses, CourseCurriculum, CourseItem } from '@/lib/types/course'
+
+export interface Course {
+  id: string
+  school_id: string
+  department_id: string
+  semester_id: string
+  code: string
+  title: string
+  description?: string
+  credit_unit: number
+  is_compulsory: boolean
+  created_at?: string
+  updated_at?: string
+}
+
+export interface CourseItem {
+  courseCode: string
+  courseTitle: string
+  courseUnit: number
+  category: 'COMPULSORY' | 'ELECTIVE'
+}
+
+export interface GroupedCourses {
+  compulsory: CourseItem[]
+  elective: CourseItem[]
+}
 
 export class CourseService {
   /**
-   * Fetch course curriculum for a department
+   * Fetch courses for a specific department and semester
    */
-  static async getCourseCurriculum(department: string, school?: string): Promise<CourseCurriculum | null> {
-    try {
-      let query = supabase
-        .from('courses')
-        .select('*')
-        .eq('department', department)
-
-      if (school) {
-        query = query.eq('school', school)
-      }
-
-      const { data, error } = await query.single()
-
-      if (error) {
-        console.error('Error fetching course curriculum:', error)
-        return null
-      }
-
-      return data
-    } catch (error) {
-      console.error('Failed to fetch course curriculum:', error)
-      return null
-    }
-  }
-
-  /**
-   * Fetch courses with optional filters
-   */
-  static async getCourses(filters?: CourseFilters): Promise<CourseItem[]> {
-    try {
-      if (!filters?.department) {
-        console.warn('Department filter is required for new course structure')
-        return []
-      }
-
-      const level = filters.level || 1
-      const semester = filters.semester === 'second' ? 2 : 1
-
-      const grouped = await this.getCoursesByLevelAndSemester(
-        filters.department,
-        level,
-        semester,
-        filters.school
-      )
-
-      return [...grouped.compulsory, ...grouped.elective]
-    } catch (error) {
-      console.error('Failed to fetch courses:', error)
-      return []
-    }
-  }
-
-  /**
-   * Get courses for a specific level and semester from curriculum
-   */
-  static async getCoursesByLevelAndSemester(
-    department: string,
-    level: number,
-    semester: number,
-    school?: string
+  static async getCoursesByDepartmentAndSemester(
+    departmentId: string,
+    semesterId: string
   ): Promise<GroupedCourses> {
     try {
-      const curriculum = await this.getCourseCurriculum(department, school)
-      
-      if (!curriculum || !curriculum.course_data) {
+      const { data: courses, error } = await supabase
+        .from('courses')
+        .select('*')
+        .eq('department_id', departmentId)
+        .eq('semester_id', semesterId)
+        .order('code')
+
+      if (error) {
+        console.error('Error fetching courses:', error)
         return { compulsory: [], elective: [] }
       }
 
-      const levelKey = (level * 100).toString()
-      const semesterKey = semester.toString()
-
-      const courses = curriculum.course_data[levelKey]?.[semesterKey] || []
-
-      return {
-        compulsory: courses.filter(course => course.category === 'COMPULSORY'),
-        elective: courses.filter(course => course.category === 'ELECTIVE')
+      if (!courses || courses.length === 0) {
+        return { compulsory: [], elective: [] }
       }
+
+      // Convert to CourseItem format and group
+      const compulsory: CourseItem[] = []
+      const elective: CourseItem[] = []
+
+      courses.forEach((course: Course) => {
+        const item: CourseItem = {
+          courseCode: course.code,
+          courseTitle: course.title,
+          courseUnit: course.credit_unit,
+          category: course.is_compulsory ? 'COMPULSORY' : 'ELECTIVE'
+        }
+
+        if (course.is_compulsory) {
+          compulsory.push(item)
+        } else {
+          elective.push(item)
+        }
+      })
+
+      return { compulsory, elective }
     } catch (error) {
-      console.error('Failed to fetch courses by level and semester:', error)
+      console.error('Failed to fetch courses:', error)
       return { compulsory: [], elective: [] }
     }
   }
 
   /**
-   * Get courses grouped by compulsory/elective
+   * Get courses for current user's profile
+   * Uses class_group_id to determine department, and current_semester_id for semester
    */
-  static async getGroupedCourses(filters?: CourseFilters): Promise<GroupedCourses> {
+  static async getCoursesForUser(userId: string): Promise<GroupedCourses> {
     try {
-      if (!filters?.department) {
-        console.warn('Department filter is required for new course structure')
+      console.log('Fetching courses for user:', userId)
+
+      // Get user profile with class_group info
+      const { data: profile, error: profileError } = await supabase
+        .from('users')
+        .select(`
+          id,
+          current_semester_id,
+          class_group:class_groups!users_class_group_id_fkey(
+            id,
+            department_id
+          )
+        `)
+        .eq('id', userId)
+        .single()
+
+      console.log('User profile:', profile)
+      console.log('Profile error:', profileError)
+
+      if (profileError || !profile) {
+        console.error('Error fetching user profile:', profileError)
         return { compulsory: [], elective: [] }
       }
 
-      const level = filters.level || 1
-      const semester = filters.semester === 'second' ? 2 : 1
+      const classGroup = profile.class_group as { id: string; department_id: string } | null
+      
+      if (!classGroup?.department_id || !profile.current_semester_id) {
+        console.warn('User profile missing required fields (class_group or semester).', profile)
+        return { compulsory: [], elective: [] }
+      }
 
-      return await this.getCoursesByLevelAndSemester(
-        filters.department,
-        level,
-        semester,
-        filters.school
+      console.log('Fetching courses with:', {
+        departmentId: classGroup.department_id,
+        semesterId: profile.current_semester_id
+      })
+
+      // Fetch courses for user's department and semester
+      return await this.getCoursesByDepartmentAndSemester(
+        classGroup.department_id,
+        profile.current_semester_id
       )
     } catch (error) {
-      console.error('Failed to fetch grouped courses:', error)
+      console.error('Failed to fetch user courses:', error)
       return { compulsory: [], elective: [] }
     }
   }
@@ -118,28 +135,28 @@ export class CourseService {
    */
   static async getCourseByCode(
     code: string,
-    department: string,
-    school?: string
+    departmentId: string,
+    semesterId: string
   ): Promise<CourseItem | null> {
     try {
-      const curriculum = await this.getCourseCurriculum(department, school)
-      
-      if (!curriculum || !curriculum.course_data) {
+      const { data: course, error } = await supabase
+        .from('courses')
+        .select('*')
+        .eq('code', code)
+        .eq('department_id', departmentId)
+        .eq('semester_id', semesterId)
+        .single()
+
+      if (error || !course) {
         return null
       }
 
-      // Search through all levels and semesters
-      for (const levelKey in curriculum.course_data) {
-        for (const semesterKey in curriculum.course_data[levelKey]) {
-          const courses = curriculum.course_data[levelKey][semesterKey]
-          const course = courses.find(c => c.courseCode === code)
-          if (course) {
-            return course
-          }
-        }
+      return {
+        courseCode: course.code,
+        courseTitle: course.title,
+        courseUnit: course.credit_unit,
+        category: course.is_compulsory ? 'COMPULSORY' : 'ELECTIVE'
       }
-
-      return null
     } catch (error) {
       console.error('Failed to fetch course by code:', error)
       return null
@@ -147,42 +164,31 @@ export class CourseService {
   }
 
   /**
-   * Search courses by title or code
+   * Search courses by title or code within a department
    */
   static async searchCourses(
     searchTerm: string,
-    filters?: CourseFilters
+    departmentId: string
   ): Promise<CourseItem[]> {
     try {
-      if (!filters?.department) {
-        console.warn('Department filter is required for new course structure')
+      const { data: courses, error } = await supabase
+        .from('courses')
+        .select('*')
+        .eq('department_id', departmentId)
+        .or(`code.ilike.%${searchTerm}%,title.ilike.%${searchTerm}%`)
+        .order('code')
+        .limit(20)
+
+      if (error || !courses) {
         return []
       }
 
-      const curriculum = await this.getCourseCurriculum(filters.department, filters.school)
-      
-      if (!curriculum || !curriculum.course_data) {
-        return []
-      }
-
-      const results: CourseItem[] = []
-      const searchLower = searchTerm.toLowerCase()
-
-      // Search through all levels and semesters
-      for (const levelKey in curriculum.course_data) {
-        for (const semesterKey in curriculum.course_data[levelKey]) {
-          const courses = curriculum.course_data[levelKey][semesterKey]
-          
-          const matches = courses.filter(course =>
-            course.courseCode.toLowerCase().includes(searchLower) ||
-            course.courseTitle.toLowerCase().includes(searchLower)
-          )
-
-          results.push(...matches)
-        }
-      }
-
-      return results
+      return courses.map((course: Course) => ({
+        courseCode: course.code,
+        courseTitle: course.title,
+        courseUnit: course.credit_unit,
+        category: course.is_compulsory ? 'COMPULSORY' : 'ELECTIVE' as const
+      }))
     } catch (error) {
       console.error('Failed to search courses:', error)
       return []
@@ -197,56 +203,89 @@ export class CourseService {
   }
 
   /**
-   * Get courses for current user's profile
+   * Get all courses for a class group (all semesters)
    */
-  static async getCoursesForUser(
-    userId: string
-  ): Promise<GroupedCourses> {
+  static async getAllCoursesForClassGroup(
+    classGroupId: string
+  ): Promise<Course[]> {
     try {
-      console.log('Fetching courses for user:', userId)
-      
-      // Get user profile to determine school, department, level, semester
+      // First get the department_id from class_group
+      const { data: classGroup, error: cgError } = await supabase
+        .from('class_groups')
+        .select('department_id')
+        .eq('id', classGroupId)
+        .single()
+
+      if (cgError || !classGroup) {
+        console.error('Error fetching class group:', cgError)
+        return []
+      }
+
+      // Then fetch all courses for that department
+      const { data: courses, error } = await supabase
+        .from('courses')
+        .select('*')
+        .eq('department_id', classGroup.department_id)
+        .order('code')
+
+      if (error || !courses) {
+        return []
+      }
+
+      return courses
+    } catch (error) {
+      console.error('Failed to fetch all courses:', error)
+      return []
+    }
+  }
+
+  /**
+   * Get course ID by course code for a user's class group
+   */
+  static async getCourseIdByCode(
+    userId: string,
+    courseCode: string
+  ): Promise<string | null> {
+    try {
+      // Get user's class_group_id to find department
       const { data: profile, error: profileError } = await supabase
         .from('users')
-        .select('school, department, level, semester')
+        .select(`
+          current_semester_id,
+          class_group:class_groups!users_class_group_id_fkey(
+            department_id
+          )
+        `)
         .eq('id', userId)
         .single()
 
-      console.log('User profile:', profile)
-      console.log('Profile error:', profileError)
-
-      if (profileError) {
-        console.error('Error fetching user profile:', profileError)
-        return { compulsory: [], elective: [] }
+      if (profileError || !profile) {
+        console.error('Error fetching user for course lookup:', profileError)
+        return null
       }
 
-      // Check if profile has required fields
-      if (!profile || !profile.department || !profile.level || !profile.semester) {
-        console.warn('User profile missing required fields (department, level, semester).', profile)
-        return { compulsory: [], elective: [] }
+      const classGroup = profile.class_group as { department_id: string } | null
+      if (!classGroup?.department_id) {
+        return null
       }
 
-      const semester = profile.semester === 'second' ? 2 : 1
+      // Find the course by code in user's department
+      const { data: course, error } = await supabase
+        .from('courses')
+        .select('id')
+        .eq('code', courseCode)
+        .eq('department_id', classGroup.department_id)
+        .single()
 
-      console.log('Fetching courses with filters:', {
-        department: profile.department,
-        level: profile.level,
-        semester
-      })
+      if (error || !course) {
+        console.error('Course not found:', courseCode)
+        return null
+      }
 
-      // Fetch courses matching user's profile
-      const courses = await this.getCoursesByLevelAndSemester(
-        profile.department,
-        profile.level,
-        semester,
-        profile.school
-      )
-
-      console.log('Courses fetched:', courses)
-      return courses
+      return course.id
     } catch (error) {
-      console.error('Failed to fetch user courses:', error)
-      return { compulsory: [], elective: [] }
+      console.error('Failed to get course ID:', error)
+      return null
     }
   }
 }
