@@ -1,12 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { AppShell } from '@/components/layout/app-shell'
-import { Clock, MapPin, Plus } from 'lucide-react'
+import { Clock, MapPin, Plus, Share2, Calendar } from 'lucide-react'
 import { useAuthStore } from '@/lib/store/authStore'
 import { TimetableService } from '@/lib/services'
 import toast from 'react-hot-toast'
+import { FreeTimeModal } from '@/components/timetable/free-time-modal'
+import { TimetableImageGenerator } from '@/components/timetable/timetable-image-generator'
 
 // ============ TYPES ============
 interface ClassInfo {
@@ -34,22 +36,60 @@ interface ClassScheduleProps {
 }
 
 // ============ HEADER COMPONENT ============
-function Header({ onAddClick, hasTimetable, isCourseRep }: { onAddClick: () => void; hasTimetable: boolean; isCourseRep: boolean }) {
+function Header({ 
+  onAddClick, 
+  hasTimetable, 
+  isCourseRep,
+  onViewFreeTime,
+  shareButtonRef,
+  showingFreeTime 
+}: { 
+  onAddClick: () => void; 
+  hasTimetable: boolean; 
+  isCourseRep: boolean;
+  onViewFreeTime: () => void;
+  shareButtonRef: React.RefObject<HTMLButtonElement>;
+  showingFreeTime: boolean;
+}) {
   return (
     <div>
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-3">
         <div className="relative">
           <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-gray-900">Timetable</h1>
         </div>
-        {isCourseRep && (
-          <button
-            onClick={onAddClick}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl font-bold text-sm hover:from-blue-700 hover:to-blue-600 transition-all shadow-md hover:shadow-lg flex-shrink-0"
-          >
-            <Plus className="w-4 h-4" />
-            <span>{hasTimetable ? 'Update' : 'Add'}</span>
-          </button>
-        )}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {hasTimetable && (
+            <>
+              <button
+                onClick={onViewFreeTime}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all shadow-sm hover:shadow-md ${
+                  showingFreeTime 
+                    ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white hover:from-purple-600 hover:to-purple-700' 
+                    : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <Calendar className="w-4 h-4" />
+                <span className="hidden sm:inline">Free Time</span>
+              </button>
+              <button
+                ref={shareButtonRef}
+                className="p-2 bg-white border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-all shadow-sm hover:shadow-md"
+                title="Share Timetable"
+              >
+                <Share2 className="w-5 h-5" />
+              </button>
+            </>
+          )}
+          {isCourseRep && (
+            <button
+              onClick={onAddClick}
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl font-bold text-sm hover:from-blue-700 hover:to-blue-600 transition-all shadow-md hover:shadow-lg"
+            >
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">{hasTimetable ? 'Update' : 'Add'}</span>
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -91,7 +131,10 @@ function DaySelector({ days, selectedDay, setSelectedDay }: DaySelectorProps) {
 // ============ CLASS CARD COMPONENT ============
 function ClassCard({ time, title, location }: ClassCardProps) {
   return (
-    <div className="bg-white rounded-lg p-5 border-l-2 border-r border-t border-b border-gray-200 hover:shadow-md transition-all" style={{ borderLeftColor: '#0A32F8' }}>
+    <div 
+      className="bg-white rounded-lg p-5 border-l-2 border-r border-t border-b border-gray-200 hover:shadow-md transition-all" 
+      style={{ borderLeftColor: '#0A32F8' }}
+    >
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
@@ -165,6 +208,8 @@ export default function TimetablePage() {
   const [loading, setLoading] = useState(true)
   const [hasTimetable, setHasTimetable] = useState(false)
   const [isCourseRep, setIsCourseRep] = useState(false)
+  const [showFreeTimeModal, setShowFreeTimeModal] = useState(false)
+  const shareButtonRef = useRef<HTMLButtonElement>(null)
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
   const classesForDay = timetable[selectedDay] || []
 
@@ -207,11 +252,22 @@ export default function TimetablePage() {
     }
   }
 
+  const handleViewFreeTime = () => {
+    setShowFreeTimeModal(true)
+  }
+
   return (
     <AppShell>
       <div className="h-full flex items-start justify-center overflow-hidden">
         <div className="w-full lg:w-3/4 px-4 py-8 pb-24 lg:pb-8 overflow-x-hidden">
-          <Header onAddClick={() => router.push('/timetable/add')} hasTimetable={hasTimetable} isCourseRep={isCourseRep} />
+          <Header 
+            onAddClick={() => router.push('/timetable/add')} 
+            hasTimetable={hasTimetable} 
+            isCourseRep={isCourseRep}
+            onViewFreeTime={handleViewFreeTime}
+            shareButtonRef={shareButtonRef}
+            showingFreeTime={false}
+          />
           
           <div className="mt-8">
             <DaySelector 
@@ -240,9 +296,25 @@ export default function TimetablePage() {
               classesForDay={classesForDay} 
               selectedDay={selectedDay}
               isCourseRep={isCourseRep}
+              showingFreeTime={false}
             />
           )}
         </div>
+        
+        {/* Free Time Modal */}
+        <FreeTimeModal
+          isOpen={showFreeTimeModal}
+          onClose={() => setShowFreeTimeModal(false)}
+          timetable={timetable}
+          initialDay={selectedDay}
+        />
+        
+        {/* Timetable Image Generator */}
+        <TimetableImageGenerator
+          timetable={timetable}
+          onShare={() => {}}
+          triggerRef={shareButtonRef}
+        />
       </div>
     </AppShell>
   )
