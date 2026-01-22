@@ -1,7 +1,11 @@
 import { create } from 'zustand'
 import toast from 'react-hot-toast'
 import { supabase } from '@/lib/supabase/client'
-import type { User } from '@supabase/supabase-js'
+import type { User, Subscription } from '@supabase/supabase-js'
+
+// Track auth listener to prevent multiple registrations
+let authListenerRegistered = false
+let authSubscription: Subscription | null = null
 
 // New schema-aligned UserProfile interface
 export interface UserProfile {
@@ -94,7 +98,11 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
 
   // Initialize auth state with full profile details
   initialize: async () => {
-    set({ loading: true, initialized: false })
+    // Skip if already initialized to prevent double-init
+    const state = get()
+    if (state.initialized) return
+    
+    set({ loading: true })
     
     try {
       const { data: { session } } = await supabase.auth.getSession()
@@ -120,62 +128,67 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
 
         set({ 
           user: session.user, 
-          profile: error ? null : profile, 
-          loading: false, 
-          initialized: true 
+          profile: error ? null : profile
         })
       } else {
         set({ 
           user: null, 
-          profile: null, 
-          loading: false, 
-          initialized: true 
+          profile: null
         })
       }
 
-      // Listen for auth state changes
-      supabase.auth.onAuthStateChange(async (event, session) => {
-        if (event === 'SIGNED_IN' && session?.user) {
-          const { data: profile } = await supabase
-            .from('users')
-            .select(`
-              *,
-              school:schools!users_school_id_fkey(id, name),
-              class_group:class_groups!users_class_group_id_fkey(
-                id, name, school_id, department_id, level_id,
-                department:departments!class_groups_department_id_fkey(id, name),
-                level:levels!class_groups_level_id_fkey(id, level_number, name)
-              ),
-              current_session:sessions!users_current_session_id_fkey(id, name),
-              current_semester:semesters!users_current_semester_id_fkey(id, name),
-              user_roles(role:roles(id, name))
-            `)
-            .eq('id', session.user.id)
-            .single()
+      // Register auth state change listener only once
+      if (!authListenerRegistered) {
+        authListenerRegistered = true
+        const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
+          if (event === 'SIGNED_IN' && session?.user) {
+            const { data: profile } = await supabase
+              .from('users')
+              .select(`
+                *,
+                school:schools!users_school_id_fkey(id, name),
+                class_group:class_groups!users_class_group_id_fkey(
+                  id, name, school_id, department_id, level_id,
+                  department:departments!class_groups_department_id_fkey(id, name),
+                  level:levels!class_groups_level_id_fkey(id, level_number, name)
+                ),
+                current_session:sessions!users_current_session_id_fkey(id, name),
+                current_semester:semesters!users_current_semester_id_fkey(id, name),
+                user_roles(role:roles(id, name))
+              `)
+              .eq('id', session.user.id)
+              .single()
 
-          set({ 
-            user: session.user, 
-            profile, 
-            loading: false, 
-            initialized: true 
-          })
-        } else if (event === 'SIGNED_OUT') {
-          set({ 
-            user: null, 
-            profile: null, 
-            loading: false, 
-            initialized: true 
-          })
-        }
-      })
+            set({ 
+              user: session.user, 
+              profile, 
+              loading: false, 
+              initialized: true 
+            })
+          } else if (event === 'SIGNED_OUT') {
+            set({ 
+              user: null, 
+              profile: null, 
+              loading: false, 
+              initialized: true 
+            })
+          } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+            // Keep user state in sync on token refresh
+            set({ user: session.user })
+          }
+        })
+        authSubscription = data.subscription
+      }
       
     } catch (error) {
+      console.error('Auth initialization error:', error)
       set({ 
         user: null, 
-        profile: null, 
-        loading: false, 
-        initialized: true 
+        profile: null
       })
+    } finally {
+      // ALWAYS set initialized and clear loading, even on error
+      set({ loading: false, initialized: true })
     }
   },
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore } from '@/lib/store/authStore'
 
@@ -10,32 +10,32 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, loading, initialized, initialize } = useAuthStore()
   const router = useRouter()
   const pathname = usePathname()
+  const initCalled = useRef(false)
 
-  // Initialize auth on mount
+  // Initialize auth exactly once on mount
   useEffect(() => {
-    if (!initialized) {
+    if (!initCalled.current) {
+      initCalled.current = true
       initialize()
     }
-  }, [initialized, initialize])
+  }, [initialize])
 
   useEffect(() => {
+    // Don't redirect until auth is fully initialized
     if (!initialized || loading) return
 
     const isPublicPath = PUBLIC_PATHS.some(path => 
       pathname === path || pathname.startsWith(path + '/')
     )
 
-    const timeoutId = setTimeout(() => {
-      if (!user && !isPublicPath) {
-        router.replace('/')
-      } else if (user && pathname === '/') {
-        router.replace('/dashboard')
-      }
-    }, 100)
-
-    return () => clearTimeout(timeoutId)
+    if (!user && !isPublicPath) {
+      router.replace('/')
+    } else if (user && pathname === '/') {
+      router.replace('/dashboard')
+    }
   }, [user, initialized, loading, pathname, router])
 
+  // Show loading spinner until auth is initialized
   if (!initialized) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-white">
