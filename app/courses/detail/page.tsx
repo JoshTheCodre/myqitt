@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from 'next/navigation'
 import { AppShell } from '@/components/layout/app-shell'
-import { ArrowLeft, BookOpen, Calendar, FileText, Clock, ExternalLink, Edit3, Plus, MapPin, GraduationCap, Sparkles, X } from 'lucide-react'
+import { ArrowLeft, Calendar, FileText, Clock, ExternalLink, Edit3, Plus, MapPin, Award, X } from 'lucide-react'
 import { Suspense, useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { useAuthStore } from '@/lib/store/authStore'
@@ -137,75 +137,68 @@ function CourseDetailContent() {
 
   return (
     <AppShell>
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
         <div className="max-w-4xl mx-auto px-4 py-6 pb-24 lg:pb-8">
           {/* Header */}
-          <div className="mb-6">
+          <div className="mb-8">
             <button
               onClick={() => router.back()}
-              className="flex items-center gap-2 text-gray-600 hover:text-blue-600 mb-4 transition-colors group"
+              className="flex items-center gap-2 text-gray-600 hover:text-blue-600 mb-6 transition-colors group"
             >
               <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
               <span className="text-sm font-semibold">Back to Courses</span>
             </button>
 
             {/* Hero Card */}
-            <div className="relative bg-gradient-to-br from-blue-600 via-blue-700 to-purple-700 rounded-3xl p-8 shadow-2xl overflow-hidden">
+            <div className="relative bg-gradient-to-br from-gray-900 via-blue-900 to-gray-800 rounded-3xl p-8 shadow-xl overflow-hidden border border-gray-700">
               {/* Decorative elements */}
-              <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-              <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-500/20 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2"></div>
+              <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4"></div>
+              <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-400/10 rounded-full blur-2xl translate-y-1/2 -translate-x-1/4"></div>
               
-              <div className="relative flex items-start gap-5">
-                <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0 shadow-xl border-2 border-white/30">
-                  <GraduationCap className="w-8 h-8 text-white" />
+              <div className="relative flex items-start justify-between gap-4">
+                <div>
+                  <h1 className="text-4xl font-black text-white mb-1 tracking-tight">{courseCode}</h1>
+                  <p className="text-blue-100 text-lg font-medium">{courseTitle}</p>
                 </div>
-                <div className="flex-1">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <h1 className="text-3xl font-black text-white mb-2 tracking-tight">{courseCode}</h1>
-                      <p className="text-blue-100 text-lg font-medium">{courseTitle}</p>
-                    </div>
-                    <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm font-bold border border-white/30 shadow-lg">
-                      <Sparkles className="w-4 h-4" />
-                      <span>{courseUnit} Units</span>
-                    </div>
-                  </div>
+                <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md text-white px-4 py-2 rounded-xl text-sm font-bold border border-white/20 shadow-lg">
+                  <Award className="w-4 h-4" />
+                  <span>{courseUnit} Units</span>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Quick Stats */}
-          <div className="grid grid-cols-2 gap-4 mb-6">
+          <div className="grid grid-cols-2 gap-4 mb-8">
             {/* Classes This Week */}
-            <div className="bg-white rounded-2xl border border-purple-100 p-5 shadow-lg hover:shadow-xl transition-all group">
+            <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm hover:shadow-md hover:border-blue-200 transition-all group">
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
-                  <Calendar className="w-6 h-6 text-white" />
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-100 to-blue-50 flex items-center justify-center shadow-sm border border-blue-100 group-hover:from-blue-200 group-hover:to-blue-100 transition-colors">
+                  <Calendar className="w-6 h-6 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-purple-600 uppercase tracking-wider">Classes</p>
+                  <p className="text-xs font-bold text-blue-600 uppercase tracking-widest">Sessions</p>
                   <p className="text-3xl font-black text-gray-900">{timetableEntries.length}</p>
                 </div>
               </div>
-              <p className="text-xs text-gray-500 font-medium">sessions per week</p>
+              <p className="text-xs text-gray-500 font-medium">per week</p>
             </div>
 
             {/* Assignments */}
             <button
               onClick={() => router.push(`/assignment?course=${courseCode}`)}
-              className="bg-white rounded-2xl border border-orange-100 p-5 shadow-lg hover:shadow-xl transition-all text-left group"
+              className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm hover:shadow-md hover:border-blue-200 transition-all text-left group"
             >
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-orange-700 flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
-                  <FileText className="w-6 h-6 text-white" />
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-100 to-blue-50 flex items-center justify-center shadow-sm border border-blue-100 group-hover:from-blue-200 group-hover:to-blue-100 transition-colors">
+                  <FileText className="w-6 h-6 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-orange-600 uppercase tracking-wider">Assignments</p>
+                  <p className="text-xs font-bold text-blue-600 uppercase tracking-widest">Assignments</p>
                   <p className="text-3xl font-black text-gray-900">{assignmentCount}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-1 text-xs text-orange-600 font-bold">
+              <div className="flex items-center gap-1 text-xs text-blue-600 font-bold">
                 <span>View all</span>
                 <ExternalLink className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
               </div>
@@ -213,17 +206,12 @@ function CourseDetailContent() {
           </div>
 
           {/* Course Outline */}
-          <div className="bg-white rounded-2xl border border-blue-100 p-6 shadow-lg mb-6">
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-xl font-black text-gray-900 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-md">
-                  <BookOpen className="w-5 h-5 text-white" />
-                </div>
-                Course Outline
-              </h2>
+          <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-all mb-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-black text-gray-900">Course Outline</h2>
               <button
                 onClick={openOutlineModal}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-bold text-sm shadow-md hover:shadow-lg hover:from-blue-600 hover:to-blue-700 transition-all"
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-sm hover:shadow-md transition-all"
               >
                 {outline ? <Edit3 className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                 <span>{outline ? 'Edit' : 'Add'}</span>
@@ -240,26 +228,18 @@ function CourseDetailContent() {
               </div>
             ) : (
               <div className="text-center py-8">
-                <div className="w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center mx-auto mb-3">
-                  <BookOpen className="w-8 h-8 text-blue-400" />
-                </div>
                 <p className="text-gray-500 text-sm font-medium mb-2">No course outline yet</p>
-                <p className="text-gray-400 text-xs">Click &quot;Add&quot; to create one</p>
+                <p className="text-gray-400 text-xs">Click "Add" to create one</p>
               </div>
             )}
           </div>
 
           {/* Weekly Schedule */}
-          <div className="bg-white rounded-2xl border border-purple-100 p-6 shadow-lg">
-            <h2 className="text-xl font-black text-gray-900 mb-5 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center shadow-md">
-                <Clock className="w-5 h-5 text-white" />
-              </div>
-              Weekly Schedule
-            </h2>
+          <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-all">
+            <h2 className="text-xl font-black text-gray-900 mb-6">Weekly Schedule</h2>
             {loading ? (
               <div className="flex items-center gap-2 text-gray-500 text-sm">
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-purple-600 border-t-transparent"></div>
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
                 <span>Loading...</span>
               </div>
             ) : sortedEntries.length > 0 ? (
@@ -267,16 +247,16 @@ function CourseDetailContent() {
                 {sortedEntries.map((entry, idx) => (
                   <div 
                     key={idx}
-                    className="flex items-center gap-4 p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl border border-purple-100 hover:shadow-md transition-all group"
+                    className="flex items-center gap-4 p-4 bg-gradient-to-r from-blue-50 to-gray-50 rounded-xl border border-gray-200 hover:border-blue-300 hover:shadow-sm transition-all group"
                   >
-                    <div className="flex-shrink-0 w-24">
-                      <div className="bg-white rounded-lg px-3 py-2 border border-purple-200 shadow-sm">
-                        <p className="text-sm font-black text-purple-700 capitalize text-center">{entry.day}</p>
+                    <div className="flex-shrink-0 w-20">
+                      <div className="bg-white rounded-lg px-3 py-2 border border-gray-200 shadow-sm group-hover:border-blue-300 transition-colors">
+                        <p className="text-sm font-black text-gray-900 capitalize text-center">{entry.day}</p>
                       </div>
                     </div>
                     <div className="flex-1 flex flex-col gap-2">
                       <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
-                        <Clock className="w-4 h-4 text-purple-600" />
+                        <Clock className="w-4 h-4 text-blue-600" />
                         <span>{formatTime(entry.start_time)} - {formatTime(entry.end_time)}</span>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -289,8 +269,8 @@ function CourseDetailContent() {
               </div>
             ) : (
               <div className="text-center py-8">
-                <div className="w-16 h-16 rounded-2xl bg-purple-50 flex items-center justify-center mx-auto mb-3">
-                  <Calendar className="w-8 h-8 text-purple-400" />
+                <div className="w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center mx-auto mb-3">
+                  <Calendar className="w-8 h-8 text-blue-300" />
                 </div>
                 <p className="text-gray-500 text-sm font-medium mb-1">No classes scheduled</p>
                 <p className="text-gray-400 text-xs">Add this course to your timetable</p>
@@ -303,17 +283,12 @@ function CourseDetailContent() {
       {/* Outline Edit Modal */}
       {showOutlineModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full p-8">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full p-8 border border-gray-200">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-black text-gray-900 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
-                  <BookOpen className="w-5 h-5 text-white" />
-                </div>
-                {outline ? 'Edit' : 'Add'} Course Outline
-              </h2>
+              <h2 className="text-2xl font-black text-gray-900">{outline ? 'Edit' : 'Add'} Course Outline</h2>
               <button
                 onClick={() => setShowOutlineModal(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="text-gray-400 hover:text-gray-600 transition-colors p-1 hover:bg-gray-100 rounded-lg"
               >
                 <X className="w-6 h-6" />
               </button>
@@ -336,7 +311,7 @@ function CourseDetailContent() {
               <button
                 type="button"
                 onClick={() => setShowOutlineModal(false)}
-                className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl font-bold hover:bg-gray-50 transition-all"
+                className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-xl font-bold hover:bg-gray-50 transition-all"
                 disabled={savingOutline}
               >
                 Cancel
@@ -344,7 +319,7 @@ function CourseDetailContent() {
               <button
                 type="button"
                 onClick={handleSaveOutline}
-                className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-bold hover:from-blue-600 hover:to-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
                 disabled={savingOutline}
               >
                 {savingOutline ? 'Saving...' : 'Save Outline'}

@@ -1,6 +1,7 @@
 'use client'
 
 import type { CourseItem } from '@/lib/types/course'
+import { ChevronRight } from 'lucide-react'
 
 interface CourseCardProps {
   course: CourseItem
@@ -37,8 +38,11 @@ export function CourseCard({ course, onClick, selected }: CourseCardProps) {
             <div className="flex flex-col gap-2 mb-1">
               <div className='flex justify-between items-start'>
                 <p className={`text-md font-bold ${color.code} uppercase tracking-wider`}>{course.courseCode}</p>
-                <div className={`${color.badge} px-3 py-1.5 rounded-lg`}>
-                  <p className={`text-xs font-semibold ${color.units}`}>{course.courseUnit} units</p>
+                <div className="flex items-center gap-2">
+                  <div className={`${color.badge} px-3 py-1.5 rounded-lg`}>
+                    <p className={`text-xs font-semibold ${color.units}`}>{course.courseUnit} units</p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-blue-500 group-hover:translate-x-0.5 transition-all" />
                 </div>
               </div>
               <p className={`text-sm font-semibold ${color.title}`}>{course.courseTitle}</p>

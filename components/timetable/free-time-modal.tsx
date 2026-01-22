@@ -66,7 +66,7 @@ export function FreeTimeModal({ isOpen, onClose, timetable, initialDay = 'Monday
     console.log('Day:', day, 'Classes:', classesForDay)
     
     if (!classesForDay || classesForDay.length === 0) {
-      return [{ time: 'All Day', description: 'Free all day! 🎉' }]
+      return [{ time: 'All Day', description: 'Free all day' }]
     }
 
     const freeSlots: { time: string; description: string }[] = []
@@ -87,7 +87,7 @@ export function FreeTimeModal({ isOpen, onClose, timetable, initialDay = 'Monday
       .sort((a, b) => a.start - b.start)
 
     if (classPeriods.length === 0) {
-      return [{ time: 'All Day', description: 'Free all day! 🎉' }]
+      return [{ time: 'All Day', description: 'Free all day' }]
     }
 
     const dayStart = 8 * 60 // 8:00 AM in minutes
@@ -97,7 +97,7 @@ export function FreeTimeModal({ isOpen, onClose, timetable, initialDay = 'Monday
     if (classPeriods[0].start > dayStart) {
       freeSlots.push({
         time: 'Morning',
-        description: `Till ${formatTime(classPeriods[0].start)} Free`
+        description: `Free until ${formatTime(classPeriods[0].start)}`
       })
     }
 
@@ -113,7 +113,7 @@ export function FreeTimeModal({ isOpen, onClose, timetable, initialDay = 'Monday
         const period = currentClassEnd < 12 * 60 ? 'Morning' : 'Afternoon'
         freeSlots.push({
           time: period,
-          description: `${startTime} - ${endTime} Free`
+          description: `${startTime} - ${endTime} free`
         })
       }
     }
@@ -123,13 +123,13 @@ export function FreeTimeModal({ isOpen, onClose, timetable, initialDay = 'Monday
     if (lastClassEnd < dayEnd) {
       freeSlots.push({
         time: 'Afternoon',
-        description: `${formatTime(lastClassEnd)} - Till The End Of The Day 🥳`
+        description: `${formatTime(lastClassEnd)} - end of day`
       })
     }
 
     return freeSlots.length > 0 
       ? freeSlots 
-      : [{ time: 'Busy Day!', description: 'Classes throughout the day 📚' }]
+      : [{ time: 'Busy Day!', description: 'Classes throughout the day' }]
   }
 
   const freeSlots = getFreeTimeSlots(selectedDay)
@@ -143,8 +143,8 @@ export function FreeTimeModal({ isOpen, onClose, timetable, initialDay = 'Monday
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-purple-100 rounded-xl">
-              <Calendar className="w-6 h-6 text-purple-600" />
+            <div className="p-2 bg-gray-100 rounded-xl border border-gray-200">
+              <Calendar className="w-6 h-6 text-green-600" />
             </div>
             <div>
               <h2 className="text-2xl font-bold text-gray-900">Free Time</h2>
@@ -169,7 +169,7 @@ export function FreeTimeModal({ isOpen, onClose, timetable, initialDay = 'Monday
                 onClick={() => setSelectedDay(day)}
                 className={`flex-1 px-3 py-2 rounded-xl font-semibold text-sm transition-all ${
                   selectedDay === day
-                    ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-md'
+                    ? 'bg-green-600 text-white shadow-sm'
                     : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
                 }`}
               >
@@ -185,14 +185,14 @@ export function FreeTimeModal({ isOpen, onClose, timetable, initialDay = 'Monday
             {freeSlots.map((slot, idx) => (
               <div
                 key={idx}
-                className="p-4 rounded-xl bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200"
+                className="p-4 rounded-xl bg-green-50 border border-green-200"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+                    <div className="w-2 h-2 rounded-full bg-green-500"></div>
                     <div>
-                      <p className="font-bold text-purple-900">{slot.time}</p>
-                      <p className="text-sm text-purple-600">{slot.description}</p>
+                      <p className="font-bold text-green-900">{slot.time}</p>
+                      <p className="text-sm text-green-700">{slot.description}</p>
                     </div>
                   </div>
                 </div>
@@ -202,14 +202,14 @@ export function FreeTimeModal({ isOpen, onClose, timetable, initialDay = 'Monday
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t bg-gray-50">
+        {/* <div className="p-6 border-t bg-gray-50">
           <button
             onClick={onClose}
-            className="w-full px-4 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-xl font-semibold hover:from-purple-600 hover:to-purple-700 transition-all shadow-md"
+            className="w-full px-4 py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-all shadow-md"
           >
             Close
           </button>
-        </div>
+        </div> */}
       </div>
     </div>
   )
