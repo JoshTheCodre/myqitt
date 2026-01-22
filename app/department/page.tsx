@@ -4,17 +4,9 @@ import { useState, useEffect } from 'react'
 import { AppShell } from '@/components/layout/app-shell'
 import { useAuthStore, type UserProfileWithDetails } from '@/lib/store/authStore'
 import { supabase } from '@/lib/supabase/client'
-import { Megaphone, Plus, Send, ChevronDown, Calendar } from 'lucide-react'
+import { Megaphone, Plus, Send, ChevronDown, Calendar, Check } from 'lucide-react'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
-
-// Helper function to format department names
-function formatDepartmentName(dept: string): string {
-  return dept
-    .split('_')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ')
-}
 
 interface Announcement {
   id: string
@@ -40,6 +32,23 @@ const dateFilterOptions: DateFilterOption[] = [
   { value: 'all', label: 'All Time' }
 ]
 
+// Empty state for users not in a class group
+function NotJoinedState() {
+  return (
+    <div className="min-h-[60vh] flex items-center justify-center">
+      <div className="text-center max-w-md mx-auto px-4">
+        <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6">
+          <Megaphone className="w-10 h-10 text-blue-600" />
+        </div>
+        <h2 className="text-2xl font-bold text-gray-900 mb-3">Department Announcements</h2>
+        <p className="text-gray-600 mb-8">
+          You need to join a department first. Contact your course representative to confirm your enrollment.
+        </p>
+      </div>
+    </div>
+  )
+}
+
 export default function DepartmentPage() {
   const { profile, initialized } = useAuthStore()
   const typedProfile = profile as UserProfileWithDetails | null
@@ -60,6 +69,7 @@ export default function DepartmentPage() {
   const departmentName = typedProfile?.class_group?.department?.name
   const levelNumber = typedProfile?.class_group?.level?.level_number
   const classGroupId = typedProfile?.class_group_id
+  const hasJoinedClass = !!classGroupId
 
   useEffect(() => {
     if (!initialized) return
@@ -205,6 +215,15 @@ export default function DepartmentPage() {
     }
   }
 
+  // Show not joined state if user hasn't joined a class
+  if (initialized && !hasJoinedClass) {
+    return (
+      <AppShell>
+        <NotJoinedState />
+      </AppShell>
+    )
+  }
+
   return (
     <AppShell>
       <div className="h-full flex items-start justify-center">
@@ -214,7 +233,7 @@ export default function DepartmentPage() {
             <div className="flex items-start justify-between mb-4">
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">
-                  {departmentName ? formatDepartmentName(departmentName) : 'Department'}
+                  {departmentName || 'Department'}
                 </h1>
                 <p className="text-sm text-gray-600">
                   {levelNumber ? `${levelNumber}00 Level` : ''} • Announcements

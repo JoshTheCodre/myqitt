@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { AppShell } from '@/components/layout/app-shell'
 import { useAuthStore, type UserProfileWithDetails } from '@/lib/store/authStore'
 import { ClassmateService, type Classmate } from '@/lib/services'
-import { ChevronLeft, MoreVertical } from 'lucide-react'
+import { ChevronLeft, MoreVertical, ArrowLeft, Users, Search } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 // Helper function to format department names
@@ -138,7 +139,7 @@ function TabNavigation({ activeTab, onTabChange }: TabNavigationProps) {
 
 export default function ManageClassmatesPage() {
   const router = useRouter()
-  const { profile, user } = useAuthStore()
+  const { profile, user, initialized } = useAuthStore()
   const typedProfile = profile as UserProfileWithDetails | null
   const [classmates, setClassmates] = useState<Classmate[]>([])
   const [filteredClassmates, setFilteredClassmates] = useState<Classmate[]>([])
@@ -200,7 +201,7 @@ export default function ManageClassmatesPage() {
       const query = searchQuery.toLowerCase()
       filtered = filtered.filter(c => 
         c.name.toLowerCase().includes(query) ||
-        c.department?.toLowerCase().includes(query)
+        c.departmentName?.toLowerCase().includes(query)
       )
     }
 

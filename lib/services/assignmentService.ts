@@ -15,6 +15,8 @@ export interface Assignment {
   created_by: string
   created_at?: string
   updated_at?: string
+  submitted?: boolean
+  submitted_at?: string
   // Joined data
   course?: {
     id: string
@@ -30,13 +32,23 @@ export interface AssignmentDate {
   title: string
   description: string
   submissionType?: string
+  submitted?: boolean
+  submitted_at?: string
 }
 
 export interface GroupedAssignment {
   courseCode: string
   courseTitle?: string
   assignmentCount: number
+  submittedCount: number
   dates: AssignmentDate[]
+}
+
+export interface AssignmentStats {
+  total: number
+  submitted: number
+  pending: number
+  overdue: number
 }
 
 export interface CreateAssignmentData {
@@ -70,6 +82,8 @@ export class AssignmentService {
           due_at,
           attachment_urls,
           created_at,
+          submitted,
+          submitted_at,
           course:courses!assignments_course_id_fkey(
             id,
             code,
@@ -112,17 +126,21 @@ export class AssignmentService {
           label: dateLabel,
           title: item.title,
           description: item.description || '',
-          submissionType: 'PDF Report'
+          submissionType: 'PDF Report',
+          submitted: item.submitted || false,
+          submitted_at: item.submitted_at
         }
 
         if (existing) {
           existing.dates.push(assignmentDate)
           existing.assignmentCount++
+          if (item.submitted) existing.submittedCount++
         } else {
           acc.push({
             courseCode,
             courseTitle,
             assignmentCount: 1,
+            submittedCount: item.submitted ? 1 : 0,
             dates: [assignmentDate]
           })
         }
@@ -302,6 +320,76 @@ export class AssignmentService {
       return count || 0
     } catch {
       return 0
+    }
+  }
+
+  // Toggle assignment submission status
+  static async toggleSubmission(assignmentId: string, submitted: boolean): Promise<void> {
+    try {
+      const updates: Record<string, any> = {
+        submitted,
+        submitted_at: submitted ? new Date().toISOString() : null,
+        updated_at: new Date().toISOString()
+      }
+
+      const { error } = await supabase
+        .from('assignments')
+        .update(updates)
+        .eq('id', assignmentId)
+
+      if (error) throw error
+      toast.success(submitted ? 'Marked as submitted!' : 'Marked as not submitted')
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update submission status')
+      throw error
+    }
+  }
+
+  // Get assignment statistics
+  static async getAssignmentStats(userId: string): Promise<AssignmentStats> {
+    try {
+      const userInfo = await TimetableService.getUserClassGroupInfo(userId)
+      if (!userInfo) {
+        return { total: 0, submitted: 0, pending: 0, overdue: 0 }
+      }
+
+      let query = supabase
+        .from('assignments')
+        .select('id, due_at, submitted')
+        .eq('class_group_id', userInfo.class_group_id)
+
+      if (userInfo.semester_id) {
+        query = query.eq('semester_id', userInfo.semester_id)
+      }
+
+      const { data, error } = await query
+
+      if (error || !data) {
+        return { total: 0, submitted: 0, pending: 0, overdue: 0 }
+      }
+
+      const now = new Date()
+      const stats = {
+        total: data.length,
+        submitted: data.filter(a => a.submitted).length,
+        pending: 0,
+        overdue: 0
+      }
+
+      data.forEach(assignment => {
+        if (!assignment.submitted) {
+          if (assignment.due_at && new Date(assignment.due_at) < now) {
+            stats.overdue++
+          } else {
+            stats.pending++
+          }
+        }
+      })
+
+      return stats
+    } catch (error) {
+      console.error('Error fetching assignment stats:', error)
+      return { total: 0, submitted: 0, pending: 0, overdue: 0 }
     }
   }
 

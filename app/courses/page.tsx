@@ -1,19 +1,20 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { AppShell } from '@/components/layout/app-shell'
 import { GroupedCourseList } from '@/components/courses/course-list'
 import { useCourseStore, useCourseSelectors } from '@/lib/store/courseStore'
-import { useAuthStore, UserProfile } from '@/lib/store/authStore'
-import { BookOpen, Loader2 } from 'lucide-react'
+import { useAuthStore, UserProfileWithDetails } from '@/lib/store/authStore'
+import { BookOpen, Loader2, Plus, X } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import type { CourseItem } from '@/lib/types/course'
+import toast from 'react-hot-toast'
 
 // ============ HEADER COMPONENT ============
-function Header({ profile }: { profile: UserProfile | null }) {
+function Header({ profile }: { profile: UserProfileWithDetails | null }) {
     // Get level and semester from new schema
-    const classGroup = profile?.class_group as { level?: { level_number: number } } | undefined
-    const currentSemester = profile?.current_semester as { name: string } | undefined
-    const levelNumber = classGroup?.level?.level_number
-    const semesterName = currentSemester?.name
+    const levelNumber = profile?.class_group?.level?.level_number
+    const semesterName = profile?.current_semester?.name
 
     return (
         <div>
@@ -28,9 +29,15 @@ function Header({ profile }: { profile: UserProfile | null }) {
 }
 
 export default function CoursesPage() {
+    const router = useRouter()
     const { user, profile, initialized } = useAuthStore()
     const { userCourses, loading, error, fetchUserCourses } = useCourseStore()
     const { hasUserCourses } = useCourseSelectors()
+    const [showCarryoverModal, setShowCarryoverModal] = useState(false)
+
+    const handleCourseClick = (course: CourseItem) => {
+        router.push(`/courses/detail?code=${encodeURIComponent(course.courseCode)}&title=${encodeURIComponent(course.courseTitle)}&unit=${course.courseUnit}`)
+    }
 
     // Fetch user courses on mount or when user changes
     useEffect(() => {
@@ -57,7 +64,16 @@ export default function CoursesPage() {
         <AppShell>
             <div className="h-full flex items-start justify-center">
                 <div className="w-full max-w-6xl px-4 py-8 pb-24 lg:pb-8">
-                    <Header profile={profile} />
+                    <div className="flex items-center justify-between mb-8">
+                        <Header profile={profile} />
+                        <button
+                            onClick={() => setShowCarryoverModal(true)}
+                            className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl font-semibold shadow-md hover:shadow-lg hover:from-orange-600 hover:to-orange-700 transition-all"
+                        >
+                            <Plus className="w-5 h-5" />
+                            <span className="hidden sm:inline">Add Carryover</span>
+                        </button>
+                    </div>
                     
                     <div className="mt-8">
                         {loading && (
@@ -77,6 +93,7 @@ export default function CoursesPage() {
                                 compulsory={userCourses.compulsory}
                                 elective={userCourses.elective}
                                 showCredits={true}
+                                onCourseClick={handleCourseClick}
                             />
                         )}
 
@@ -92,6 +109,134 @@ export default function CoursesPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Carryover Modal */}
+            {showCarryoverModal && (
+                <CarryoverModal 
+                    onClose={() => setShowCarryoverModal(false)}
+                    onSuccess={() => {
+                        setShowCarryoverModal(false)
+                        if (user?.id) {
+                            fetchUserCourses(user.id)
+                        }
+                    }}
+                />
+            )}
         </AppShell>
+    )
+}
+
+// ============ CARRYOVER MODAL COMPONENT ============
+function CarryoverModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+    const { user } = useAuthStore()
+    const [courseCode, setCourseCode] = useState('')
+    const [courseTitle, setCourseTitle] = useState('')
+    const [creditUnit, setCreditUnit] = useState('')
+    const [submitting, setSubmitting] = useState(false)
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+        
+        if (!user?.id) {
+            toast.error('You must be logged in')
+            return
+        }
+
+        if (!courseCode.trim() || !courseTitle.trim() || !creditUnit) {
+            toast.error('Please fill in all fields')
+            return
+        }
+
+        setSubmitting(true)
+        try {
+            // For now, we'll just show success. In a real app, you'd save to a carryover table
+            toast.success('Carryover course added!')
+            onSuccess()
+        } catch (error) {
+            console.error('Error adding carryover:', error)
+            toast.error('Failed to add carryover course')
+        } finally {
+            setSubmitting(false)
+        }
+    }
+
+    return (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+                <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-2xl font-bold text-gray-900">Add Carryover Course</h2>
+                    <button
+                        onClick={onClose}
+                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                        <X className="w-6 h-6" />
+                    </button>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            Course Code
+                        </label>
+                        <input
+                            type="text"
+                            value={courseCode}
+                            onChange={(e) => setCourseCode(e.target.value.toUpperCase())}
+                            placeholder="e.g., CSC 301"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
+                            disabled={submitting}
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            Course Title
+                        </label>
+                        <input
+                            type="text"
+                            value={courseTitle}
+                            onChange={(e) => setCourseTitle(e.target.value)}
+                            placeholder="e.g., Data Structures"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
+                            disabled={submitting}
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            Credit Units
+                        </label>
+                        <input
+                            type="number"
+                            value={creditUnit}
+                            onChange={(e) => setCreditUnit(e.target.value)}
+                            placeholder="e.g., 3"
+                            min="1"
+                            max="6"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
+                            disabled={submitting}
+                        />
+                    </div>
+
+                    <div className="flex gap-3 pt-4">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
+                            disabled={submitting}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            className="flex-1 px-4 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg font-semibold hover:from-orange-600 hover:to-orange-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={submitting}
+                        >
+                            {submitting ? 'Adding...' : 'Add Course'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     )
 }

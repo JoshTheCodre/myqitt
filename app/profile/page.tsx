@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import { AppShell } from '@/components/layout/app-shell'
 import { useAuthStore, type UserProfileWithDetails } from '@/lib/store/authStore'
-import { Mail, Phone, GraduationCap, Building2, BookOpen, Calendar, LogOut, Copy, Share2, Users } from 'lucide-react'
+import { Mail, Phone, GraduationCap, Building2, BookOpen, Calendar, LogOut, Users } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import type { LucideIcon } from 'lucide-react'
 import { ClassmateService } from '@/lib/services'
@@ -38,7 +38,6 @@ export default function ProfilePage() {
     const typedProfile = profile as UserProfileWithDetails | null
     const [courseRepName, setCourseRepName] = useState<string | null>(null)
     const [loadingCourseRep, setLoadingCourseRep] = useState(true)
-    const [inviteCode, setInviteCode] = useState<string | null>(null)
     
     // Get level and semester from class_group
     const levelNumber = typedProfile?.class_group?.level?.level_number
@@ -68,31 +67,6 @@ export default function ProfilePage() {
 
         fetchCourseRep()
     }, [user?.id, profile?.id, initialized])
-    
-    // Fetch invite code if user is course rep
-    useEffect(() => {
-        const fetchInviteCode = async () => {
-            if (!initialized || !user?.id || !isCourseRep || !typedProfile?.class_group_id) return
-            
-            try {
-                // Look up invite in level_invites by class_group_id
-                const { data, error } = await (await import('@/lib/supabase/client')).supabase
-                    .from('level_invites')
-                    .select('invite_code')
-                    .eq('class_group_id', typedProfile.class_group_id)
-                    .eq('is_active', true)
-                    .single()
-                
-                if (!error && data) {
-                    setInviteCode(data.invite_code)
-                }
-            } catch (error) {
-                console.error('Error fetching invite code:', error)
-            }
-        }
-        
-        fetchInviteCode()
-    }, [user?.id, isCourseRep, typedProfile?.class_group_id])
 
     const handleLogout = async () => {
         try {
@@ -187,59 +161,6 @@ export default function ProfilePage() {
                             <h2 className="text-lg font-bold text-gray-900 px-1 mb-3">About</h2>
                             <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
                                 <p className="text-sm text-gray-700 leading-relaxed">{profile.bio}</p>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Course Rep Invite Link Section */}
-                    {isCourseRep && inviteCode && (
-                        <div className="mb-6">
-                            <h2 className="text-lg font-bold text-gray-900 px-1 mb-3 flex items-center gap-2">
-                                <Users className="w-5 h-5 text-blue-600" />
-                                Invite Your Classmates
-                            </h2>
-                            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-5 border border-blue-200">
-                                <p className="text-sm text-gray-600 mb-4">
-                                    Share this link with your classmates so they can join and see your timetable and assignments.
-                                </p>
-                                <div className="bg-white rounded-lg p-3 border border-gray-200 mb-4">
-                                    <p className="text-xs text-gray-500 mb-1">Your invite link:</p>
-                                    <p className="text-sm font-mono text-blue-600 break-all">
-                                        {typeof window !== 'undefined' ? `${window.location.origin}/join/${inviteCode}` : `https://qitt.app/join/${inviteCode}`}
-                                    </p>
-                                </div>
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={() => {
-                                            const link = `${window.location.origin}/join/${inviteCode}`
-                                            navigator.clipboard.writeText(link)
-                                            toast.success('Link copied!')
-                                        }}
-                                        className="flex-1 py-2.5 px-4 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
-                                    >
-                                        <Copy className="w-4 h-4" />
-                                        Copy Link
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            const link = `${window.location.origin}/join/${inviteCode}`
-                                            if (navigator.share) {
-                                                navigator.share({
-                                                    title: 'Join my class on Qitt',
-                                                    text: `Join my class on Qitt to see our timetable and assignments!`,
-                                                    url: link
-                                                })
-                                            } else {
-                                                navigator.clipboard.writeText(link)
-                                                toast.success('Link copied!')
-                                            }
-                                        }}
-                                        className="flex-1 py-2.5 px-4 bg-blue-600 rounded-lg text-sm font-medium text-white hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
-                                    >
-                                        <Share2 className="w-4 h-4" />
-                                        Share
-                                    </button>
-                                </div>
                             </div>
                         </div>
                     )}

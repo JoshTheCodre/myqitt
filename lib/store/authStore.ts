@@ -40,8 +40,8 @@ export interface UserProfileWithDetails extends UserProfile {
   user_roles?: Array<{ role: { id: string; name: string } }>
 }
 
-// Registration data for course rep
-export interface CourseRepRegistrationData {
+// Registration data for student (direct registration)
+export interface StudentRegistrationData {
   name: string
   email?: string
   phone_number?: string
@@ -50,12 +50,6 @@ export interface CourseRepRegistrationData {
   level_number: number
   session_id?: string
   semester_id?: string
-}
-
-// Registration data for student via invite
-export interface StudentRegistrationData {
-  name: string
-  phone_number?: string
 }
 
 interface AuthState {
@@ -68,17 +62,11 @@ interface AuthState {
 interface AuthActions {
   initialize: () => Promise<void>
   register: (email: string, password: string, userData: Partial<UserProfile>) => Promise<void>
-  registerCourseRep: (email: string, password: string, userData: CourseRepRegistrationData) => Promise<string>
-  registerWithInvite: (inviteCode: string, password: string, userData: StudentRegistrationData) => Promise<void>
+  registerStudent: (email: string, password: string, userData: StudentRegistrationData) => Promise<void>
   login: (email: string, password: string) => Promise<void>
   loginWithPhone: (phone: string, password: string) => Promise<void>
   logout: () => Promise<void>
   updateProfile: (profileData: Partial<UserProfile>) => Promise<void>
-  getInviteInfo: (inviteCode: string) => Promise<{
-    level_invite: any;
-    class_group: any;
-    level_rep: any;
-  } | null>
   isCourseRep: () => boolean
   hasRole: (roleName: string) => boolean
 }
@@ -249,8 +237,8 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
     }
   },
 
-  // Register as Course Rep - creates class_group, level_rep, and level_invites
-  registerCourseRep: async (email: string, password: string, userData: CourseRepRegistrationData) => {
+  // Register student with direct form data
+  registerStudent: async (email: string, password: string, userData: StudentRegistrationData) => {
     set({ loading: true })
     
     try {
@@ -317,10 +305,7 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
         classGroupId = newClassGroup.id
       }
 
-      // 3. Generate unique invite code
-      const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase()
-
-      // 4. Create user profile
+      // 3. Create user profile
       const { data: profile, error: profileError } = await supabase
         .from('users')
         .insert({
@@ -332,134 +317,6 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
           class_group_id: classGroupId,
           current_session_id: userData.session_id || null,
           current_semester_id: userData.semester_id || null,
-          invite_code: inviteCode, // Keep for backwards compatibility
-        })
-        .select()
-        .single()
-
-      if (profileError) throw profileError
-
-      // 5. Get role IDs and assign roles
-      const { data: roles } = await supabase
-        .from('roles')
-        .select('id, name')
-        .in('name', ['student', 'course_rep'])
-
-      if (roles) {
-        const roleInserts = roles.map(role => ({
-          user_id: authData.user!.id,
-          role_id: role.id
-        }))
-        await supabase.from('user_roles').insert(roleInserts)
-      }
-
-      // 6. Create level_rep entry
-      const { data: levelRep, error: levelRepError } = await supabase
-        .from('level_reps')
-        .insert({
-          user_id: authData.user.id,
-          class_group_id: classGroupId,
-          is_active: true
-        })
-        .select()
-        .single()
-
-      if (levelRepError) throw levelRepError
-
-      // 7. Create level_invite entry
-      const { error: inviteError } = await supabase
-        .from('level_invites')
-        .insert({
-          level_rep_id: levelRep.id,
-          class_group_id: classGroupId,
-          invite_code: inviteCode,
-          is_active: true
-        })
-
-      if (inviteError) throw inviteError
-
-      set({ user: authData.user, profile, loading: false, initialized: true })
-      toast.success('Course Rep account created successfully!')
-      
-      return inviteCode
-    } catch (error: any) {
-      set({ loading: false })
-      toast.error(error.message || 'Registration failed')
-      throw error
-    }
-  },
-
-  // Register user with invite code (students joining via link)
-  registerWithInvite: async (inviteCode: string, password: string, userData: StudentRegistrationData) => {
-    set({ loading: true })
-    
-    try {
-      // 1. Get invite info from level_invites table
-      const { data: inviteData, error: inviteError } = await supabase
-        .from('level_invites')
-        .select(`
-          id,
-          class_group_id,
-          max_uses,
-          use_count,
-          expires_at,
-          is_active,
-          level_rep:level_reps!level_invites_level_rep_id_fkey(
-            id,
-            user_id,
-            user:users!level_reps_user_id_fkey(id, name, school_id, current_session_id, current_semester_id)
-          ),
-          class_group:class_groups!level_invites_class_group_id_fkey(
-            id,
-            school_id,
-            department_id,
-            level_id
-          )
-        `)
-        .eq('invite_code', inviteCode)
-        .eq('is_active', true)
-        .single()
-
-      if (inviteError || !inviteData) {
-        throw new Error('Invalid invite code')
-      }
-
-      // Check if invite has expired
-      if (inviteData.expires_at && new Date(inviteData.expires_at) < new Date()) {
-        throw new Error('This invite link has expired')
-      }
-
-      // Check if invite has reached max uses
-      if (inviteData.max_uses && inviteData.use_count >= inviteData.max_uses) {
-        throw new Error('This invite link has reached its maximum uses')
-      }
-
-      // 2. Generate unique email using phone number
-      const uniqueEmail = `${userData.phone_number?.replace(/[^0-9]/g, '')}@qitt.app`
-
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: uniqueEmail,
-        password,
-      })
-
-      if (authError) throw authError
-      if (!authData.user) throw new Error('User creation failed')
-
-      // Get level rep user info
-      const levelRepUser = inviteData.level_rep?.user
-
-      // 3. Create user profile with same class_group as course rep
-      const { data: profile, error: profileError } = await supabase
-        .from('users')
-        .insert({
-          id: authData.user.id,
-          email: uniqueEmail,
-          name: userData.name || '',
-          phone_number: userData.phone_number,
-          school_id: inviteData.class_group?.school_id || levelRepUser?.school_id,
-          class_group_id: inviteData.class_group_id,
-          current_session_id: levelRepUser?.current_session_id || null,
-          current_semester_id: levelRepUser?.current_semester_id || null,
         })
         .select()
         .single()
@@ -479,12 +336,6 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
           .insert({ user_id: authData.user.id, role_id: studentRole.id })
       }
 
-      // 5. Increment invite use count
-      await supabase
-        .from('level_invites')
-        .update({ use_count: (inviteData.use_count || 0) + 1 })
-        .eq('id', inviteData.id)
-
       set({ user: authData.user, profile, loading: false, initialized: true })
       toast.success('Account created successfully!')
       
@@ -495,49 +346,6 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
       set({ loading: false })
       toast.error(error.message || 'Registration failed')
       throw error
-    }
-  },
-
-  // Get invite info by code (for displaying on join page)
-  getInviteInfo: async (inviteCode: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('level_invites')
-        .select(`
-          id,
-          invite_code,
-          class_group_id,
-          is_active,
-          expires_at,
-          level_rep:level_reps!level_invites_level_rep_id_fkey(
-            id,
-            user:users!level_reps_user_id_fkey(
-              id, 
-              name,
-              school:schools!users_school_id_fkey(id, name)
-            )
-          ),
-          class_group:class_groups!level_invites_class_group_id_fkey(
-            id,
-            name,
-            school:schools!class_groups_school_id_fkey(id, name),
-            department:departments!class_groups_department_id_fkey(id, name),
-            level:levels!class_groups_level_id_fkey(id, level_number, name)
-          )
-        `)
-        .eq('invite_code', inviteCode)
-        .eq('is_active', true)
-        .single()
-
-      if (error || !data) return null
-      
-      return {
-        level_invite: data,
-        class_group: data.class_group,
-        level_rep: data.level_rep
-      }
-    } catch {
-      return null
     }
   },
 

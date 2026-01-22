@@ -57,6 +57,7 @@ export interface UserClassGroupInfo {
   class_group_id: string
   semester_id?: string
   school_id?: string
+  department_id?: string
   isCourseRep: boolean
 }
 
@@ -567,8 +568,8 @@ export class TimetableService {
       const { data: courses, error: courseError } = await supabase
         .from('courses')
         .select('id, code')
-        .eq('school_id', userInfo.schoolId)
-        .eq('department_id', userInfo.departmentId)
+        .eq('school_id', userInfo.school_id)
+        .eq('department_id', userInfo.department_id)
         .in('code', Array.from(courseCodes))
 
       if (courseError) throw courseError

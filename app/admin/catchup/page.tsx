@@ -19,7 +19,7 @@ interface CatchUpFormData {
   schools: string[]
   departments: string[]
   levels: number[]
-  semester: string[]
+  class_groups: string[]
   expires_at: string
 }
 
@@ -34,7 +34,7 @@ const emptyForm: CatchUpFormData = {
   schools: [],
   departments: [],
   levels: [],
-  semester: [],
+  class_groups: [],
   expires_at: ''
 }
 
@@ -106,7 +106,7 @@ export default function CatchUpAdminPage() {
       schools: item.targets.schools,
       departments: item.targets.departments,
       levels: item.targets.levels,
-      semester: item.targets.semester,
+      class_groups: item.targets.class_groups || [],
       expires_at: item.expires_at ? new Date(item.expires_at).toISOString().slice(0, 16) : ''
     })
     setShowForm(true)
@@ -139,7 +139,7 @@ export default function CatchUpAdminPage() {
       schools: formData.schools,
       departments: formData.departments,
       levels: formData.levels,
-      semester: formData.semester
+      class_groups: formData.class_groups
     }
 
     const cta = formData.cta_label && formData.cta_url 
@@ -218,12 +218,12 @@ export default function CatchUpAdminPage() {
     }))
   }
 
-  function toggleSemester(sem: string) {
+  function toggleClassGroup(classGroup: string) {
     setFormData(prev => ({
       ...prev,
-      semester: prev.semester.includes(sem)
-        ? prev.semester.filter(s => s !== sem)
-        : [...prev.semester, sem]
+      class_groups: prev.class_groups.includes(classGroup)
+        ? prev.class_groups.filter(cg => cg !== classGroup)
+        : [...prev.class_groups, classGroup]
     }))
   }
 
@@ -470,27 +470,6 @@ export default function CatchUpAdminPage() {
                                   }`}
                                 >
                                   {level}00
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* Semester */}
-                          <div>
-                            <label className="block text-xs font-semibold text-gray-600 mb-2">Semester</label>
-                            <div className="flex gap-2">
-                              {['first', 'second'].map(sem => (
-                                <button
-                                  key={sem}
-                                  type="button"
-                                  onClick={() => toggleSemester(sem)}
-                                  className={`px-4 py-2 text-sm rounded-lg transition-colors capitalize ${
-                                    formData.semester.includes(sem)
-                                      ? 'bg-blue-600 text-white'
-                                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                  }`}
-                                >
-                                  {sem}
                                 </button>
                               ))}
                             </div>

@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { HeadsetIcon, ArrowRight, Clock, Plus, AlertCircle, MapPin, Megaphone, ChevronRight, Users, FileText, UsersRound } from 'lucide-react'
+import Image from 'next/image'
+import { HeadsetIcon, ArrowRight, Clock, Plus, AlertCircle, MapPin, Megaphone, ChevronRight, Users, FileText, UsersRound, BookOpen as BookIcon } from 'lucide-react'
 import { useAuthStore, UserProfileWithDetails } from '@/lib/store/authStore'
 import { AppShell } from '@/components/layout/app-shell'
 import { ClassMenu } from '@/components/class-menu'
@@ -290,6 +291,45 @@ function CatchUpSection() {
         </div>
       )}
     </>
+  )
+}
+
+// ============ ACTION CARDS COMPONENT ============
+function ActionCards() {
+  return (
+    <div className="grid grid-cols-2 gap-3 md:gap-6">
+      <Link href="/courses">
+        <div className="relative rounded-xl md:rounded-2xl p-3 md:p-8 text-white cursor-pointer hover:shadow-lg transition-shadow overflow-hidden h-36 md:h-auto">
+          <Image src="/courses-card-bg.png" alt="" fill className="object-cover" sizes="(max-width: 768px) 50vw, 25vw" />
+          <div className="absolute inset-0 z-[1]" style={{ background: 'linear-gradient(to bottom right, rgba(10, 50, 248, 0.85), rgba(8, 40, 201, 0.85))' }} />
+          <div className="relative z-10 flex flex-col justify-between h-full">
+            <div className="bg-[#001A0D36] rounded-full p-1.5 md:p-2 w-fit">
+              <BookIcon className="w-4 h-4 md:w-6 md:h-6" />
+            </div>
+            <div>
+              <h3 className="text-lg md:text-2xl font-bold">Courses</h3>
+              <p className="text-white/90 mt-0.5 md:mt-2 text-xs md:text-base">View All Courses</p>
+            </div>
+          </div>
+        </div>
+      </Link>
+
+      <Link href="/classmates">
+        <div className="relative rounded-xl md:rounded-2xl p-4 md:p-8 text-white cursor-pointer hover:shadow-lg transition-shadow overflow-hidden h-36 md:h-auto">
+          <Image src="/classmates-card-bg.png" alt="" fill className="object-cover" sizes="(max-width: 768px) 50vw, 25vw" />
+          <div className="absolute inset-0 z-[1]" style={{ background: 'linear-gradient(to bottom right, rgba(70, 210, 143, 0.85), rgba(58, 185, 121, 0.85))' }} />
+          <div className="relative z-10 flex flex-col justify-between h-full">
+            <div className="bg-[#001A0D36] rounded-full p-1.5 md:p-2 w-fit">
+              <Users className="w-4 h-4 md:w-6 md:h-6" />
+            </div>
+            <div>
+              <h3 className="text-lg md:text-2xl font-bold">Classmates</h3>
+              <p className="text-white/90 mt-0.5 md:mt-2 text-xs md:text-base">Connect With Peers</p>
+            </div>
+          </div>
+        </div>
+      </Link>
+    </div>
   )
 }
 
@@ -628,32 +668,9 @@ export default function Page() {
             <CatchUpSection />
           </div>
           
-          {/* Department Button */}
-          <div className="mt-3 md:mt-4">
-            <Link href="/department">
-              <div className="bg-white rounded-xl border border-gray-200 hover:bg-gray-50 transition-all cursor-pointer group">
-                <div className="flex items-center p-2.5">
-                  {/* Avatar/Icon */}
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Megaphone className="w-5 h-5 text-white" />
-                  </div>
-                  
-                  {/* Content */}
-                  <div className="flex-1 min-w-0 ml-3">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-semibold text-gray-900">Department</h3>
-                      <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-gray-600 group-hover:translate-x-0.5 transition-all" />
-                    </div>
-                    <p className="text-xs text-gray-500 mt-0.5">Announcements & Updates</p>
-                  </div>
-                </div>
-              </div>
-            </Link>
-          </div>
-          
-          {/* Classmates Section */}
-          <div className="mt-3 md:mt-4">
-            <ClassmatesSection />
+          {/* Action Cards */}
+          <div className="mt-5 md:mt-8">
+            <ActionCards />
           </div>
 
           <div className="mt-5 md:mt-8">

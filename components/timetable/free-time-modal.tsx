@@ -28,10 +28,44 @@ export function FreeTimeModal({ isOpen, onClose, timetable, initialDay = 'Monday
 
   if (!isOpen) return null
 
-  const getFreeTimeSlots = (day: string) => {
-    const classesForDay = timetable[day] || []
+  const parseTime = (timeStr: string): number => {
+    if (!timeStr) return 0
     
-    if (classesForDay.length === 0) {
+    // Clean up the time string
+    const cleanTime = timeStr.trim().toLowerCase()
+    
+    // Handle formats like "9am", "10pm", "10:30am", "9:00 AM", etc.
+    const match = cleanTime.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/i)
+    if (!match) {
+      console.log('Could not parse time:', timeStr)
+      return 0
+    }
+    
+    let hours = parseInt(match[1], 10)
+    const minutes = match[2] ? parseInt(match[2], 10) : 0
+    const period = match[3]?.toLowerCase()
+    
+    if (period === 'pm' && hours !== 12) hours += 12
+    if (period === 'am' && hours === 12) hours = 0
+    
+    return hours * 60 + minutes
+  }
+
+  const formatTime = (minutes: number): string => {
+    const hours = Math.floor(minutes / 60)
+    const mins = minutes % 60
+    const period = hours >= 12 ? 'PM' : 'AM'
+    const displayHours = hours > 12 ? hours - 12 : hours === 0 ? 12 : hours
+    
+    return mins > 0 ? `${displayHours}:${mins.toString().padStart(2, '0')} ${period}` : `${displayHours} ${period}`
+  }
+
+  const getFreeTimeSlots = (day: string) => {
+    const classesForDay = timetable?.[day] || []
+    
+    console.log('Day:', day, 'Classes:', classesForDay)
+    
+    if (!classesForDay || classesForDay.length === 0) {
       return [{ time: 'All Day', description: 'Free all day! 🎉' }]
     }
 
@@ -41,13 +75,20 @@ export function FreeTimeModal({ isOpen, onClose, timetable, initialDay = 'Monday
     const classPeriods = classesForDay
       .map(cls => {
         // Handle both "8:00 AM-9:00 AM" and "8:00 AM - 9:00 AM" formats
-        const [start, end] = cls.time.split('-').map(t => t.trim())
-        return {
-          start: parseTime(start),
-          end: parseTime(end)
-        }
+        const parts = cls.time.split('-').map(t => t.trim())
+        const start = parseTime(parts[0])
+        const end = parts[1] ? parseTime(parts[1]) : start + 60 // Default 1 hour if no end time
+        
+        console.log('Class:', cls.title, 'Time string:', cls.time, 'Parsed start:', start, 'end:', end)
+        
+        return { start, end, title: cls.title }
       })
+      .filter(p => p.start > 0) // Filter out unparseable times
       .sort((a, b) => a.start - b.start)
+
+    if (classPeriods.length === 0) {
+      return [{ time: 'All Day', description: 'Free all day! 🎉' }]
+    }
 
     const dayStart = 8 * 60 // 8:00 AM in minutes
     const dayEnd = 18 * 60 // 6:00 PM in minutes
@@ -88,26 +129,7 @@ export function FreeTimeModal({ isOpen, onClose, timetable, initialDay = 'Monday
 
     return freeSlots.length > 0 
       ? freeSlots 
-      : [{ time: 'No Free Time', description: 'Classes throughout the day' }]
-  }
-
-  const parseTime = (timeStr: string): number => {
-    const [time, period] = timeStr.split(' ')
-    let [hours, minutes = 0] = time.split(':').map(Number)
-    
-    if (period === 'PM' && hours !== 12) hours += 12
-    if (period === 'AM' && hours === 12) hours = 0
-    
-    return hours * 60 + minutes
-  }
-
-  const formatTime = (minutes: number): string => {
-    const hours = Math.floor(minutes / 60)
-    const mins = minutes % 60
-    const period = hours >= 12 ? 'PM' : 'AM'
-    const displayHours = hours > 12 ? hours - 12 : hours === 0 ? 12 : hours
-    
-    return mins > 0 ? `${displayHours}:${mins.toString().padStart(2, '0')} ${period}` : `${displayHours} ${period}`
+      : [{ time: 'Busy Day!', description: 'Classes throughout the day 📚' }]
   }
 
   const freeSlots = getFreeTimeSlots(selectedDay)

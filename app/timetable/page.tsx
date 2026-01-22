@@ -8,7 +8,7 @@ import { useAuthStore } from '@/lib/store/authStore'
 import { TimetableService } from '@/lib/services'
 import toast from 'react-hot-toast'
 import { FreeTimeModal } from '@/components/timetable/free-time-modal'
-import { TimetableImageGenerator } from '@/components/timetable/timetable-image-generator'
+import { TimetableImageGenerator, TimetableImageGeneratorHandle } from '@/components/timetable/timetable-image-generator'
 
 // ============ TYPES ============
 interface ClassInfo {
@@ -41,14 +41,14 @@ function Header({
   hasTimetable, 
   isCourseRep,
   onViewFreeTime,
-  shareButtonRef,
+  onShareClick,
   showingFreeTime 
 }: { 
   onAddClick: () => void; 
   hasTimetable: boolean; 
   isCourseRep: boolean;
   onViewFreeTime: () => void;
-  shareButtonRef: React.RefObject<HTMLButtonElement>;
+  onShareClick: () => void;
   showingFreeTime: boolean;
 }) {
   return (
@@ -72,7 +72,7 @@ function Header({
                 <span className="hidden sm:inline">Free Time</span>
               </button>
               <button
-                ref={shareButtonRef}
+                onClick={onShareClick}
                 className="p-2 bg-white border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-all shadow-sm hover:shadow-md"
                 title="Share Timetable"
               >
@@ -209,7 +209,7 @@ export default function TimetablePage() {
   const [hasTimetable, setHasTimetable] = useState(false)
   const [isCourseRep, setIsCourseRep] = useState(false)
   const [showFreeTimeModal, setShowFreeTimeModal] = useState(false)
-  const shareButtonRef = useRef<HTMLButtonElement>(null)
+  const timetableImageRef = useRef<TimetableImageGeneratorHandle>(null)
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
   const classesForDay = timetable[selectedDay] || []
 
@@ -256,6 +256,11 @@ export default function TimetablePage() {
     setShowFreeTimeModal(true)
   }
 
+  const handleShareClick = () => {
+    console.log('Share clicked, ref:', timetableImageRef.current)
+    timetableImageRef.current?.generateAndShare()
+  }
+
   return (
     <AppShell>
       <div className="h-full flex items-start justify-center overflow-hidden">
@@ -265,7 +270,7 @@ export default function TimetablePage() {
             hasTimetable={hasTimetable} 
             isCourseRep={isCourseRep}
             onViewFreeTime={handleViewFreeTime}
-            shareButtonRef={shareButtonRef}
+            onShareClick={handleShareClick}
             showingFreeTime={false}
           />
           
@@ -296,7 +301,6 @@ export default function TimetablePage() {
               classesForDay={classesForDay} 
               selectedDay={selectedDay}
               isCourseRep={isCourseRep}
-              showingFreeTime={false}
             />
           )}
         </div>
@@ -311,9 +315,8 @@ export default function TimetablePage() {
         
         {/* Timetable Image Generator */}
         <TimetableImageGenerator
+          ref={timetableImageRef}
           timetable={timetable}
-          onShare={() => {}}
-          triggerRef={shareButtonRef}
         />
       </div>
     </AppShell>

@@ -107,7 +107,8 @@ export class CourseService {
         return { compulsory: [], elective: [] }
       }
 
-      const classGroup = profile.class_group as { id: string; department_id: string } | null
+      const classGroupData = profile.class_group as { id: string; department_id: string } | { id: string; department_id: string }[] | null
+      const classGroup = Array.isArray(classGroupData) ? classGroupData[0] : classGroupData
       
       if (!classGroup?.department_id || !profile.current_semester_id) {
         console.warn('User profile missing required fields (class_group or semester).', profile)
@@ -264,7 +265,8 @@ export class CourseService {
         return null
       }
 
-      const classGroup = profile.class_group as { department_id: string } | null
+      const classGroupData = profile.class_group as { department_id: string } | { department_id: string }[] | null
+      const classGroup = Array.isArray(classGroupData) ? classGroupData[0] : classGroupData
       if (!classGroup?.department_id) {
         return null
       }

@@ -13,7 +13,8 @@ export type {
   Assignment,
   AssignmentDate,
   GroupedAssignment,
-  CreateAssignmentData
+  CreateAssignmentData,
+  AssignmentStats
 } from './assignmentService'
 
 export type {

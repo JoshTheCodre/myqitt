@@ -11,11 +11,10 @@ import { DetailedTab } from "./detailed-tab"
 interface ManagementScreenProps {
   classmates: Classmate[]
   currentUserId: string
-  inviteCode: string | null
   departmentName: string
 }
 
-export function ManagementScreen({ classmates, currentUserId, inviteCode, departmentName }: ManagementScreenProps) {
+export function ManagementScreen({ classmates, currentUserId, departmentName }: ManagementScreenProps) {
   const [activeTab, setActiveTab] = useState<"overview" | "detailed">("overview")
   const router = useRouter()
 
@@ -53,7 +52,6 @@ export function ManagementScreen({ classmates, currentUserId, inviteCode, depart
           <OverviewTab 
             classmates={classmates} 
             currentUserId={currentUserId}
-            inviteCode={inviteCode}
           />
         )}
         {activeTab === "detailed" && (

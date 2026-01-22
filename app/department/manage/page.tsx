@@ -5,7 +5,6 @@ import { Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useAuthStore } from "@/lib/store/authStore"
 import { ClassmateService, type Classmate } from "@/lib/services"
-import { supabase } from "@/lib/supabase/client"
 import toast from "react-hot-toast"
 import { ManagementScreen } from "@/components/manage/management-screen"
 
@@ -16,7 +15,6 @@ export default function ManagePage() {
   const router = useRouter()
   const { user, profile, initialized, isCourseRep } = useAuthStore()
   const [classmates, setClassmates] = useState<Classmate[]>([])
-  const [inviteCode, setInviteCode] = useState<string | null>(null)
   const [departmentName, setDepartmentName] = useState<string>('')
   const [loading, setLoading] = useState(true)
 
@@ -53,20 +51,6 @@ export default function ManagePage() {
           const levelNum = profile.class_group?.level?.level_number || ''
           setDepartmentName(`${profile.class_group.department.name} ${levelNum}00L`)
         }
-
-        // Get invite code for the class group
-        if (profile?.class_group_id) {
-          const { data: inviteData } = await supabase
-            .from('level_invites')
-            .select('invite_code')
-            .eq('class_group_id', profile.class_group_id)
-            .eq('is_active', true)
-            .single()
-          
-          if (inviteData) {
-            setInviteCode(inviteData.invite_code)
-          }
-        }
       } catch (error) {
         console.error('Error loading manage data:', error)
         toast.error('Failed to load data')
@@ -100,7 +84,6 @@ export default function ManagePage() {
       <ManagementScreen 
         classmates={classmates}
         currentUserId={user.id}
-        inviteCode={inviteCode}
         departmentName={departmentName}
       />
     </main>

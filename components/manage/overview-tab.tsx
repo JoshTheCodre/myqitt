@@ -1,17 +1,13 @@
-"use client"
-
 import { useState } from "react"
 import type { Classmate } from "@/lib/services"
 import { MemberCard } from "./member-card"
-import { InviteCodeCard } from "./invite-code-card"
 
 interface OverviewTabProps {
   classmates: Classmate[]
   currentUserId: string
-  inviteCode: string | null
 }
 
-export function OverviewTab({ classmates, currentUserId, inviteCode }: OverviewTabProps) {
+export function OverviewTab({ classmates, currentUserId }: OverviewTabProps) {
   const [activeFilter, setActiveFilter] = useState<"all" | "course-reps" | "students">("all")
 
   const courseReps = classmates.filter(c => c.isCourseRep)
@@ -25,9 +21,6 @@ export function OverviewTab({ classmates, currentUserId, inviteCode }: OverviewT
 
   return (
     <div className="space-y-3">
-      {/* Invite Code Card */}
-      {inviteCode && <InviteCodeCard inviteCode={inviteCode} />}
-
       <div className="flex justify-between items-center mb-4">
         <p className="text-sm text-gray-500">{classmates.length} member{classmates.length !== 1 ? 's' : ''}</p>
         <div className="flex gap-2">

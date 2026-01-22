@@ -2,11 +2,13 @@
 
 import { useRouter, useSearchParams } from 'next/navigation'
 import { AppShell } from '@/components/layout/app-shell'
-import { ArrowLeft, Calendar, FileText, Trash2, Edit, X } from 'lucide-react'
-import { Suspense, useState } from 'react'
+import { ArrowLeft, Calendar, FileText, Trash2, Edit, X, CheckCircle, Share2, Copy } from 'lucide-react'
+import { Suspense, useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
 import { useAuthStore, type UserProfileWithDetails } from '@/lib/store/authStore'
+import { AssignmentService } from '@/lib/services'
+import { AssignmentImageGenerator, AssignmentImageGeneratorHandle } from '@/components/assignment/assignment-image-generator'
 
 function AssignmentDetailContent() {
   const router = useRouter()
@@ -16,6 +18,10 @@ function AssignmentDetailContent() {
   const [deleting, setDeleting] = useState(false)
   const [showUpdateModal, setShowUpdateModal] = useState(false)
   const [updating, setUpdating] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
+  const [submittedAt, setSubmittedAt] = useState<string | null>(null)
+  const [toggling, setToggling] = useState(false)
+  const assignmentImageRef = useRef<AssignmentImageGeneratorHandle>(null)
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -27,6 +33,81 @@ function AssignmentDetailContent() {
   const title = searchParams.get('title') || ''
   const description = searchParams.get('description') || ''
   const dueDate = searchParams.get('dueDate') || ''
+  
+  // Fetch submission status
+  useEffect(() => {
+    if (id) {
+      fetchSubmissionStatus()
+    }
+  }, [id])
+
+  const fetchSubmissionStatus = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('assignments')
+        .select('submitted, submitted_at')
+        .eq('id', id)
+        .single()
+
+      if (error) throw error
+      if (data) {
+        setSubmitted(data.submitted || false)
+        setSubmittedAt(data.submitted_at)
+      }
+    } catch (error) {
+      console.error('Failed to fetch submission status:', error)
+    }
+  }
+  
+  const handleToggleSubmission = async () => {
+    if (!id) return
+
+    setToggling(true)
+    try {
+      await AssignmentService.toggleSubmission(id, !submitted)
+      const newSubmitted = !submitted
+      setSubmitted(newSubmitted)
+      setSubmittedAt(newSubmitted ? new Date().toISOString() : null)
+      
+      // Refresh the submission status from database
+      await fetchSubmissionStatus()
+      
+      toast.success(newSubmitted ? 'Marked as submitted!' : 'Marked as not submitted')
+    } catch (error) {
+      console.error('Failed to toggle submission:', error)
+      toast.error('Failed to update submission status')
+    } finally {
+      setToggling(false)
+    }
+  }
+
+  const handleShareAsImage = () => {
+    assignmentImageRef.current?.generateAndShare()
+  }
+
+  const handleShareAsText = async () => {
+    const text = `📝 ${title}\n\n📚 Course: ${courseCode}\n📅 Due: ${dueDate}\n\n${description}`
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Assignment: ${title}`,
+          text: text
+        })
+        toast.success('Shared successfully!')
+      } catch (error) {
+        // User cancelled
+      }
+    } else {
+      // Fallback: copy to clipboard
+      try {
+        await navigator.clipboard.writeText(text)
+        toast.success('Copied to clipboard!')
+      } catch (error) {
+        toast.error('Failed to copy to clipboard')
+      }
+    }
+  }
   
   // Check if user is course rep - they can edit any assignment in their class
   const isCourseRep = typedProfile?.user_roles?.some(
@@ -134,14 +215,82 @@ function AssignmentDetailContent() {
 
           {/* Header */}
           <div className="mb-8">
-            <div className="inline-block px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-bold mb-4">
-              {courseCode}
+            <div className="flex items-center justify-between mb-4">
+              <div className="inline-block px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-bold">
+                {courseCode}
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleShareAsText}
+                  className="p-2 bg-white border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-all shadow-sm hover:shadow-md"
+                  title="Share as text"
+                >
+                  <Copy className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={handleShareAsImage}
+                  className="p-2 bg-white border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-all shadow-sm hover:shadow-md"
+                  title="Share as image"
+                >
+                  <Share2 className="w-5 h-5" />
+                </button>
+              </div>
             </div>
             <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">{title}</h1>
           </div>
 
           {/* Details Cards */}
           <div className="space-y-4">
+            {/* Submission Status Card */}
+            <div className={`p-6 rounded-2xl border-2 shadow-sm ${
+              submitted 
+                ? 'bg-green-50 border-green-200' 
+                : 'bg-gray-50 border-gray-200'
+            }`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                    submitted ? 'bg-green-100' : 'bg-gray-100'
+                  }`}>
+                    <CheckCircle className={`w-6 h-6 ${
+                      submitted ? 'text-green-600' : 'text-gray-400'
+                    }`} />
+                  </div>
+                  <div>
+                    <p className={`text-xs font-semibold uppercase tracking-wider ${
+                      submitted ? 'text-green-600' : 'text-gray-600'
+                    }`}>Submission Status</p>
+                    <p className={`text-lg font-bold mt-1 ${
+                      submitted ? 'text-green-700' : 'text-gray-700'
+                    }`}>
+                      {submitted ? 'Submitted ✓' : 'Not Submitted'}
+                    </p>
+                    {submittedAt && (
+                      <p className="text-xs text-green-600 mt-1">
+                        {new Date(submittedAt).toLocaleString('en-US', { 
+                          month: 'short', 
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={handleToggleSubmission}
+                  disabled={toggling}
+                  className={`px-4 py-2 rounded-xl font-semibold text-sm transition-all shadow-sm hover:shadow-md disabled:opacity-50 ${
+                    submitted
+                      ? 'bg-white border border-green-300 text-green-700 hover:bg-green-50'
+                      : 'bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700'
+                  }`}
+                >
+                  {toggling ? 'Updating...' : submitted ? 'Mark as Not Submitted' : 'Mark as Submitted'}
+                </button>
+              </div>
+            </div>
+
             {/* Due Date Card */}
             <div className="p-6 bg-red-50 rounded-2xl border-2 border-red-200 shadow-sm">
               <div className="flex items-center gap-4">
@@ -265,6 +414,16 @@ function AssignmentDetailContent() {
           </div>
         </div>
       )}
+
+      {/* Assignment Image Generator */}
+      <AssignmentImageGenerator
+        ref={assignmentImageRef}
+        courseCode={courseCode}
+        title={title}
+        description={description}
+        dueDate={dueDate}
+        submitted={submitted}
+      />
     </AppShell>
   )
 }
