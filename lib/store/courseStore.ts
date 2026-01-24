@@ -1,14 +1,17 @@
 import { create } from 'zustand'
 import { CourseService, type CourseItem, type GroupedCourses } from '@/lib/services/courseService'
+import { CarryoverService, type CarryoverCourseItem, type CreateCarryoverData } from '@/lib/services/carryoverService'
 
 interface CourseState {
   // State
   courses: CourseItem[]
   groupedCourses: GroupedCourses | null
   userCourses: GroupedCourses | null
+  carryoverCourses: CarryoverCourseItem[]
   searchResults: CourseItem[]
   selectedCourses: string[]
   loading: boolean
+  carryoverLoading: boolean
   error: string | null
   
   // Search term
@@ -16,6 +19,10 @@ interface CourseState {
 
   // Actions
   fetchUserCourses: (userId: string) => Promise<void>
+  fetchCarryoverCourses: (userId: string) => Promise<void>
+  addCarryoverCourse: (userId: string, data: CreateCarryoverData) => Promise<CarryoverCourseItem | null>
+  markCarryoverComplete: (courseId: string) => Promise<boolean>
+  removeCarryoverCourse: (courseId: string) => Promise<boolean>
   searchCourses: (searchTerm: string, departmentId: string) => Promise<void>
   setSearchTerm: (term: string) => void
   toggleCourseSelection: (courseCode: string) => void
@@ -27,9 +34,11 @@ const initialState = {
   courses: [],
   groupedCourses: null,
   userCourses: null,
+  carryoverCourses: [],
   searchResults: [],
   selectedCourses: [],
   loading: false,
+  carryoverLoading: false,
   error: null,
   searchTerm: '',
 }
@@ -48,6 +57,51 @@ export const useCourseStore = create<CourseState>((set) => ({
         loading: false 
       })
     }
+  },
+
+  fetchCarryoverCourses: async (userId: string) => {
+    set({ carryoverLoading: true })
+    try {
+      const carryoverCourses = await CarryoverService.getCarryoverCourses(userId)
+      set({ carryoverCourses, carryoverLoading: false })
+    } catch (error) {
+      console.error('Failed to fetch carryover courses:', error)
+      set({ carryoverLoading: false })
+    }
+  },
+
+  addCarryoverCourse: async (userId: string, data: CreateCarryoverData) => {
+    try {
+      const newCourse = await CarryoverService.addCarryoverCourse(userId, data)
+      if (newCourse) {
+        set(state => ({
+          carryoverCourses: [...state.carryoverCourses, newCourse]
+        }))
+      }
+      return newCourse
+    } catch (error) {
+      throw error
+    }
+  },
+
+  markCarryoverComplete: async (courseId: string) => {
+    const success = await CarryoverService.markAsCompleted(courseId)
+    if (success) {
+      set(state => ({
+        carryoverCourses: state.carryoverCourses.filter(c => c.id !== courseId)
+      }))
+    }
+    return success
+  },
+
+  removeCarryoverCourse: async (courseId: string) => {
+    const success = await CarryoverService.deleteCarryoverCourse(courseId)
+    if (success) {
+      set(state => ({
+        carryoverCourses: state.carryoverCourses.filter(c => c.id !== courseId)
+      }))
+    }
+    return success
   },
 
   searchCourses: async (searchTerm: string, departmentId: string) => {
@@ -102,6 +156,10 @@ export const useCourseSelectors = () => {
     userElectiveCount: store.userCourses?.elective.length || 0,
     userTotalCount: (store.userCourses?.compulsory.length || 0) + (store.userCourses?.elective.length || 0),
     
+    // Carryover courses
+    carryoverCount: store.carryoverCourses.length,
+    carryoverCredits: store.carryoverCourses.reduce((sum, c) => sum + c.courseUnit, 0),
+    
     // Total credits
     totalCredits: store.courses.reduce((sum, c) => sum + c.courseUnit, 0),
     userTotalCredits: [
@@ -119,6 +177,7 @@ export const useCourseSelectors = () => {
     // Has data
     hasUserCourses: !!store.userCourses && 
       (store.userCourses.compulsory.length > 0 || store.userCourses.elective.length > 0),
+    hasCarryoverCourses: store.carryoverCourses.length > 0,
     hasSearchResults: store.searchResults.length > 0,
     isSearching: store.searchTerm.length > 0,
   }

@@ -70,12 +70,23 @@ const getClassStatus = (startTime: string, endTime: string): 'upcoming' | 'ongoi
   return 'completed'
 }
 
+// Get display name based on screen size
+const getDisplayName = (name?: string, isMobile?: boolean): string => {
+  if (!name) return 'Guest'
+  if (!isMobile) return name
+  // On mobile, show first name only, truncate if > 9 chars
+  const firstName = name.split(' ')[0]
+  return firstName.length > 9 ? firstName.slice(0, 9) + '…' : firstName
+}
+
 // ============ HEADER COMPONENT ============
 function Header({ profile }: { profile: UserProfileWithDetails | null }) {
   return (
     <div className="flex items-start justify-between ">
       <div>
-        <h1 className="text-2xl md:text-4xl font-extrabold tracking-tight">Hello, {profile?.name || 'Guest'}</h1>
+        <h1 className="text-2xl md:text-4xl font-extrabold tracking-tight">
+          Hello, <span className="md:hidden">{getDisplayName(profile?.name, true)}</span><span className="hidden md:inline">{profile?.name || 'Guest'}</span>
+        </h1>
         <p className="text-xs font-semibold text-gray-700 mt-1 md:mt-2">{getDepartmentName(profile)} <span className="text-green-500">•</span> {getLevelDisplay(profile)}</p>
       </div>
       <div className="flex items-center gap-3">
@@ -662,7 +673,7 @@ export default function Page() {
   return (
     <AppShell>
       <div className="h-full flex items-start justify-center">
-        <div className="w-full max-w-2xl px-3 md:px-4 py-4 md:py-8 pb-24 lg:pb-8">
+        <div className="w-full max-w-2xl px-4 md:px-5 py-4 md:py-8 pb-24 lg:pb-8">
           <Header profile={profile} />
           <div className="mt-5 md:mt-12">
             <CatchUpSection />

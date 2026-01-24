@@ -2,11 +2,13 @@
 
 import { useRouter, useSearchParams } from 'next/navigation'
 import { AppShell } from '@/components/layout/app-shell'
-import { ArrowLeft, Calendar, FileText, Clock, ExternalLink, Edit3, Plus, MapPin, Award, X } from 'lucide-react'
+import { ArrowLeft, Calendar, FileText, Clock, ExternalLink, Edit3, Plus, MapPin, Award, X, CheckCircle2, Trash2, PartyPopper } from 'lucide-react'
 import { Suspense, useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { useAuthStore } from '@/lib/store/authStore'
+import { useCourseStore } from '@/lib/store/courseStore'
 import toast from 'react-hot-toast'
+import confetti from 'canvas-confetti'
 
 interface TimetableEntry {
   day: string
@@ -19,10 +21,14 @@ function CourseDetailContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user } = useAuthStore()
+  const { markCarryoverComplete, removeCarryoverCourse } = useCourseStore()
   
   const courseCode = searchParams.get('code') || ''
   const courseTitle = searchParams.get('title') || ''
   const courseUnit = searchParams.get('unit') || '0'
+  const isCarryover = searchParams.get('carryover') === 'true'
+  const carryoverId = searchParams.get('id') || ''
+  
   const [outline, setOutline] = useState('')
   const [timetableEntries, setTimetableEntries] = useState<TimetableEntry[]>([])
   const [assignmentCount, setAssignmentCount] = useState(0)
@@ -30,6 +36,10 @@ function CourseDetailContent() {
   const [showOutlineModal, setShowOutlineModal] = useState(false)
   const [editingOutline, setEditingOutline] = useState('')
   const [savingOutline, setSavingOutline] = useState(false)
+  const [showCompletionModal, setShowCompletionModal] = useState(false)
+  const [completing, setCompleting] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     if (courseCode && user?.id) {
@@ -130,6 +140,78 @@ function CourseDetailContent() {
     setShowOutlineModal(true)
   }
 
+  const triggerCelebration = () => {
+    // Launch confetti from multiple points
+    const duration = 3000
+    const end = Date.now() + duration
+
+    const colors = ['#22c55e', '#10b981', '#34d399', '#6ee7b7', '#ffffff']
+
+    const frame = () => {
+      confetti({
+        particleCount: 3,
+        angle: 60,
+        spread: 55,
+        origin: { x: 0, y: 0.7 },
+        colors: colors
+      })
+      confetti({
+        particleCount: 3,
+        angle: 120,
+        spread: 55,
+        origin: { x: 1, y: 0.7 },
+        colors: colors
+      })
+
+      if (Date.now() < end) {
+        requestAnimationFrame(frame)
+      }
+    }
+
+    frame()
+  }
+
+  const handleMarkComplete = async () => {
+    if (!carryoverId) return
+    
+    setCompleting(true)
+    try {
+      const success = await markCarryoverComplete(carryoverId)
+      if (success) {
+        triggerCelebration()
+        setShowCompletionModal(true)
+      } else {
+        toast.error('Failed to mark as completed')
+      }
+    } catch (error) {
+      console.error('Error marking complete:', error)
+      toast.error('Failed to mark as completed')
+    } finally {
+      setCompleting(false)
+    }
+  }
+
+  const handleDeleteCarryover = async () => {
+    if (!carryoverId) return
+    
+    setDeleting(true)
+    try {
+      const success = await removeCarryoverCourse(carryoverId)
+      if (success) {
+        toast.success('Carryover course removed')
+        router.push('/courses')
+      } else {
+        toast.error('Failed to remove carryover course')
+      }
+    } catch (error) {
+      console.error('Error deleting carryover:', error)
+      toast.error('Failed to remove carryover course')
+    } finally {
+      setDeleting(false)
+      setShowDeleteConfirm(false)
+    }
+  }
+
   const dayOrder = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
   const sortedEntries = [...timetableEntries].sort((a, b) => 
     dayOrder.indexOf(a.day.toLowerCase()) - dayOrder.indexOf(b.day.toLowerCase())
@@ -150,15 +232,20 @@ function CourseDetailContent() {
             </button>
 
             {/* Hero Card */}
-            <div className="relative bg-gradient-to-br from-gray-900 via-blue-900 to-gray-800 rounded-2xl sm:rounded-3xl p-5 sm:p-8 shadow-xl overflow-hidden border border-gray-700">
+            <div className={`relative ${isCarryover ? 'bg-gradient-to-br from-orange-800 via-orange-900 to-orange-800' : 'bg-gradient-to-br from-gray-900 via-blue-900 to-gray-800'} rounded-2xl sm:rounded-3xl p-5 sm:p-8 shadow-xl overflow-hidden border ${isCarryover ? 'border-orange-700' : 'border-gray-700'}`}>
               {/* Decorative elements */}
-              <div className="absolute top-0 right-0 w-48 sm:w-96 h-48 sm:h-96 bg-blue-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4"></div>
-              <div className="absolute bottom-0 left-0 w-32 sm:w-64 h-32 sm:h-64 bg-blue-400/10 rounded-full blur-2xl translate-y-1/2 -translate-x-1/4"></div>
+              <div className={`absolute top-0 right-0 w-48 sm:w-96 h-48 sm:h-96 ${isCarryover ? 'bg-orange-500/10' : 'bg-blue-500/10'} rounded-full blur-3xl -translate-y-1/2 translate-x-1/4`}></div>
+              <div className={`absolute bottom-0 left-0 w-32 sm:w-64 h-32 sm:h-64 ${isCarryover ? 'bg-orange-400/10' : 'bg-blue-400/10'} rounded-full blur-2xl translate-y-1/2 -translate-x-1/4`}></div>
               
               <div className="relative flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
                 <div className="flex-1 min-w-0">
+                  {isCarryover && (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-orange-500 text-white mb-2">
+                      CARRYOVER
+                    </span>
+                  )}
                   <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white mb-1 tracking-tight truncate">{courseCode}</h1>
-                  <p className="text-blue-100 text-sm sm:text-base lg:text-lg font-medium line-clamp-2">{courseTitle}</p>
+                  <p className={`${isCarryover ? 'text-orange-100' : 'text-blue-100'} text-sm sm:text-base lg:text-lg font-medium line-clamp-2`}>{courseTitle}</p>
                 </div>
                 <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold border border-white/20 shadow-lg w-fit flex-shrink-0">
                   <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -167,6 +254,31 @@ function CourseDetailContent() {
               </div>
             </div>
           </div>
+
+          {/* Carryover Actions */}
+          {isCarryover && carryoverId && (
+            <div className="bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-xl sm:rounded-2xl p-4 sm:p-6 mb-6 sm:mb-8">
+              <h3 className="font-bold text-gray-900 mb-3">Carryover Course Actions</h3>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={handleMarkComplete}
+                  disabled={completing}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-sm shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <CheckCircle2 className="w-5 h-5" />
+                  {completing ? 'Processing...' : 'Mark as Completed'}
+                </button>
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  disabled={deleting}
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-red-100 hover:bg-red-200 text-red-700 rounded-xl font-bold text-sm transition-all disabled:opacity-50"
+                >
+                  <Trash2 className="w-5 h-5" />
+                  Remove
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Quick Stats */}
           <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-6 sm:mb-8">
@@ -323,6 +435,63 @@ function CourseDetailContent() {
                 disabled={savingOutline}
               >
                 {savingOutline ? 'Saving...' : 'Save Outline'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Completion Celebration Modal */}
+      {showCompletionModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 text-center">
+            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <PartyPopper className="w-10 h-10 text-green-600" />
+            </div>
+            <h2 className="text-2xl font-black text-gray-900 mb-3">Congratulations!</h2>
+            <p className="text-gray-600 mb-2">You&apos;ve completed</p>
+            <p className="text-xl font-bold text-green-600 mb-6">{courseCode}</p>
+            <p className="text-sm text-gray-500 mb-8">
+              Keep up the great work! One less carryover to worry about.
+            </p>
+            <button
+              onClick={() => {
+                setShowCompletionModal(false)
+                router.push('/courses')
+              }}
+              className="w-full px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-sm transition-all shadow-md hover:shadow-lg"
+            >
+              Back to Courses
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6">
+            <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Trash2 className="w-7 h-7 text-red-600" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 text-center mb-2">Remove Carryover?</h3>
+            <p className="text-gray-600 text-center text-sm mb-6">
+              Are you sure you want to remove <span className="font-semibold">{courseCode}</span> from your carryover courses? This action cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={deleting}
+                className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-xl font-semibold text-sm hover:bg-gray-50 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteCarryover}
+                disabled={deleting}
+                className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold text-sm transition-all disabled:opacity-50"
+              >
+                {deleting ? 'Removing...' : 'Remove'}
               </button>
             </div>
           </div>

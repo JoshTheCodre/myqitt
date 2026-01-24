@@ -5,7 +5,7 @@ import { AppShell } from '@/components/layout/app-shell'
 import { GroupedCourseList } from '@/components/courses/course-list'
 import { useCourseStore, useCourseSelectors } from '@/lib/store/courseStore'
 import { useAuthStore, UserProfileWithDetails } from '@/lib/store/authStore'
-import { BookOpen, Loader2, Plus, X } from 'lucide-react'
+import { BookOpen, Loader2, Plus, X, AlertTriangle, ChevronRight } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import type { CourseItem } from '@/lib/types/course'
 import toast from 'react-hot-toast'
@@ -31,12 +31,24 @@ function Header({ profile }: { profile: UserProfileWithDetails | null }) {
 export default function CoursesPage() {
     const router = useRouter()
     const { user, profile, initialized } = useAuthStore()
-    const { userCourses, loading, error, fetchUserCourses } = useCourseStore()
-    const { hasUserCourses } = useCourseSelectors()
+    const { 
+        userCourses, 
+        carryoverCourses, 
+        loading, 
+        carryoverLoading, 
+        error, 
+        fetchUserCourses, 
+        fetchCarryoverCourses 
+    } = useCourseStore()
+    const { hasUserCourses, hasCarryoverCourses, carryoverCredits } = useCourseSelectors()
     const [showCarryoverModal, setShowCarryoverModal] = useState(false)
 
     const handleCourseClick = (course: CourseItem) => {
         router.push(`/courses/detail?code=${encodeURIComponent(course.courseCode)}&title=${encodeURIComponent(course.courseTitle)}&unit=${course.courseUnit}`)
+    }
+
+    const handleCarryoverClick = (courseId: string, courseCode: string, courseTitle: string, courseUnit: number) => {
+        router.push(`/courses/detail?code=${encodeURIComponent(courseCode)}&title=${encodeURIComponent(courseTitle)}&unit=${courseUnit}&carryover=true&id=${courseId}`)
     }
 
     // Fetch user courses on mount or when user changes
@@ -47,7 +59,10 @@ export default function CoursesPage() {
             if (!initialized) return
             
             if (user?.id && profile && mounted) {
-                await fetchUserCourses(user.id)
+                await Promise.all([
+                    fetchUserCourses(user.id),
+                    fetchCarryoverCourses(user.id)
+                ])
             }
         }
         
@@ -97,7 +112,47 @@ export default function CoursesPage() {
                             />
                         )}
 
-                        {!loading && !error && !hasUserCourses && (
+                        {/* Carryover Courses Section */}
+                        {!loading && !carryoverLoading && hasCarryoverCourses && (
+                            <div className="mt-8">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-orange-100">
+                                        <AlertTriangle className="w-5 h-5 text-orange-600" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-lg font-bold text-gray-900">Carryover Courses</h2>
+                                        <p className="text-sm text-gray-500">
+                                            {carryoverCourses.length} course{carryoverCourses.length !== 1 ? 's' : ''} • {carryoverCredits} credit unit{carryoverCredits !== 1 ? 's' : ''}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="space-y-3">
+                                    {carryoverCourses.map((course) => (
+                                        <button
+                                            key={course.id}
+                                            onClick={() => handleCarryoverClick(course.id, course.courseCode, course.courseTitle, course.courseUnit)}
+                                            className="w-full bg-orange-50 border border-orange-200 rounded-xl p-4 text-left hover:bg-orange-100 hover:border-orange-300 transition-all group"
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-200 text-orange-800">
+                                                            CARRYOVER
+                                                        </span>
+                                                        <span className="text-sm font-bold text-orange-700">{course.courseCode}</span>
+                                                    </div>
+                                                    <h3 className="font-semibold text-gray-900 mt-1 truncate">{course.courseTitle}</h3>
+                                                    <p className="text-sm text-gray-500">{course.courseUnit} Credit Unit{course.courseUnit !== 1 ? 's' : ''}</p>
+                                                </div>
+                                                <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-orange-600 transition-colors flex-shrink-0" />
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {!loading && !error && !hasUserCourses && !hasCarryoverCourses && (
                             <div className="bg-gray-50 rounded-xl p-8 text-center">
                                 <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                                 <p className="text-gray-600 font-medium">No courses found</p>
@@ -116,9 +171,6 @@ export default function CoursesPage() {
                     onClose={() => setShowCarryoverModal(false)}
                     onSuccess={() => {
                         setShowCarryoverModal(false)
-                        if (user?.id) {
-                            fetchUserCourses(user.id)
-                        }
                     }}
                 />
             )}
@@ -129,6 +181,7 @@ export default function CoursesPage() {
 // ============ CARRYOVER MODAL COMPONENT ============
 function CarryoverModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
     const { user } = useAuthStore()
+    const { addCarryoverCourse } = useCourseStore()
     const [courseCode, setCourseCode] = useState('')
     const [courseTitle, setCourseTitle] = useState('')
     const [creditUnit, setCreditUnit] = useState('')
@@ -147,14 +200,29 @@ function CarryoverModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
             return
         }
 
+        const creditValue = parseInt(creditUnit)
+        if (isNaN(creditValue) || creditValue < 1 || creditValue > 6) {
+            toast.error('Credit unit must be between 1 and 6')
+            return
+        }
+
         setSubmitting(true)
         try {
-            // For now, we'll just show success. In a real app, you'd save to a carryover table
+            await addCarryoverCourse(user.id, {
+                course_code: courseCode.trim(),
+                course_title: courseTitle.trim(),
+                credit_unit: creditValue
+            })
             toast.success('Carryover course added!')
             onSuccess()
-        } catch (error) {
+        } catch (error: unknown) {
             console.error('Error adding carryover:', error)
-            toast.error('Failed to add carryover course')
+            // Check for duplicate error
+            if (error && typeof error === 'object' && 'code' in error && error.code === '23505') {
+                toast.error('This carryover course already exists')
+            } else {
+                toast.error('Failed to add carryover course')
+            }
         } finally {
             setSubmitting(false)
         }
