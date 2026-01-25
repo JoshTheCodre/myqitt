@@ -1,11 +1,10 @@
 import { create } from 'zustand'
 import toast from 'react-hot-toast'
 import { supabase } from '@/lib/supabase/client'
-import type { User, Subscription } from '@supabase/supabase-js'
+import type { User } from '@supabase/supabase-js'
 
-// Track auth listener to prevent multiple registrations
-let authListenerRegistered = false
-let authSubscription: Subscription | null = null
+// ============ AUTH STATUS TYPE ============
+export type AuthStatus = 'idle' | 'loading' | 'authenticated' | 'unauthenticated'
 
 // New schema-aligned UserProfile interface
 export interface UserProfile {
@@ -56,14 +55,24 @@ export interface StudentRegistrationData {
   semester_id?: string
 }
 
+// ============ STATE INTERFACE ============
 interface AuthState {
   user: User | null
   profile: UserProfileWithDetails | null
+  status: AuthStatus
+  // Legacy fields for backwards compatibility
   loading: boolean
   initialized: boolean
 }
 
+// ============ ACTIONS INTERFACE ============
 interface AuthActions {
+  // New simplified setters
+  setLoading: () => void
+  setAuthenticated: (user: User, profile: UserProfileWithDetails) => void
+  setUnauthenticated: () => void
+  
+  // Existing actions
   initialize: () => Promise<void>
   register: (email: string, password: string, userData: Partial<UserProfile>) => Promise<void>
   registerStudent: (email: string, password: string, userData: StudentRegistrationData) => Promise<void>
@@ -75,126 +84,129 @@ interface AuthActions {
   hasRole: (roleName: string) => boolean
 }
 
+// Profile select query - centralized for reuse
+const PROFILE_SELECT_QUERY = `
+  *,
+  school:schools!users_school_id_fkey(id, name),
+  class_group:class_groups!users_class_group_id_fkey(
+    id, name, school_id, department_id, level_id,
+    department:departments!class_groups_department_id_fkey(id, name),
+    level:levels!class_groups_level_id_fkey(id, level_number, name)
+  ),
+  current_session:sessions!users_current_session_id_fkey(id, name),
+  current_semester:semesters!users_current_semester_id_fkey(id, name),
+  user_roles(role:roles(id, name))
+`
+
+// ============ AUTH STORE ============
 export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
   // State
   user: null,
   profile: null,
+  status: 'idle',
+  // Legacy compatibility
   loading: true,
   initialized: false,
 
-  // Helper to check if user is course rep
+  // ============ NEW SIMPLIFIED SETTERS ============
+  setLoading: () => set({ 
+    status: 'loading', 
+    loading: true, 
+    initialized: false 
+  }),
+
+  setAuthenticated: (user, profile) => set({ 
+    user, 
+    profile, 
+    status: 'authenticated', 
+    loading: false, 
+    initialized: true 
+  }),
+
+  setUnauthenticated: () => set({ 
+    user: null, 
+    profile: null, 
+    status: 'unauthenticated', 
+    loading: false, 
+    initialized: true 
+  }),
+
+  // ============ HELPER METHODS ============
   isCourseRep: () => {
     const { profile } = get()
     if (!profile?.user_roles) return false
     return profile.user_roles.some(ur => ur.role?.name === 'course_rep')
   },
 
-  // Helper to check if user has a specific role
   hasRole: (roleName: string) => {
     const { profile } = get()
     if (!profile?.user_roles) return false
     return profile.user_roles.some(ur => ur.role?.name === roleName)
   },
 
-  // Initialize auth state with full profile details
+  // ============ INITIALIZE (called from AuthProvider) ============
   initialize: async () => {
-    // Skip if already initialized to prevent double-init
+    // Skip if already initialized
     const state = get()
-    if (state.initialized) return
+    if (state.status !== 'idle') return
     
-    set({ loading: true })
+    set({ status: 'loading', loading: true })
     
     try {
       const { data: { session } } = await supabase.auth.getSession()
       
-      if (session?.user) {
-        // Fetch profile with all related data
-        const { data: profile, error } = await supabase
-          .from('users')
-          .select(`
-            *,
-            school:schools!users_school_id_fkey(id, name),
-            class_group:class_groups!users_class_group_id_fkey(
-              id, name, school_id, department_id, level_id,
-              department:departments!class_groups_department_id_fkey(id, name),
-              level:levels!class_groups_level_id_fkey(id, level_number, name)
-            ),
-            current_session:sessions!users_current_session_id_fkey(id, name),
-            current_semester:semesters!users_current_semester_id_fkey(id, name),
-            user_roles(role:roles(id, name))
-          `)
-          .eq('id', session.user.id)
-          .single()
-
-        set({ 
-          user: session.user, 
-          profile: error ? null : profile
-        })
-      } else {
+      if (!session?.user) {
         set({ 
           user: null, 
-          profile: null
+          profile: null, 
+          status: 'unauthenticated',
+          loading: false, 
+          initialized: true 
         })
+        return
       }
 
-      // Register auth state change listener only once
-      if (!authListenerRegistered) {
-        authListenerRegistered = true
-        const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
-          if (event === 'SIGNED_IN' && session?.user) {
-            const { data: profile } = await supabase
-              .from('users')
-              .select(`
-                *,
-                school:schools!users_school_id_fkey(id, name),
-                class_group:class_groups!users_class_group_id_fkey(
-                  id, name, school_id, department_id, level_id,
-                  department:departments!class_groups_department_id_fkey(id, name),
-                  level:levels!class_groups_level_id_fkey(id, level_number, name)
-                ),
-                current_session:sessions!users_current_session_id_fkey(id, name),
-                current_semester:semesters!users_current_semester_id_fkey(id, name),
-                user_roles(role:roles(id, name))
-              `)
-              .eq('id', session.user.id)
-              .single()
+      // Fetch profile with all related data
+      const { data: profile, error } = await supabase
+        .from('users')
+        .select(PROFILE_SELECT_QUERY)
+        .eq('id', session.user.id)
+        .single()
 
-            set({ 
-              user: session.user, 
-              profile, 
-              loading: false, 
-              initialized: true 
-            })
-          } else if (event === 'SIGNED_OUT') {
-            set({ 
-              user: null, 
-              profile: null, 
-              loading: false, 
-              initialized: true 
-            })
-          } else if (event === 'TOKEN_REFRESHED' && session?.user) {
-            // Keep user state in sync on token refresh
-            set({ user: session.user })
-          }
+      if (error || !profile) {
+        set({ 
+          user: null, 
+          profile: null, 
+          status: 'unauthenticated',
+          loading: false, 
+          initialized: true 
         })
-        authSubscription = data.subscription
+        return
       }
+
+      set({ 
+        user: session.user, 
+        profile, 
+        status: 'authenticated',
+        loading: false, 
+        initialized: true 
+      })
       
     } catch (error) {
       console.error('Auth initialization error:', error)
       set({ 
         user: null, 
-        profile: null
+        profile: null, 
+        status: 'unauthenticated',
+        loading: false, 
+        initialized: true 
       })
-    } finally {
-      // ALWAYS set initialized and clear loading, even on error
-      set({ loading: false, initialized: true })
     }
   },
 
-  // Register new user (simple - used for direct registration if needed)
+  // ============ REGISTER ============
   register: async (email: string, password: string, userData: Partial<UserProfile>) => {
-    set({ loading: true })
+    set({ status: 'loading', loading: true })
     
     try {
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -205,7 +217,7 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
       if (authError) throw authError
       if (!authData.user) throw new Error('User creation failed')
 
-      // Create profile with new schema
+      // Create profile
       const { data: profile, error: profileError } = await supabase
         .from('users')
         .insert({
@@ -237,22 +249,28 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
           .insert({ user_id: authData.user.id, role_id: studentRole.id })
       }
 
-      set({ user: authData.user, profile, loading: false, initialized: true })
+      set({ 
+        user: authData.user, 
+        profile, 
+        status: 'authenticated',
+        loading: false, 
+        initialized: true 
+      })
       toast.success('Account created successfully!')
       
       if (typeof window !== 'undefined') {
         window.location.href = '/dashboard'
       }
     } catch (error: any) {
-      set({ loading: false })
+      set({ status: 'unauthenticated', loading: false, initialized: true })
       toast.error(error.message || 'Registration failed')
       throw error
     }
   },
 
-  // Register student with direct form data
+  // ============ REGISTER STUDENT ============
   registerStudent: async (email: string, password: string, userData: StudentRegistrationData) => {
-    set({ loading: true })
+    set({ status: 'loading', loading: true })
     
     try {
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -263,7 +281,7 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
       if (authError) throw authError
       if (!authData.user) throw new Error('User creation failed')
 
-      // 1. First check if level exists for this department
+      // 1. Check if level exists for this department
       let levelId: string | null = null
       const { data: existingLevel } = await supabase
         .from('levels')
@@ -275,7 +293,6 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
       if (existingLevel) {
         levelId = existingLevel.id
       } else {
-        // Create level
         const { data: newLevel, error: levelError } = await supabase
           .from('levels')
           .insert({
@@ -349,22 +366,28 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
           .insert({ user_id: authData.user.id, role_id: studentRole.id })
       }
 
-      set({ user: authData.user, profile, loading: false, initialized: true })
+      set({ 
+        user: authData.user, 
+        profile, 
+        status: 'authenticated',
+        loading: false, 
+        initialized: true 
+      })
       toast.success('Account created successfully!')
       
       if (typeof window !== 'undefined') {
         window.location.href = '/dashboard'
       }
     } catch (error: any) {
-      set({ loading: false })
+      set({ status: 'unauthenticated', loading: false, initialized: true })
       toast.error(error.message || 'Registration failed')
       throw error
     }
   },
 
-  // Login user
+  // ============ LOGIN ============
   login: async (email: string, password: string) => {
-    set({ loading: true })
+    set({ status: 'loading', loading: true })
     
     try {
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
@@ -378,18 +401,7 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
       // Fetch profile with all related data
       const { data: profile, error: profileError } = await supabase
         .from('users')
-        .select(`
-          *,
-          school:schools!users_school_id_fkey(id, name),
-          class_group:class_groups!users_class_group_id_fkey(
-            id, name, school_id, department_id, level_id,
-            department:departments!class_groups_department_id_fkey(id, name),
-            level:levels!class_groups_level_id_fkey(id, level_number, name)
-          ),
-          current_session:sessions!users_current_session_id_fkey(id, name),
-          current_semester:semesters!users_current_semester_id_fkey(id, name),
-          user_roles(role:roles(id, name))
-        `)
+        .select(PROFILE_SELECT_QUERY)
         .eq('id', authData.user.id)
         .single()
 
@@ -398,6 +410,7 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
       set({ 
         user: authData.user, 
         profile, 
+        status: 'authenticated',
         loading: false, 
         initialized: true 
       })
@@ -409,15 +422,15 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
       }
       
     } catch (error: any) {
-      set({ loading: false })
+      set({ status: 'unauthenticated', loading: false, initialized: true })
       toast.error(error.message || 'Login failed')
       throw error
     }
   },
 
-  // Login with phone number
+  // ============ LOGIN WITH PHONE ============
   loginWithPhone: async (phone: string, password: string) => {
-    set({ loading: true })
+    set({ status: 'loading', loading: true })
     
     try {
       // First find the user's email by phone number
@@ -443,18 +456,7 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
       // Fetch profile with all related data
       const { data: profile, error: profileError } = await supabase
         .from('users')
-        .select(`
-          *,
-          school:schools!users_school_id_fkey(id, name),
-          class_group:class_groups!users_class_group_id_fkey(
-            id, name, school_id, department_id, level_id,
-            department:departments!class_groups_department_id_fkey(id, name),
-            level:levels!class_groups_level_id_fkey(id, level_number, name)
-          ),
-          current_session:sessions!users_current_session_id_fkey(id, name),
-          current_semester:semesters!users_current_semester_id_fkey(id, name),
-          user_roles(role:roles(id, name))
-        `)
+        .select(PROFILE_SELECT_QUERY)
         .eq('id', authData.user.id)
         .single()
 
@@ -463,6 +465,7 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
       set({ 
         user: authData.user, 
         profile, 
+        status: 'authenticated',
         loading: false, 
         initialized: true 
       })
@@ -474,17 +477,23 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
       }
       
     } catch (error: any) {
-      set({ loading: false })
+      set({ status: 'unauthenticated', loading: false, initialized: true })
       toast.error(error.message || 'Login failed')
       throw error
     }
   },
 
-  // Logout user
+  // ============ LOGOUT ============
   logout: async () => {
     try {
       await supabase.auth.signOut()
-      set({ user: null, profile: null, loading: false, initialized: true })
+      set({ 
+        user: null, 
+        profile: null, 
+        status: 'unauthenticated',
+        loading: false, 
+        initialized: true 
+      })
       
       if (typeof window !== 'undefined') {
         localStorage.clear()
@@ -495,14 +504,20 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
       toast.success('Logged out successfully')
       
     } catch (error) {
-      set({ user: null, profile: null, loading: false, initialized: true })
+      set({ 
+        user: null, 
+        profile: null, 
+        status: 'unauthenticated',
+        loading: false, 
+        initialized: true 
+      })
       if (typeof window !== 'undefined') {
         window.location.href = '/'
       }
     }
   },
 
-  // Update profile
+  // ============ UPDATE PROFILE ============
   updateProfile: async (profileData: Partial<UserProfile>) => {
     const { user, profile } = get()
     if (!user || !profile) throw new Error('No authenticated user')
@@ -512,18 +527,7 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
         .from('users')
         .update(profileData)
         .eq('id', user.id)
-        .select(`
-          *,
-          school:schools!users_school_id_fkey(id, name),
-          class_group:class_groups!users_class_group_id_fkey(
-            id, name, school_id, department_id, level_id,
-            department:departments!class_groups_department_id_fkey(id, name),
-            level:levels!class_groups_level_id_fkey(id, level_number, name)
-          ),
-          current_session:sessions!users_current_session_id_fkey(id, name),
-          current_semester:semesters!users_current_semester_id_fkey(id, name),
-          user_roles(role:roles(id, name))
-        `)
+        .select(PROFILE_SELECT_QUERY)
         .single()
 
       if (error) throw error

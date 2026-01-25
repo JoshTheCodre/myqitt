@@ -34,7 +34,10 @@ function ProfileCard({ icon: Icon, label, value }: { icon: LucideIcon; label: st
 }
 
 export default function ProfilePage() {
-    const { user, profile, initialized, logout } = useAuthStore()
+    const user = useAuthStore((s) => s.user)
+    const profile = useAuthStore((s) => s.profile)
+    const status = useAuthStore((s) => s.status)
+    const logout = useAuthStore((s) => s.logout)
     const typedProfile = profile as UserProfileWithDetails | null
     const [courseRepName, setCourseRepName] = useState<string | null>(null)
     const [loadingCourseRep, setLoadingCourseRep] = useState(true)
@@ -52,7 +55,7 @@ export default function ProfilePage() {
 
     useEffect(() => {
         const fetchCourseRep = async () => {
-            if (!initialized || !user?.id || !profile) return
+            if (status !== 'authenticated' || !user?.id || !profile) return
             
             try {
                 const courseRep = await ClassmateService.getCourseRep(user.id)
@@ -66,7 +69,7 @@ export default function ProfilePage() {
         }
 
         fetchCourseRep()
-    }, [user?.id, profile?.id, initialized])
+    }, [user?.id, profile?.id, status])
 
     const handleLogout = async () => {
         try {

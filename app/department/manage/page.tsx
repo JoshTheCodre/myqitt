@@ -13,14 +13,17 @@ import { ManagementScreen } from "@/components/manage/management-screen"
 // ============================================
 export default function ManagePage() {
   const router = useRouter()
-  const { user, profile, initialized, isCourseRep } = useAuthStore()
+  const user = useAuthStore((s) => s.user)
+  const profile = useAuthStore((s) => s.profile)
+  const status = useAuthStore((s) => s.status)
+  const isCourseRep = useAuthStore((s) => s.isCourseRep)
   const [classmates, setClassmates] = useState<Classmate[]>([])
   const [departmentName, setDepartmentName] = useState<string>('')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     // Wait for auth to initialize
-    if (!initialized) return
+    if (status !== 'authenticated') return
 
     // Redirect if not logged in
     if (!user) {
@@ -60,10 +63,10 @@ export default function ManagePage() {
     }
 
     loadData()
-  }, [initialized, user, profile, isCourseRep, router])
+  }, [status, user, profile, isCourseRep, router])
 
   // Show loading while initializing
-  if (!initialized || loading) {
+  if (status !== 'authenticated' || loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">

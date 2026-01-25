@@ -39,7 +39,9 @@ const emptyForm: CatchUpFormData = {
 }
 
 export default function CatchUpAdminPage() {
-  const { profile, user, initialized } = useAuthStore()
+  const profile = useAuthStore((s) => s.profile)
+  const user = useAuthStore((s) => s.user)
+  const status = useAuthStore((s) => s.status)
   const [items, setItems] = useState<CatchUpItem[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -49,13 +51,13 @@ export default function CatchUpAdminPage() {
   const [schools, setSchools] = useState<Array<{ id: string; name: string }>>([])
 
   useEffect(() => {
-    if (initialized && user) {
+    if (status === 'authenticated' && user) {
       loadItems()
       loadSchools()
-    } else if (initialized && !user) {
+    } else if (status === 'authenticated' && !user) {
       setLoading(false)
     }
-  }, [initialized, user])
+  }, [status, user])
 
   async function loadItems() {
     setLoading(true)
@@ -227,7 +229,7 @@ export default function CatchUpAdminPage() {
     }))
   }
 
-  if (!initialized || loading) {
+  if (status !== 'authenticated' || loading) {
     return (
       <AppShell>
         <div className="h-full flex items-center justify-center">

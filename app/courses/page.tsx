@@ -30,7 +30,9 @@ function Header({ profile }: { profile: UserProfileWithDetails | null }) {
 
 export default function CoursesPage() {
     const router = useRouter()
-    const { user, profile, initialized } = useAuthStore()
+    const user = useAuthStore((s) => s.user)
+    const profile = useAuthStore((s) => s.profile)
+    const status = useAuthStore((s) => s.status)
     const { 
         userCourses, 
         carryoverCourses, 
@@ -56,7 +58,7 @@ export default function CoursesPage() {
         let mounted = true
         
         const loadData = async () => {
-            if (!initialized) return
+            if (status !== 'authenticated') return
             
             if (user?.id && profile && mounted) {
                 await Promise.all([
@@ -72,7 +74,7 @@ export default function CoursesPage() {
             mounted = false
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user?.id, profile?.id, initialized])
+    }, [user?.id, profile?.id, status])
 
     // ============ MAIN RENDER ============
     return (

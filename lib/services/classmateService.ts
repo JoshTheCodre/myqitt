@@ -9,6 +9,7 @@ export interface Classmate {
   phone_number?: string
   bio?: string
   isCourseRep: boolean
+  isVerifiedCourseRep: boolean
   // Display info from joined data
   schoolName?: string
   departmentName?: string
@@ -41,7 +42,7 @@ export class ClassmateService {
           avatar_url,
           phone_number,
           bio,
-          user_roles(role:roles(name)),
+          user_roles(role:roles(name), verified),
           school:schools!users_school_id_fkey(name),
           class_group:class_groups!users_class_group_id_fkey(
             department:departments!class_groups_department_id_fkey(name),
@@ -61,9 +62,11 @@ export class ClassmateService {
 
       // Transform to Classmate interface
       const result: Classmate[] = classmates.map(user => {
-        const isCourseRep = user.user_roles?.some(
+        const courseRepRole = user.user_roles?.find(
           (ur: any) => ur.role?.name === 'course_rep'
-        ) || false
+        )
+        const isCourseRep = !!courseRepRole
+        const isVerifiedCourseRep = isCourseRep && (courseRepRole as any)?.verified === true
 
         return {
           id: user.id,
@@ -73,16 +76,17 @@ export class ClassmateService {
           phone_number: user.phone_number || undefined,
           bio: user.bio || undefined,
           isCourseRep,
+          isVerifiedCourseRep,
           schoolName: (user.school as any)?.name,
           departmentName: (user.class_group as any)?.department?.name,
           levelNumber: (user.class_group as any)?.level?.level_number
         }
       })
 
-      // Sort: course rep first, then alphabetically by name
+      // Sort: verified course rep first, then alphabetically by name
       result.sort((a, b) => {
-        if (a.isCourseRep && !b.isCourseRep) return -1
-        if (!a.isCourseRep && b.isCourseRep) return 1
+        if (a.isVerifiedCourseRep && !b.isVerifiedCourseRep) return -1
+        if (!a.isVerifiedCourseRep && b.isVerifiedCourseRep) return 1
         return (a.name || '').localeCompare(b.name || '')
       })
 
@@ -155,7 +159,8 @@ export class ClassmateService {
         avatar_url: user.avatar_url,
         phone_number: user.phone_number,
         bio: user.bio,
-        isCourseRep: true
+        isCourseRep: true,
+        isVerifiedCourseRep: true // Level reps from level_reps table are considered verified
       }
     } catch {
       return null
@@ -182,7 +187,7 @@ export class ClassmateService {
           avatar_url,
           phone_number,
           bio,
-          user_roles(role:roles(name))
+          user_roles(role:roles(name), verified)
         `)
         .eq('class_group_id', userData.class_group_id)
         .ilike('name', `%${searchTerm}%`)
@@ -191,17 +196,24 @@ export class ClassmateService {
 
       if (error) throw error
 
-      return (classmates || []).map(user => ({
-        id: user.id,
-        name: user.name || 'Unknown',
-        email: user.email,
-        avatar_url: user.avatar_url || undefined,
-        phone_number: user.phone_number || undefined,
-        bio: user.bio || undefined,
-        isCourseRep: user.user_roles?.some(
+      return (classmates || []).map(user => {
+        const courseRepRole = user.user_roles?.find(
           (ur: any) => ur.role?.name === 'course_rep'
-        ) || false
-      }))
+        )
+        const isCourseRep = !!courseRepRole
+        const isVerifiedCourseRep = isCourseRep && (courseRepRole as any)?.verified === true
+        
+        return {
+          id: user.id,
+          name: user.name || 'Unknown',
+          email: user.email,
+          avatar_url: user.avatar_url || undefined,
+          phone_number: user.phone_number || undefined,
+          bio: user.bio || undefined,
+          isCourseRep,
+          isVerifiedCourseRep
+        }
+      })
     } catch (error) {
       console.error('Error searching classmates:', error)
       return []

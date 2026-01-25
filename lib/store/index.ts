@@ -1,5 +1,5 @@
 // Export all stores
-export * from './auth'
+export * from './authStore'
 export * from './assignment'
 export * from './timetable'
 export * from './course'

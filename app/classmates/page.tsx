@@ -7,6 +7,7 @@ import { useAuthStore } from '@/lib/store/authStore'
 import { ClassmateService, type Classmate } from '@/lib/services'
 import { ClassmateConnectionModal } from '@/components/classmate-connection-modal'
 import { supabase } from '@/lib/supabase/client'
+import toast from 'react-hot-toast'
 
 interface HeaderProps {
   classmateCount: number
@@ -16,6 +17,7 @@ interface ClassmateCardProps {
   classmate: Classmate
   isCurrentUser: boolean
   isConnected: boolean
+  hasOtherConnection: boolean
   onConnect: () => void
 }
 
@@ -42,6 +44,7 @@ function ClassmateCard({
   classmate,
   isCurrentUser,
   isConnected,
+  hasOtherConnection,
   onConnect
 }: ClassmateCardProps) {
   return (
@@ -55,10 +58,13 @@ function ClassmateCard({
         ) : (
           <button
             onClick={onConnect}
+            disabled={hasOtherConnection && !isConnected}
             className={`absolute top-4 right-4 px-3 py-1.5 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 ${
               isConnected
                 ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
-                : 'bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 hover:border-blue-300'
+                : hasOtherConnection
+                  ? 'bg-gray-50 text-gray-400 border border-gray-200 cursor-not-allowed'
+                  : 'bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 hover:border-blue-300'
             }`}
           >
             {isConnected ? (
@@ -82,7 +88,7 @@ function ClassmateCard({
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="text-sm font-bold text-gray-900 truncate">{classmate.name}</h3>
-            {classmate.isCourseRep && (
+            {classmate.isVerifiedCourseRep && (
               <span className="inline-block mt-1 px-2 py-0.5 bg-amber-50 text-amber-600 text-xs font-medium rounded-full border border-amber-200">
                 Course Rep
               </span>
@@ -99,6 +105,7 @@ function ClassmatesList({ onCountUpdate }: ClassmatesListProps) {
   const { user, profile } = useAuthStore()
   const [classmates, setClassmates] = useState<Classmate[]>([])
   const [connections, setConnections] = useState<Set<string>>(new Set())
+  const [currentConnection, setCurrentConnection] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [selectedClassmate, setSelectedClassmate] = useState<Classmate | null>(null)
   const [showModal, setShowModal] = useState(false)
@@ -112,8 +119,13 @@ function ClassmatesList({ onCountUpdate }: ClassmatesListProps) {
         .select('following_id')
         .eq('follower_id', user.id)
       
-      if (data) {
+      if (data && data.length > 0) {
         setConnections(new Set(data.map(c => c.following_id)))
+        // User can only have one connection, so take the first
+        setCurrentConnection(data[0].following_id)
+      } else {
+        setConnections(new Set())
+        setCurrentConnection(null)
       }
     } catch (error) {
       console.error('Error loading connections:', error)
@@ -145,6 +157,19 @@ function ClassmatesList({ onCountUpdate }: ClassmatesListProps) {
   }, [user?.id, profile?.class_group_id, onCountUpdate])
 
   const handleConnectClick = (classmate: Classmate) => {
+    // If already connected to this person, allow editing
+    if (connections.has(classmate.id)) {
+      setSelectedClassmate(classmate)
+      setShowModal(true)
+      return
+    }
+    
+    // If already connected to someone else, show error
+    if (currentConnection && currentConnection !== classmate.id) {
+      toast.error('You can only connect to one person. Disconnect first to connect to someone else.')
+      return
+    }
+    
     setSelectedClassmate(classmate)
     setShowModal(true)
   }
@@ -196,6 +221,7 @@ function ClassmatesList({ onCountUpdate }: ClassmatesListProps) {
             classmate={classmate}
             isCurrentUser={classmate.id === user?.id}
             isConnected={connections.has(classmate.id)}
+            hasOtherConnection={!!currentConnection && !connections.has(classmate.id)}
             onConnect={() => handleConnectClick(classmate)}
           />
         ))}

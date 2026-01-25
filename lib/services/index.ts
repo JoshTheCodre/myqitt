@@ -6,6 +6,8 @@ export { ProfileService } from './profileService'
 export { TodaysClassService } from './todaysClassService'
 export { CatchUpService } from './catchUpService'
 export { CourseService } from './courseService'
+export { ConnectionService } from './connectionService'
+export { CarryoverService } from './carryoverService'
 // export { NotificationService } from './notificationService' // DISABLED: Service worker related
 
 // Re-export types
@@ -52,6 +54,17 @@ export type {
   CourseItem,
   GroupedCourses
 } from './courseService'
+
+export type {
+  Connection,
+  ConnectedUserData
+} from './connectionService'
+
+export type {
+  CarryoverCourse,
+  CarryoverCourseItem,
+  CreateCarryoverData
+} from './carryoverService'
 
 // export type {
 //   NotificationPayload

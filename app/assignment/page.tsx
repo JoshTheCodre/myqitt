@@ -3,10 +3,10 @@
 import { useRouter } from 'next/navigation'
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime'
 import { AppShell } from '@/components/layout/app-shell'
-import { Calendar, ChevronRight, Plus, BadgeCheck, CircleCheck, Clock } from 'lucide-react'
+import { Calendar, ChevronRight, Plus, BadgeCheck, CircleCheck, Clock, Eye } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useAuthStore } from '@/lib/store/authStore'
-import { AssignmentService, type GroupedAssignment, type AssignmentDate, type AssignmentStats } from '@/lib/services'
+import { AssignmentService, ConnectionService, type GroupedAssignment, type AssignmentDate, type AssignmentStats } from '@/lib/services'
 
 // ============ TYPES ============
 interface AssignmentCardProps {
@@ -20,6 +20,10 @@ interface AssignmentCardProps {
 interface AssignmentsListProps {
   router: AppRouterInstance
   onIsCourseRepChange: (isCourseRep: boolean) => void
+  dataUserId: string | null
+  isViewOnly: boolean
+  isConnected: boolean
+  viewingUserName?: string
 }
 
 // ============ STATS CARD COMPONENT ============
@@ -62,14 +66,25 @@ function StatsCard({ stats }: { stats: AssignmentStats }) {
 }
 
 // ============ HEADER COMPONENT ============
-function Header({ onAddClick, isCourseRep }: { onAddClick: () => void; isCourseRep: boolean }) {
+function Header({ onAddClick, isCourseRep, isViewOnly, viewingUserName }: { 
+  onAddClick: () => void; 
+  isCourseRep: boolean;
+  isViewOnly: boolean;
+  viewingUserName?: string;
+}) {
   return (
     <div>
       <div className="flex items-start justify-between gap-4">
         <div className="relative">
           <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-gray-900">Assignments</h1>
+          {isViewOnly && viewingUserName && (
+            <div className="flex items-center gap-1.5 mt-2 text-sm text-blue-600 bg-blue-50 px-3 py-1 rounded-full w-fit">
+              <Eye className="w-4 h-4" />
+              <span>Viewing {viewingUserName}&apos;s assignments</span>
+            </div>
+          )}
         </div>
-        {isCourseRep && (
+        {isCourseRep && !isViewOnly && (
           <button
             onClick={onAddClick}
             className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl font-bold text-sm hover:from-blue-700 hover:to-blue-600 transition-all shadow-md hover:shadow-lg flex-shrink-0"
@@ -142,33 +157,45 @@ function AssignmentCard({
 }
 
 // ============ ASSIGNMENTS LIST COMPONENT ============
-function AssignmentsList({ router, onIsCourseRepChange }: AssignmentsListProps) {
+function AssignmentsList({ router, onIsCourseRepChange, dataUserId, isViewOnly, isConnected, viewingUserName }: AssignmentsListProps) {
   const [assignments, setAssignments] = useState<GroupedAssignment[]>([])
   const [loading, setLoading] = useState(true)
   const [isCourseRep, setIsCourseRep] = useState(false)
-  const { user, profile, initialized } = useAuthStore()
+  const { user, profile } = useAuthStore()
+  const status = useAuthStore((s) => s.status)
 
   useEffect(() => {
-    if (!initialized) return
+    if (status !== 'authenticated') return
     
-    if (user && profile) {
+    if (dataUserId && profile) {
+      loadAssignments()
+    } else if (user && profile) {
       loadAssignments()
     } else {
       setAssignments([])
       setLoading(false)
     }
-  }, [user?.id, profile?.id, initialized])
+  }, [dataUserId, user?.id, profile?.id, status, isConnected])
 
   const loadAssignments = async () => {
-    if (!user) return
+    const userId = dataUserId || user?.id
+    if (!userId) return
 
     setLoading(true)
     try {
-      const data = await AssignmentService.getAssignments(user.id)
+      const data = await AssignmentService.getAssignments(userId)
       
-      setAssignments(data.assignments)
-      setIsCourseRep(data.isCourseRep)
-      onIsCourseRepChange(data.isCourseRep)
+      // Only allow course rep actions if viewing own data
+      const courseRepStatus = isViewOnly ? false : data.isCourseRep
+      setIsCourseRep(courseRepStatus)
+      onIsCourseRepChange(courseRepStatus)
+      
+      // If not connected and not a course rep, don't show any assignment data
+      if (!isConnected && !courseRepStatus) {
+        setAssignments([])
+      } else {
+        setAssignments(data.assignments)
+      }
     } catch (error) {
       console.error('Failed to load assignments:', error)
       setAssignments([])
@@ -211,8 +238,12 @@ function AssignmentsList({ router, onIsCourseRepChange }: AssignmentsListProps) 
     return (
       <div className="bg-gray-50 border border-gray-200 rounded-xl p-12 text-center">
         <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-        <p className="text-gray-600 text-base font-medium">No assignments yet</p>
-        {isCourseRep ? (
+        <p className="text-gray-600 text-base font-medium">
+          {isConnected || isCourseRep ? 'No assignments yet' : 'No assignments available'}
+        </p>
+        {isViewOnly && isConnected ? (
+          <p className="text-gray-500 text-sm mt-2">{viewingUserName} hasn&apos;t added any assignments yet</p>
+        ) : isCourseRep ? (
           <>
             <p className="text-gray-500 text-sm mt-2">Add assignments for your classmates to see</p>
             <button
@@ -224,7 +255,7 @@ function AssignmentsList({ router, onIsCourseRepChange }: AssignmentsListProps) 
             </button>
           </>
         ) : (
-          <p className="text-gray-500 text-sm mt-2">Your course rep hasn&apos;t added any assignments yet</p>
+          <p className="text-gray-500 text-sm mt-2">Connect to a classmate to view their assignments</p>
         )}
       </div>
     )
@@ -257,13 +288,25 @@ export default function AssignmentPage() {
   const { user } = useAuthStore()
   const [stats, setStats] = useState<AssignmentStats>({ total: 0, submitted: 0, pending: 0, overdue: 0 })
   const [isCourseRep, setIsCourseRep] = useState(false)
+  const [isViewOnly, setIsViewOnly] = useState(false)
+  const [isConnected, setIsConnected] = useState(false)
+  const [viewingUserName, setViewingUserName] = useState<string | undefined>()
+  const [dataUserId, setDataUserId] = useState<string | null>(null)
 
   useEffect(() => {
     let mounted = true
     
     const loadData = async () => {
       if (user && mounted) {
-        await fetchStats()
+        // Check if viewing connected user's assignments
+        const dataSource = await ConnectionService.getAssignmentsUserId(user.id)
+        setIsViewOnly(dataSource.isViewOnly)
+        setViewingUserName(dataSource.userName)
+        setIsConnected(dataSource.isConnected)
+        setDataUserId(dataSource.userId)
+        
+        // Stats are always personal to current user
+        await fetchStats(user.id, dataSource.isConnected, dataSource.userId!)
       }
     }
     
@@ -275,15 +318,22 @@ export default function AssignmentPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id])
 
-  const fetchStats = async () => {
-    if (!user) return
-
+  const fetchStats = async (currentUserId: string, connected: boolean, assignmentSourceUserId: string) => {
     try {
-      const statsData = await AssignmentService.getAssignmentStats(user.id)
-      setStats(statsData)
+      // Check if user is course rep first
+      const data = await AssignmentService.getAssignments(assignmentSourceUserId)
+      const courseRepStatus = data.isCourseRep
+      setIsCourseRep(courseRepStatus)
       
-      const data = await AssignmentService.getAssignments(user.id)
-      setIsCourseRep(data.isCourseRep)
+      // If not connected and not a course rep, show empty stats
+      if (!connected && !courseRepStatus) {
+        setStats({ total: 0, submitted: 0, pending: 0, overdue: 0 })
+        return
+      }
+      
+      // Stats are ALWAYS personal - use the current user's ID, not the connected user
+      const statsData = await AssignmentService.getAssignmentStats(currentUserId)
+      setStats(statsData)
     } catch (error) {
       console.error('Failed to fetch assignment stats:', error)
       setStats({ total: 0, submitted: 0, pending: 0, overdue: 0 })
@@ -294,14 +344,26 @@ export default function AssignmentPage() {
     <AppShell>
       <div className="h-full flex items-start justify-center overflow-hidden">
         <div className="w-full lg:w-3/4 px-4 py-8 pb-24 lg:pb-8 overflow-x-hidden">
-          <Header onAddClick={() => router.push('/assignment/add')} isCourseRep={isCourseRep} />
+          <Header 
+            onAddClick={() => router.push('/assignment/add')} 
+            isCourseRep={isCourseRep}
+            isViewOnly={isViewOnly}
+            viewingUserName={viewingUserName}
+          />
           
           <div className="mt-6">
             <StatsCard stats={stats} />
           </div>
           
           <div className="mt-4">
-            <AssignmentsList router={router} onIsCourseRepChange={setIsCourseRep} />
+            <AssignmentsList 
+              router={router} 
+              onIsCourseRepChange={setIsCourseRep}
+              dataUserId={dataUserId}
+              isViewOnly={isViewOnly}
+              isConnected={isConnected}
+              viewingUserName={viewingUserName}
+            />
           </div>
         </div>
       </div>

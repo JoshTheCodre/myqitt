@@ -8,7 +8,7 @@ import { useAuthStore, UserProfileWithDetails } from '@/lib/store/authStore'
 import { AppShell } from '@/components/layout/app-shell'
 import { ClassMenu } from '@/components/class-menu'
 import { UpdateTodaysClassModal } from '@/components/update-todays-class-modal'
-import { TodaysClassService, type MergedClass } from '@/lib/services'
+import { TodaysClassService, ConnectionService, type MergedClass } from '@/lib/services'
 
 // ============ HELPER FUNCTIONS ============
 const getInitials = (name?: string) => {
@@ -375,13 +375,16 @@ function TodaysClasses({ userId }: { userId?: string }) {
   const [loading, setLoading] = useState(true)
   const [selectedClass, setSelectedClass] = useState<MergedClass | null>(null)
   const [showUpdateModal, setShowUpdateModal] = useState(false)
-  const { initialized } = useAuthStore()
+  const [isConnected, setIsConnected] = useState(false)
+  const [isCourseRep, setIsCourseRep] = useState(false)
+  const status = useAuthStore((s) => s.status)
+  const checkIsCourseRep = useAuthStore((s) => s.isCourseRep)
 
   useEffect(() => {
     let mounted = true
     
     const loadData = async () => {
-      if (!initialized) return
+      if (status !== 'authenticated') return
       
       if (userId && mounted) {
         await fetchTodaysClasses()
@@ -398,15 +401,30 @@ function TodaysClasses({ userId }: { userId?: string }) {
       mounted = false
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId, initialized])
+  }, [userId, status])
 
   const fetchTodaysClasses = async () => {
     if (!userId) return
 
     try {
       setLoading(true)
+      
+      // Check if connected for today's classes
+      const dataSource = await ConnectionService.getTodayClassesUserId(userId)
+      setIsConnected(dataSource.isConnected)
+      
+      // Check if user is course rep
+      const courseRepStatus = checkIsCourseRep()
+      setIsCourseRep(courseRepStatus)
+      
+      // If not connected and not course rep, show empty
+      if (!dataSource.isConnected && !courseRepStatus) {
+        setClasses([])
+        setLoading(false)
+        return
+      }
 
-      const todaysClasses = await TodaysClassService.getTodaysClasses(userId)
+      const todaysClasses = await TodaysClassService.getTodaysClasses(dataSource.userId!)
       // Sort by start time (earliest first) - handle both 24h and 12h formats
       const sortedClasses = todaysClasses.sort((a, b) => {
         const timeToMinutes = (time: string) => {
@@ -613,18 +631,33 @@ function TodaysClasses({ userId }: { userId?: string }) {
           ) : (
           <div className="bg-white rounded-xl p-6 md:p-8 text-center border-2 border-dashed border-gray-300">
             <Clock className="w-10 h-10 text-gray-400 mx-auto mb-3" />
-            <h3 className="text-base font-semibold text-gray-900 mb-1">No classes today</h3>
+            <h3 className="text-base font-semibold text-gray-900 mb-1">
+              {!isConnected && !isCourseRep ? 'No classes available' : 'No classes today'}
+            </h3>
             <p className="text-xs text-gray-600 mb-2">
-              {new Date().getDay() === 0 || new Date().getDay() === 6 
-                ? "It's the weekend! Enjoy your day off."
-                : "No classes scheduled for today"}
+              {!isConnected && !isCourseRep
+                ? "Connect to a classmate to view today's classes"
+                : new Date().getDay() === 0 || new Date().getDay() === 6 
+                  ? "It's the weekend! Enjoy your day off."
+                  : "No classes scheduled for today"}
             </p>
-            {(new Date().getDay() !== 0 && new Date().getDay() !== 6) && (
+            {isConnected || isCourseRep ? (
+              (new Date().getDay() !== 0 && new Date().getDay() !== 6) && (
+                <div className="flex justify-center">
+                  <Link href="/timetable">
+                    <button className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg font-semibold text-xs hover:from-blue-700 hover:to-blue-600 transition-all shadow-md hover:shadow-lg flex items-center gap-2">
+                      <Plus className="w-3.5 h-3.5" />
+                      View Timetable
+                    </button>
+                  </Link>
+                </div>
+              )
+            ) : (
               <div className="flex justify-center">
-                <Link href="/timetable">
+                <Link href="/classmates">
                   <button className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg font-semibold text-xs hover:from-blue-700 hover:to-blue-600 transition-all shadow-md hover:shadow-lg flex items-center gap-2">
-                    <Plus className="w-3.5 h-3.5" />
-                    Add Timetable
+                    <Users className="w-3.5 h-3.5" />
+                    Connect to Classmates
                   </button>
                 </Link>
               </div>

@@ -60,7 +60,7 @@ export interface CreateAssignmentData {
 }
 
 export class AssignmentService {
-  // Get all assignments for user's class group
+  // Get all assignments for user's class group with personal submission status
   static async getAssignments(userId: string): Promise<{
     assignments: GroupedAssignment[],
     isCourseRep: boolean
@@ -82,8 +82,6 @@ export class AssignmentService {
           due_at,
           attachment_urls,
           created_at,
-          submitted,
-          submitted_at,
           course:courses!assignments_course_id_fkey(
             id,
             code,
@@ -108,7 +106,24 @@ export class AssignmentService {
         return { assignments: [], isCourseRep: userInfo.isCourseRep }
       }
 
-      // Group assignments by course code
+      // Fetch user's personal submission status for these assignments
+      const assignmentIds = assignmentsData.map(a => a.id)
+      const { data: submissions } = await supabase
+        .from('user_assignment_submissions')
+        .select('assignment_id, submitted, submitted_at')
+        .eq('user_id', userId)
+        .in('assignment_id', assignmentIds)
+
+      // Create a map of submission status
+      const submissionMap = new Map<string, { submitted: boolean; submitted_at: string | null }>()
+      submissions?.forEach(s => {
+        submissionMap.set(s.assignment_id, { 
+          submitted: s.submitted, 
+          submitted_at: s.submitted_at 
+        })
+      })
+
+      // Group assignments by course code with personal submission status
       const groupedAssignments = assignmentsData.reduce((acc, item) => {
         const courseCode = (item.course as any)?.code || 'Unknown'
         const courseTitle = (item.course as any)?.title || ''
@@ -120,6 +135,11 @@ export class AssignmentService {
           ? dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
           : 'No due date'
         
+        // Get user's personal submission status
+        const userSubmission = submissionMap.get(item.id)
+        const isSubmitted = userSubmission?.submitted || false
+        const submittedAt = userSubmission?.submitted_at || null
+        
         const assignmentDate: AssignmentDate = {
           id: item.id,
           date: item.due_at || '',
@@ -127,20 +147,20 @@ export class AssignmentService {
           title: item.title,
           description: item.description || '',
           submissionType: 'PDF Report',
-          submitted: item.submitted || false,
-          submitted_at: item.submitted_at
+          submitted: isSubmitted,
+          submitted_at: submittedAt || undefined
         }
 
         if (existing) {
           existing.dates.push(assignmentDate)
           existing.assignmentCount++
-          if (item.submitted) existing.submittedCount++
+          if (isSubmitted) existing.submittedCount++
         } else {
           acc.push({
             courseCode,
             courseTitle,
             assignmentCount: 1,
-            submittedCount: item.submitted ? 1 : 0,
+            submittedCount: isSubmitted ? 1 : 0,
             dates: [assignmentDate]
           })
         }
@@ -345,7 +365,7 @@ export class AssignmentService {
     }
   }
 
-  // Get assignment statistics
+  // Get assignment statistics (personal to each user)
   static async getAssignmentStats(userId: string): Promise<AssignmentStats> {
     try {
       const userInfo = await TimetableService.getUserClassGroupInfo(userId)
@@ -353,31 +373,50 @@ export class AssignmentService {
         return { total: 0, submitted: 0, pending: 0, overdue: 0 }
       }
 
-      let query = supabase
+      // Get all assignments for the class group
+      let assignmentQuery = supabase
         .from('assignments')
-        .select('id, due_at, submitted')
+        .select('id, due_at')
         .eq('class_group_id', userInfo.class_group_id)
 
       if (userInfo.semester_id) {
-        query = query.eq('semester_id', userInfo.semester_id)
+        assignmentQuery = assignmentQuery.eq('semester_id', userInfo.semester_id)
       }
 
-      const { data, error } = await query
+      const { data: assignments, error: assignmentError } = await assignmentQuery
 
-      if (error || !data) {
+      if (assignmentError || !assignments) {
         return { total: 0, submitted: 0, pending: 0, overdue: 0 }
       }
 
+      // Get user's personal submission status for these assignments
+      const assignmentIds = assignments.map(a => a.id)
+      const { data: submissions } = await supabase
+        .from('user_assignment_submissions')
+        .select('assignment_id, submitted')
+        .eq('user_id', userId)
+        .in('assignment_id', assignmentIds)
+
+      // Create a map of submission status
+      const submissionMap = new Map<string, boolean>()
+      submissions?.forEach(s => {
+        submissionMap.set(s.assignment_id, s.submitted)
+      })
+
       const now = new Date()
       const stats = {
-        total: data.length,
-        submitted: data.filter(a => a.submitted).length,
+        total: assignments.length,
+        submitted: 0,
         pending: 0,
         overdue: 0
       }
 
-      data.forEach(assignment => {
-        if (!assignment.submitted) {
+      assignments.forEach(assignment => {
+        const isSubmitted = submissionMap.get(assignment.id) || false
+        
+        if (isSubmitted) {
+          stats.submitted++
+        } else {
           if (assignment.due_at && new Date(assignment.due_at) < now) {
             stats.overdue++
           } else {

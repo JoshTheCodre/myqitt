@@ -6,24 +6,19 @@ import { useAuthStore } from '@/lib/store/authStore'
 import { RegistrationForm } from './auth/registration-form'
 
 export default function HomePage() {
-  const { user, initialized } = useAuthStore()
+  const status = useAuthStore((s) => s.status)
+  const user = useAuthStore((s) => s.user)
   const router = useRouter()
 
   useEffect(() => {
-    if (initialized && user) {
+    if (status === 'authenticated' && user) {
       router.push('/dashboard')
     }
-  }, [user, initialized, router])
+  }, [user, status, router])
 
-  if (!initialized) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-white">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
-          <p className="text-sm text-gray-600 font-medium">Loading...</p>
-        </div>
-      </div>
-    )
+  // AuthGate handles loading state, but double-check
+  if (status === 'idle' || status === 'loading') {
+    return null // AuthGate shows spinner
   }
 
   return (

@@ -139,7 +139,9 @@ function TabNavigation({ activeTab, onTabChange }: TabNavigationProps) {
 
 export default function ManageClassmatesPage() {
   const router = useRouter()
-  const { profile, user, initialized } = useAuthStore()
+  const profile = useAuthStore((s) => s.profile)
+  const user = useAuthStore((s) => s.user)
+  const status = useAuthStore((s) => s.status)
   const typedProfile = profile as UserProfileWithDetails | null
   const [classmates, setClassmates] = useState<Classmate[]>([])
   const [filteredClassmates, setFilteredClassmates] = useState<Classmate[]>([])
@@ -158,22 +160,22 @@ export default function ManageClassmatesPage() {
 
   // Redirect if not course rep
   useEffect(() => {
-    if (!initialized) return
+    if (status !== 'authenticated') return
     
     if (profile && !isCourseRep) {
       router.push('/dashboard')
     }
-  }, [profile, isCourseRep, router, initialized])
+  }, [profile, isCourseRep, router, status])
 
   useEffect(() => {
-    if (!initialized) return
+    if (status !== 'authenticated') return
     
     if (classGroupId && user && profile) {
       fetchClassmates()
-    } else if (initialized) {
+    } else if (status === 'authenticated') {
       setLoading(false)
     }
-  }, [classGroupId, user?.id, profile?.id, initialized])
+  }, [classGroupId, user?.id, profile?.id, status])
 
   useEffect(() => {
     filterClassmates()

@@ -2,11 +2,12 @@
 
 import { useRouter, useSearchParams } from 'next/navigation'
 import { AppShell } from '@/components/layout/app-shell'
-import { ArrowLeft, Calendar, FileText, Clock, ExternalLink, Edit3, Plus, MapPin, Award, X, CheckCircle2, Trash2, PartyPopper } from 'lucide-react'
+import { ArrowLeft, Calendar, FileText, Clock, ExternalLink, Edit3, Plus, MapPin, Award, X, CheckCircle2, Trash2, PartyPopper, Eye } from 'lucide-react'
 import { Suspense, useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { useAuthStore } from '@/lib/store/authStore'
 import { useCourseStore } from '@/lib/store/courseStore'
+import { ConnectionService } from '@/lib/services'
 import toast from 'react-hot-toast'
 import confetti from 'canvas-confetti'
 
@@ -20,7 +21,7 @@ interface TimetableEntry {
 function CourseDetailContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { user } = useAuthStore()
+  const { user, isCourseRep } = useAuthStore()
   const { markCarryoverComplete, removeCarryoverCourse } = useCourseStore()
   
   const courseCode = searchParams.get('code') || ''
@@ -40,6 +41,9 @@ function CourseDetailContent() {
   const [completing, setCompleting] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [isConnectedForOutline, setIsConnectedForOutline] = useState(false)
+  const [isViewOnlyOutline, setIsViewOnlyOutline] = useState(false)
+  const [outlineUserName, setOutlineUserName] = useState<string | undefined>()
 
   useEffect(() => {
     if (courseCode && user?.id) {
@@ -54,44 +58,60 @@ function CourseDetailContent() {
     try {
       setLoading(true)
       
-      // Fetch course outline
-      const { data: courseData, error: courseError } = await supabase
-        .from('courses')
-        .select('description')
-        .eq('code', courseCode)
-        .single()
+      // Check connection status for course outline
+      const outlineSource = await ConnectionService.getCourseOutlineUserId(user.id)
+      setIsConnectedForOutline(outlineSource.isConnected)
+      setIsViewOnlyOutline(outlineSource.isViewOnly)
+      setOutlineUserName(outlineSource.userName)
       
-      if (courseError) {
-        console.error('Error fetching course:', courseError)
-      } else if (courseData?.description) {
-        setOutline(courseData.description)
+      const userIsCourseRep = isCourseRep()
+      
+      // Only fetch course outline if connected or is course rep
+      if (outlineSource.isConnected || userIsCourseRep) {
+        const { data: courseData, error: courseError } = await supabase
+          .from('courses')
+          .select('description')
+          .eq('code', courseCode)
+          .single()
+        
+        if (courseError) {
+          console.error('Error fetching course:', courseError)
+        } else if (courseData?.description) {
+          setOutline(courseData.description)
+        }
       }
 
-      // Fetch timetable entries for this course
-      const { data: timetableData, error: timetableError } = await supabase
-        .from('timetable')
-        .select('day, start_time, end_time, venue')
-        .eq('user_id', user.id)
-        .eq('course_code', courseCode)
-        .order('day')
-      
-      if (timetableError) {
-        console.error('Error fetching timetable:', timetableError)
-      } else if (timetableData) {
-        setTimetableEntries(timetableData)
+      // Fetch timetable entries - check connection for timetable
+      const timetableSource = await ConnectionService.getTimetableUserId(user.id)
+      if (timetableSource.isConnected || userIsCourseRep) {
+        const { data: timetableData, error: timetableError } = await supabase
+          .from('timetable')
+          .select('day, start_time, end_time, venue')
+          .eq('user_id', timetableSource.userId)
+          .eq('course_code', courseCode)
+          .order('day')
+        
+        if (timetableError) {
+          console.error('Error fetching timetable:', timetableError)
+        } else if (timetableData) {
+          setTimetableEntries(timetableData)
+        }
       }
 
-      // Count assignments for this course
-      const { count, error: assignmentError } = await supabase
-        .from('assignments')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .eq('course_code', courseCode)
-      
-      if (assignmentError) {
-        console.error('Error counting assignments:', assignmentError)
-      } else {
-        setAssignmentCount(count || 0)
+      // Count assignments - check connection for assignments
+      const assignmentSource = await ConnectionService.getAssignmentsUserId(user.id)
+      if (assignmentSource.isConnected || userIsCourseRep) {
+        const { count, error: assignmentError } = await supabase
+          .from('assignments')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', assignmentSource.userId)
+          .eq('course_code', courseCode)
+        
+        if (assignmentError) {
+          console.error('Error counting assignments:', assignmentError)
+        } else {
+          setAssignmentCount(count || 0)
+        }
       }
     } catch (error) {
       console.error('Error loading course details:', error)
@@ -320,19 +340,35 @@ function CourseDetailContent() {
           {/* Course Outline */}
           <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-200 p-4 sm:p-6 shadow-sm hover:shadow-md transition-all mb-6 sm:mb-8">
             <div className="flex items-center justify-between mb-4 sm:mb-6 gap-3">
-              <h2 className="text-lg sm:text-xl font-black text-gray-900">Course Outline</h2>
-              <button
-                onClick={openOutlineModal}
-                className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm shadow-sm hover:shadow-md transition-all"
-              >
-                {outline ? <Edit3 className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
-                <span>{outline ? 'Edit' : 'Add'}</span>
-              </button>
+              <div>
+                <h2 className="text-lg sm:text-xl font-black text-gray-900">Course Outline</h2>
+                {isViewOnlyOutline && outlineUserName && (
+                  <div className="flex items-center gap-1.5 mt-1 text-xs text-blue-600">
+                    <Eye className="w-3 h-3" />
+                    <span>From {outlineUserName}</span>
+                  </div>
+                )}
+              </div>
+              {(isCourseRep() && !isViewOnlyOutline) && (
+                <button
+                  onClick={openOutlineModal}
+                  className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm shadow-sm hover:shadow-md transition-all"
+                >
+                  {outline ? <Edit3 className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
+                  <span>{outline ? 'Edit' : 'Add'}</span>
+                </button>
+              )}
             </div>
             {loading ? (
               <div className="flex items-center gap-2 text-gray-500 text-sm">
                 <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
                 <span>Loading...</span>
+              </div>
+            ) : !isConnectedForOutline && !isCourseRep() ? (
+              <div className="text-center py-8">
+                <FileText className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500 text-sm font-medium mb-2">Course outline not available</p>
+                <p className="text-gray-400 text-xs">Connect to a classmate to view their course outline</p>
               </div>
             ) : outline ? (
               <div className="prose prose-sm max-w-none">
@@ -341,7 +377,11 @@ function CourseDetailContent() {
             ) : (
               <div className="text-center py-8">
                 <p className="text-gray-500 text-sm font-medium mb-2">No course outline yet</p>
-                <p className="text-gray-400 text-xs">Click "Add" to create one</p>
+                {isCourseRep() && !isViewOnlyOutline ? (
+                  <p className="text-gray-400 text-xs">Click &quot;Add&quot; to create one</p>
+                ) : (
+                  <p className="text-gray-400 text-xs">The course rep hasn&apos;t added one yet</p>
+                )}
               </div>
             )}
           </div>

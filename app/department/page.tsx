@@ -50,7 +50,8 @@ function NotJoinedState() {
 }
 
 export default function DepartmentPage() {
-  const { profile, initialized } = useAuthStore()
+  const profile = useAuthStore((s) => s.profile)
+  const status = useAuthStore((s) => s.status)
   const typedProfile = profile as UserProfileWithDetails | null
   const [announcements, setAnnouncements] = useState<Announcement[]>([])
   const [filteredAnnouncements, setFilteredAnnouncements] = useState<Announcement[]>([])
@@ -72,14 +73,14 @@ export default function DepartmentPage() {
   const hasJoinedClass = !!classGroupId
 
   useEffect(() => {
-    if (!initialized) return
+    if (status !== 'authenticated') return
     
     if (classGroupId) {
       fetchAnnouncements()
     } else {
       setLoadingAnnouncements(false)
     }
-  }, [classGroupId, initialized])
+  }, [classGroupId, status])
 
   // Filter announcements based on date filter
   useEffect(() => {
@@ -216,7 +217,7 @@ export default function DepartmentPage() {
   }
 
   // Show not joined state if user hasn't joined a class
-  if (initialized && !hasJoinedClass) {
+  if (status === 'authenticated' && !hasJoinedClass) {
     return (
       <AppShell>
         <NotJoinedState />

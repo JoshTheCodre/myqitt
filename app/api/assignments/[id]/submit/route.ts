@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { createSupabaseServerClient, getAuthenticatedUserProfile, jsonResponse, errorResponse, unauthorizedResponse, notFoundResponse } from '@/lib/api/server'
 
-// PATCH /api/assignments/[id]/submit - Toggle submission status
+// PATCH /api/assignments/[id]/submit - Toggle submission status (personal per user)
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -22,34 +22,52 @@ export async function PATCH(
       return errorResponse('submitted must be a boolean', 400)
     }
 
-    const updates = {
-      submitted,
-      submitted_at: submitted ? new Date().toISOString() : null,
-      updated_at: new Date().toISOString()
-    }
-
-    const { data: assignment, error } = await supabase
+    // Verify assignment exists and belongs to user's class group
+    const { data: assignment, error: assignmentError } = await supabase
       .from('assignments')
-      .update(updates)
+      .select('id, class_group_id')
       .eq('id', id)
       .eq('class_group_id', userProfile.class_group_id)
+      .single()
+
+    if (assignmentError || !assignment) {
+      return notFoundResponse('Assignment not found')
+    }
+
+    // Upsert user's personal submission status
+    const { error: submissionError } = await supabase
+      .from('user_assignment_submissions')
+      .upsert({
+        user_id: userProfile.id,
+        assignment_id: id,
+        submitted,
+        submitted_at: submitted ? new Date().toISOString() : null,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'user_id,assignment_id'
+      })
+
+    if (submissionError) {
+      console.error('Toggle submission error:', submissionError)
+      return errorResponse('Failed to update submission status', 500)
+    }
+
+    // Return assignment with user's submission status
+    const { data: fullAssignment } = await supabase
+      .from('assignments')
       .select(`
         *,
         course:courses!assignments_course_id_fkey(id, code, title)
       `)
+      .eq('id', id)
       .single()
 
-    if (error) {
-      console.error('Toggle submission error:', error)
-      return errorResponse('Failed to update submission status', 500)
-    }
-
-    if (!assignment) {
-      return notFoundResponse('Assignment not found')
-    }
-
     return jsonResponse({ 
-      assignment, 
+      assignment: {
+        ...fullAssignment,
+        submitted,
+        submitted_at: submitted ? new Date().toISOString() : null
+      }, 
       message: submitted ? 'Marked as submitted!' : 'Marked as not submitted' 
     })
   } catch (error) {
