@@ -28,19 +28,26 @@ export interface GroupedCourses {
 
 export class CourseService {
   /**
-   * Fetch courses for a specific department and semester
+   * Fetch courses for a specific department, semester, and optionally level
    */
   static async getCoursesByDepartmentAndSemester(
     departmentId: string,
-    semesterId: string
+    semesterId: string,
+    levelId?: string
   ): Promise<GroupedCourses> {
     try {
-      const { data: courses, error } = await supabase
+      let query = supabase
         .from('courses')
         .select('*')
         .eq('department_id', departmentId)
         .eq('semester_id', semesterId)
-        .order('code')
+      
+      // Filter by level if provided
+      if (levelId) {
+        query = query.eq('level_id', levelId)
+      }
+      
+      const { data: courses, error } = await query.order('code')
 
       if (error) {
         console.error('Error fetching courses:', error)
@@ -85,7 +92,7 @@ export class CourseService {
     try {
       console.log('Fetching courses for user:', userId)
 
-      // Get user profile with class_group info
+      // Get user profile with class_group info (including level_id)
       const { data: profile, error: profileError } = await supabase
         .from('users')
         .select(`
@@ -93,7 +100,8 @@ export class CourseService {
           current_semester_id,
           class_group:class_groups!users_class_group_id_fkey(
             id,
-            department_id
+            department_id,
+            level_id
           )
         `)
         .eq('id', userId)
@@ -107,7 +115,7 @@ export class CourseService {
         return { compulsory: [], elective: [] }
       }
 
-      const classGroupData = profile.class_group as { id: string; department_id: string } | { id: string; department_id: string }[] | null
+      const classGroupData = profile.class_group as { id: string; department_id: string; level_id: string } | { id: string; department_id: string; level_id: string }[] | null
       const classGroup = Array.isArray(classGroupData) ? classGroupData[0] : classGroupData
       
       if (!classGroup?.department_id || !profile.current_semester_id) {
@@ -117,13 +125,15 @@ export class CourseService {
 
       console.log('Fetching courses with:', {
         departmentId: classGroup.department_id,
-        semesterId: profile.current_semester_id
+        semesterId: profile.current_semester_id,
+        levelId: classGroup.level_id
       })
 
-      // Fetch courses for user's department and semester
+      // Fetch courses for user's department, semester, and level
       return await this.getCoursesByDepartmentAndSemester(
         classGroup.department_id,
-        profile.current_semester_id
+        profile.current_semester_id,
+        classGroup.level_id
       )
     } catch (error) {
       console.error('Failed to fetch user courses:', error)

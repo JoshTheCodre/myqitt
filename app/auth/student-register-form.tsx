@@ -1,10 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { ChevronDown, Check } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '@/lib/store/authStore'
 import { ProfileService } from '@/lib/services'
+import { NotificationPermissionModal } from '@/components/notification-permission-modal'
 
 interface SchoolOption {
     id: string
@@ -19,18 +21,27 @@ interface DepartmentOption {
     faculty_id: string
 }
 
+interface SemesterOption {
+    id: string
+    name: string
+}
+
 export function StudentRegisterForm({ onRegisterSuccess }: { onRegisterSuccess: () => void }) {
-    const { registerStudent, loading } = useAuthStore()
+    const router = useRouter()
+    const { registerStudent, loading, showNotificationPrompt, dismissNotificationPrompt, user } = useAuthStore()
     const [schools, setSchools] = useState<SchoolOption[]>([])
     const [departments, setDepartments] = useState<DepartmentOption[]>([])
+    const [semesters, setSemesters] = useState<SemesterOption[]>([])
     const [loadingSchools, setLoadingSchools] = useState(true)
     const [loadingDepartments, setLoadingDepartments] = useState(false)
+    const [loadingSemesters, setLoadingSemesters] = useState(false)
     const [data, setData] = useState({
         name: '',
         email: '',
         phone_number: '',
         department_id: '',
         level: '',
+        semester_id: '',
         password: '',
     })
     const [selectedSchool, setSelectedSchool] = useState<string | null>(null)
@@ -99,6 +110,34 @@ export function StudentRegisterForm({ onRegisterSuccess }: { onRegisterSuccess: 
         setData(prev => ({ ...prev, department_id: '' }))
     }, [selectedSchool])
 
+    // Fetch semesters when school changes
+    useEffect(() => {
+        const fetchSemesters = async () => {
+            if (!selectedSchool) {
+                setSemesters([])
+                return
+            }
+
+            setLoadingSemesters(true)
+            try {
+                const sems = await ProfileService.getSemesters(selectedSchool)
+                setSemesters(sems.map(s => ({
+                    id: s.id,
+                    name: s.name
+                })))
+            } catch (error) {
+                console.error('Failed to fetch semesters:', error)
+                setSemesters([])
+            } finally {
+                setLoadingSemesters(false)
+            }
+        }
+
+        fetchSemesters()
+        // Reset semester when school changes
+        setData(prev => ({ ...prev, semester_id: '' }))
+    }, [selectedSchool])
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target
         setData(prev => ({ ...prev, [name]: value }))
@@ -113,6 +152,7 @@ export function StudentRegisterForm({ onRegisterSuccess }: { onRegisterSuccess: 
             selectedSchool !== null &&
             data.department_id !== '' &&
             data.level !== '' &&
+            data.semester_id !== '' &&
             data.password.trim() !== '' &&
             data.password.length >= 6 &&
             agreedToTerms
@@ -126,6 +166,7 @@ export function StudentRegisterForm({ onRegisterSuccess }: { onRegisterSuccess: 
         if (!selectedSchool) return toast.error('Please select a school')
         if (!data.department_id) return toast.error('Please select a department')
         if (!data.level) return toast.error('Please select a level')
+        if (!data.semester_id) return toast.error('Please select a semester')
         if (!data.password.trim()) return toast.error('Password is required')
         if (data.password.length < 6) return toast.error('Password must be at least 6 characters')
         if (!agreedToTerms) return toast.error('Please agree to the terms')
@@ -144,6 +185,7 @@ export function StudentRegisterForm({ onRegisterSuccess }: { onRegisterSuccess: 
                 school_id: selectedSchool!,
                 department_id: data.department_id,
                 level_number: parseInt(data.level),
+                semester_id: data.semester_id,
             })
             // Registration successful, will redirect to dashboard
         } catch {
@@ -283,6 +325,28 @@ export function StudentRegisterForm({ onRegisterSuccess }: { onRegisterSuccess: 
             </div>
 
             <div>
+                <label className="block text-sm font-medium text-gray-800 mb-2">Semester</label>
+                <div className="relative">
+                    <select
+                        name="semester_id"
+                        value={data.semester_id}
+                        onChange={handleChange}
+                        disabled={loading || loadingSemesters || !selectedSchool}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent bg-white text-gray-900 appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
+                        style={{ '--tw-ring-color': '#4045EF' } as React.CSSProperties}
+                    >
+                        <option value="">
+                            {!selectedSchool ? 'Select a school first' : loadingSemesters ? 'Loading semesters...' : 'Select Semester'}
+                        </option>
+                        {semesters.map(sem => (
+                            <option key={sem.id} value={sem.id}>{sem.name}</option>
+                        ))}
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                </div>
+            </div>
+
+            <div>
                 <label className="block text-sm font-medium text-gray-800 mb-2">Password</label>
                 <input
                     type="password"
@@ -320,6 +384,16 @@ export function StudentRegisterForm({ onRegisterSuccess }: { onRegisterSuccess: 
             >
                 {loading ? 'Creating Account...' : 'Register as Student'}
             </button>
+
+            {/* Notification Permission Modal */}
+            <NotificationPermissionModal
+                isOpen={showNotificationPrompt}
+                onClose={() => {
+                    dismissNotificationPrompt()
+                    router.push('/dashboard')
+                }}
+                userId={user?.id || ''}
+            />
         </form>
     )
 }

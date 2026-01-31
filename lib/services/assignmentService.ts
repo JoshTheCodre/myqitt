@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
 import { TimetableService } from './timetableService'
+import { NotificationService } from './notificationService'
 
 // New schema-aligned interfaces
 export interface Assignment {
@@ -229,7 +230,7 @@ export class AssignmentService {
         throw new Error('Please set your current semester before creating assignments')
       }
 
-      const { error } = await supabase
+      const { data: newAssignment, error } = await supabase
         .from('assignments')
         .insert({
           class_group_id: userInfo.class_group_id,
@@ -241,8 +242,19 @@ export class AssignmentService {
           attachment_urls: data.attachment_urls || [],
           created_by: userId
         })
+        .select()
+        .single()
 
       if (error) throw error
+      
+      // Send notification to all connectees
+      NotificationService.notifyAssignmentCreated(
+        userId,
+        data.title,
+        newAssignment.id,
+        data.due_at
+      ).catch(err => console.error('Failed to send notification:', err))
+      
       toast.success('Assignment created successfully!')
     } catch (error: any) {
       toast.error(error.message || 'Failed to create assignment')
@@ -276,13 +288,32 @@ export class AssignmentService {
       if (data.due_at !== undefined) updates.due_at = data.due_at
       if (data.attachment_urls) updates.attachment_urls = data.attachment_urls
 
-      const { error } = await supabase
+      const { data: updatedAssignment, error } = await supabase
         .from('assignments')
         .update(updates)
         .eq('id', assignmentId)
         .eq('class_group_id', userInfo.class_group_id) // Ensure user can only update their class's assignments
+        .select('title')
+        .single()
 
       if (error) throw error
+      
+      // Build changes description
+      const changes = [];
+      if (data.title) changes.push('title');
+      if (data.description !== undefined) changes.push('description');
+      if (data.due_at !== undefined) changes.push('due date');
+      if (data.attachment_urls) changes.push('attachments');
+      const changesText = changes.length > 0 ? changes.join(', ') : 'content';
+      
+      // Send notification to all connectees
+      NotificationService.notifyAssignmentUpdated(
+        userId,
+        updatedAssignment.title,
+        assignmentId,
+        changesText
+      ).catch(err => console.error('Failed to send notification:', err))
+      
       toast.success('Assignment updated successfully!')
     } catch (error: any) {
       toast.error(error.message || 'Failed to update assignment')
@@ -302,6 +333,14 @@ export class AssignmentService {
         throw new Error('Only course reps can delete assignments')
       }
 
+      // Get assignment title before deleting
+      const { data: assignment } = await supabase
+        .from('assignments')
+        .select('title')
+        .eq('id', assignmentId)
+        .eq('class_group_id', userInfo.class_group_id)
+        .single()
+
       const { error } = await supabase
         .from('assignments')
         .delete()
@@ -309,6 +348,15 @@ export class AssignmentService {
         .eq('class_group_id', userInfo.class_group_id) // Ensure user can only delete their class's assignments
 
       if (error) throw error
+      
+      // Send notification to all connectees
+      if (assignment) {
+        NotificationService.notifyAssignmentDeleted(
+          userId,
+          assignment.title
+        ).catch(err => console.error('Failed to send notification:', err))
+      }
+      
       toast.success('Assignment deleted successfully!')
     } catch (error: any) {
       toast.error(error.message || 'Failed to delete assignment')
@@ -343,24 +391,29 @@ export class AssignmentService {
     }
   }
 
-  // Toggle assignment submission status
+  // Toggle assignment submission status (personal per user)
   static async toggleSubmission(assignmentId: string, submitted: boolean): Promise<void> {
     try {
-      const updates: Record<string, any> = {
-        submitted,
-        submitted_at: submitted ? new Date().toISOString() : null,
-        updated_at: new Date().toISOString()
-      }
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
 
+      // Upsert user's personal submission status
       const { error } = await supabase
-        .from('assignments')
-        .update(updates)
-        .eq('id', assignmentId)
+        .from('user_assignment_submissions')
+        .upsert({
+          user_id: user.id,
+          assignment_id: assignmentId,
+          submitted,
+          submitted_at: submitted ? new Date().toISOString() : null,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id,assignment_id'
+        })
 
       if (error) throw error
-      toast.success(submitted ? 'Marked as submitted!' : 'Marked as not submitted')
+      // Note: Toast is handled by the caller, not here
     } catch (error: any) {
-      toast.error(error.message || 'Failed to update submission status')
       throw error
     }
   }

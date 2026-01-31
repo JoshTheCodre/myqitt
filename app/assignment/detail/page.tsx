@@ -43,16 +43,26 @@ function AssignmentDetailContent() {
 
   const fetchSubmissionStatus = async () => {
     try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      // Fetch user's personal submission status
       const { data, error } = await supabase
-        .from('assignments')
+        .from('user_assignment_submissions')
         .select('submitted, submitted_at')
-        .eq('id', id)
-        .single()
+        .eq('assignment_id', id)
+        .eq('user_id', user.id)
+        .maybeSingle()
 
       if (error) throw error
       if (data) {
         setSubmitted(data.submitted || false)
         setSubmittedAt(data.submitted_at)
+      } else {
+        // No submission record yet - default to not submitted
+        setSubmitted(false)
+        setSubmittedAt(null)
       }
     } catch (error) {
       console.error('Failed to fetch submission status:', error)
@@ -64,13 +74,10 @@ function AssignmentDetailContent() {
 
     setToggling(true)
     try {
-      await AssignmentService.toggleSubmission(id, !submitted)
       const newSubmitted = !submitted
+      await AssignmentService.toggleSubmission(id, newSubmitted)
       setSubmitted(newSubmitted)
       setSubmittedAt(newSubmitted ? new Date().toISOString() : null)
-      
-      // Refresh the submission status from database
-      await fetchSubmissionStatus()
       
       toast.success(newSubmitted ? 'Marked as submitted!' : 'Marked as not submitted')
     } catch (error) {

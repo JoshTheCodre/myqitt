@@ -3,12 +3,15 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { HeadsetIcon, ArrowRight, Clock, Plus, AlertCircle, MapPin, Megaphone, ChevronRight, Users, FileText, UsersRound, BookOpen as BookIcon } from 'lucide-react'
+import { HeadsetIcon, ArrowRight, Clock, Plus, AlertCircle, MapPin, Megaphone, ChevronRight, Users, FileText, UsersRound, BookOpen as BookIcon, Bell } from 'lucide-react'
 import { useAuthStore, UserProfileWithDetails } from '@/lib/store/authStore'
 import { AppShell } from '@/components/layout/app-shell'
 import { ClassMenu } from '@/components/class-menu'
 import { UpdateTodaysClassModal } from '@/components/update-todays-class-modal'
+import { NotificationPermissionModal } from '@/components/notification-permission-modal'
+import { CatchUpNotificationFeed } from '@/components/catch-up-notification-feed'
 import { TodaysClassService, ConnectionService, type MergedClass } from '@/lib/services'
+import { supabase } from '@/lib/supabase/client'
 
 // ============ HELPER FUNCTIONS ============
 const getInitials = (name?: string) => {
@@ -36,18 +39,19 @@ const getClassStatus = (startTime: string, endTime: string): 'upcoming' | 'ongoi
   const now = new Date()
   const currentMinutes = now.getHours() * 60 + now.getMinutes()
   
-  // Parse time - handle both "09:00" and "9:00AM" formats
+  // Parse time - handle "09:00", "9:00am", "9am", "10:00:00" formats
   const parseTime = (time: string): number => {
     // Remove any whitespace
     time = time.trim()
     
-    // If it has AM/PM, convert to 24-hour
+    // If it has AM/PM
     if (time.toLowerCase().includes('am') || time.toLowerCase().includes('pm')) {
       const cleanTime = time.toLowerCase().replace(/\s+/g, '')
-      const match = cleanTime.match(/(\d+):(\d+)(am|pm)/)
+      // Match both "10am" and "10:30am" formats
+      const match = cleanTime.match(/(\d+)(?::(\d+))?(am|pm)/)
       if (match) {
         let hour = parseInt(match[1])
-        const minute = parseInt(match[2])
+        const minute = match[2] ? parseInt(match[2]) : 0  // Default to 0 if no minutes
         const meridiem = match[3]
         
         if (meridiem === 'pm' && hour !== 12) hour += 12
@@ -57,8 +61,10 @@ const getClassStatus = (startTime: string, endTime: string): 'upcoming' | 'ongoi
       }
     }
     
-    // Already in 24-hour format (HH:MM)
-    const [hour, minute] = time.split(':').map(Number)
+    // Handle HH:MM:SS or HH:MM format (24-hour)
+    const parts = time.split(':').map(Number)
+    const hour = parts[0] || 0
+    const minute = parts[1] || 0
     return hour * 60 + minute
   }
   
@@ -702,6 +708,38 @@ function TodaysClasses({ userId }: { userId?: string }) {
 // ============ MAIN PAGE COMPONENT ============
 export default function Page() {
   const { profile, user } = useAuthStore()
+  const [showNotificationModal, setShowNotificationModal] = useState(false)
+  const [checkedNotifications, setCheckedNotifications] = useState(false)
+
+  // Check if user has accepted notifications on mount
+  useEffect(() => {
+    const checkNotificationStatus = async () => {
+      if (!user?.id || checkedNotifications) return
+      
+      try {
+        const { data, error } = await supabase
+          .from('device_tokens')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .limit(1)
+        
+        if (error) throw error
+        
+        // If no active device tokens, show the modal
+        if (!data || data.length === 0) {
+          setShowNotificationModal(true)
+        }
+        
+        setCheckedNotifications(true)
+      } catch (error) {
+        console.error('Error checking notification status:', error)
+        setCheckedNotifications(true)
+      }
+    }
+
+    checkNotificationStatus()
+  }, [user?.id, checkedNotifications])
 
   return (
     <AppShell>
@@ -709,7 +747,7 @@ export default function Page() {
         <div className="w-full max-w-2xl px-4 md:px-5 py-4 md:py-8 pb-24 lg:pb-8">
           <Header profile={profile} />
           <div className="mt-5 md:mt-12">
-            <CatchUpSection />
+            <CatchUpNotificationFeed />
           </div>
           
           {/* Action Cards */}
@@ -722,6 +760,13 @@ export default function Page() {
           </div>
         </div>
       </div>
+
+      {/* Notification Permission Modal */}
+      <NotificationPermissionModal
+        isOpen={showNotificationModal}
+        onClose={() => setShowNotificationModal(false)}
+        userId={user?.id || ''}
+      />
     </AppShell>
   )
 }

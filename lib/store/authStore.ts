@@ -60,6 +60,7 @@ interface AuthState {
   user: User | null
   profile: UserProfileWithDetails | null
   status: AuthStatus
+  showNotificationPrompt: boolean
   // Legacy fields for backwards compatibility
   loading: boolean
   initialized: boolean
@@ -82,6 +83,7 @@ interface AuthActions {
   updateProfile: (profileData: Partial<UserProfile>) => Promise<void>
   isCourseRep: () => boolean
   hasRole: (roleName: string) => boolean
+  dismissNotificationPrompt: () => void
 }
 
 // Profile select query - centralized for reuse
@@ -104,6 +106,7 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
   user: null,
   profile: null,
   status: 'idle',
+  showNotificationPrompt: false,
   // Legacy compatibility
   loading: true,
   initialized: false,
@@ -336,7 +339,7 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
       }
 
       // 3. Create user profile
-      const { data: profile, error: profileError } = await supabase
+      const { error: profileError } = await supabase
         .from('users')
         .insert({
           id: authData.user.id,
@@ -348,10 +351,17 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
           current_session_id: userData.session_id || null,
           current_semester_id: userData.semester_id || null,
         })
-        .select()
-        .single()
 
       if (profileError) throw profileError
+
+      // Fetch full profile with relationships
+      const { data: profile, error: fetchError } = await supabase
+        .from('users')
+        .select(PROFILE_SELECT_QUERY)
+        .eq('id', authData.user.id)
+        .single()
+
+      if (fetchError) throw fetchError
 
       // 4. Assign student role
       const { data: studentRole } = await supabase
@@ -371,13 +381,12 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
         profile, 
         status: 'authenticated',
         loading: false, 
-        initialized: true 
+        initialized: true,
+        showNotificationPrompt: true 
       })
       toast.success('Account created successfully!')
       
-      if (typeof window !== 'undefined') {
-        window.location.href = '/dashboard'
-      }
+      // Navigation will be handled by the component after notification prompt
     } catch (error: any) {
       set({ status: 'unauthenticated', loading: false, initialized: true })
       toast.error(error.message || 'Registration failed')
@@ -539,5 +548,10 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
       toast.error(error.message || 'Failed to update profile')
       throw error
     }
+  },
+
+  // ============ DISMISS NOTIFICATION PROMPT ============
+  dismissNotificationPrompt: () => {
+    set({ showNotificationPrompt: false })
   },
 }))

@@ -158,9 +158,36 @@ export default function CoursesPage() {
                             <div className="bg-gray-50 rounded-xl p-8 text-center">
                                 <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                                 <p className="text-gray-600 font-medium">No courses found</p>
-                                <p className="text-gray-500 text-sm mt-1">
-                                    Make sure your profile has school, department, level, and semester information.
-                                </p>
+                                {/* Show specific missing fields */}
+                                {(!profile?.class_group_id || !profile?.current_semester_id) ? (
+                                    <div className="text-gray-500 text-sm mt-2 space-y-1">
+                                        <p>Your profile is missing required information:</p>
+                                        <ul className="text-left max-w-xs mx-auto mt-2 space-y-1">
+                                            {!profile?.class_group_id && (
+                                                <li className="flex items-center gap-2 text-amber-600">
+                                                    <AlertTriangle className="w-4 h-4" />
+                                                    <span>Class Group (department/level)</span>
+                                                </li>
+                                            )}
+                                            {!profile?.current_semester_id && (
+                                                <li className="flex items-center gap-2 text-amber-600">
+                                                    <AlertTriangle className="w-4 h-4" />
+                                                    <span>Current Semester</span>
+                                                </li>
+                                            )}
+                                        </ul>
+                                        <button
+                                            onClick={() => router.push('/profile')}
+                                            className="mt-4 inline-flex items-center gap-1 text-brand-600 hover:text-brand-700 font-medium"
+                                        >
+                                            Update Profile <ChevronRight className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <p className="text-gray-500 text-sm mt-1">
+                                        No courses are available for your department and semester yet.
+                                    </p>
+                                )}
                             </div>
                         )}
                     </div>

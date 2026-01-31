@@ -1,10 +1,10 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime'
 import { AppShell } from '@/components/layout/app-shell'
 import { Calendar, ChevronRight, Plus, BadgeCheck, CircleCheck, Clock, Eye } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuthStore } from '@/lib/store/authStore'
 import { AssignmentService, ConnectionService, type GroupedAssignment, type AssignmentDate, type AssignmentStats } from '@/lib/services'
 
@@ -178,12 +178,17 @@ function AssignmentsList({ router, onIsCourseRepChange, dataUserId, isViewOnly, 
   }, [dataUserId, user?.id, profile?.id, status, isConnected])
 
   const loadAssignments = async () => {
-    const userId = dataUserId || user?.id
-    if (!userId) return
+    // For fetching submission status, ALWAYS use the logged-in user's ID
+    // dataUserId is only for checking if viewing someone else's profile
+    const viewingUserId = dataUserId || user?.id
+    const loggedInUserId = user?.id
+    
+    if (!viewingUserId || !loggedInUserId) return
 
     setLoading(true)
     try {
-      const data = await AssignmentService.getAssignments(userId)
+      // Pass the logged-in user's ID to get THEIR submission status
+      const data = await AssignmentService.getAssignments(loggedInUserId)
       
       // Only allow course rep actions if viewing own data
       const courseRepStatus = isViewOnly ? false : data.isCourseRep
@@ -285,6 +290,7 @@ function AssignmentsList({ router, onIsCourseRepChange, dataUserId, isViewOnly, 
 // ============ MAIN COMPONENT ============
 export default function AssignmentPage() {
   const router = useRouter()
+  const pathname = usePathname()
   const { user } = useAuthStore()
   const [stats, setStats] = useState<AssignmentStats>({ total: 0, submitted: 0, pending: 0, overdue: 0 })
   const [isCourseRep, setIsCourseRep] = useState(false)
@@ -292,7 +298,21 @@ export default function AssignmentPage() {
   const [isConnected, setIsConnected] = useState(false)
   const [viewingUserName, setViewingUserName] = useState<string | undefined>()
   const [dataUserId, setDataUserId] = useState<string | null>(null)
+  const [refreshKey, setRefreshKey] = useState(0)
 
+  const fetchStats = useCallback(async (currentUserId: string, connected: boolean) => {
+    try {
+      // Stats are ALWAYS personal - use the current user's ID
+      // This gets both the stats and the course rep status of the logged-in user
+      const statsData = await AssignmentService.getAssignmentStats(currentUserId)
+      setStats(statsData)
+    } catch (error) {
+      console.error('Failed to fetch assignment stats:', error)
+      setStats({ total: 0, submitted: 0, pending: 0, overdue: 0 })
+    }
+  }, [])
+
+  // Load data on mount and when pathname changes (e.g., coming back from detail page)
   useEffect(() => {
     let mounted = true
     
@@ -306,7 +326,7 @@ export default function AssignmentPage() {
         setDataUserId(dataSource.userId)
         
         // Stats are always personal to current user
-        await fetchStats(user.id, dataSource.isConnected, dataSource.userId!)
+        await fetchStats(user.id, dataSource.isConnected)
       }
     }
     
@@ -315,30 +335,17 @@ export default function AssignmentPage() {
     return () => {
       mounted = false
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id])
+  }, [user?.id, pathname, refreshKey, fetchStats])
 
-  const fetchStats = async (currentUserId: string, connected: boolean, assignmentSourceUserId: string) => {
-    try {
-      // Check if user is course rep first
-      const data = await AssignmentService.getAssignments(assignmentSourceUserId)
-      const courseRepStatus = data.isCourseRep
-      setIsCourseRep(courseRepStatus)
-      
-      // If not connected and not a course rep, show empty stats
-      if (!connected && !courseRepStatus) {
-        setStats({ total: 0, submitted: 0, pending: 0, overdue: 0 })
-        return
-      }
-      
-      // Stats are ALWAYS personal - use the current user's ID, not the connected user
-      const statsData = await AssignmentService.getAssignmentStats(currentUserId)
-      setStats(statsData)
-    } catch (error) {
-      console.error('Failed to fetch assignment stats:', error)
-      setStats({ total: 0, submitted: 0, pending: 0, overdue: 0 })
+  // Force refresh when page gains focus (user returns from another page)
+  useEffect(() => {
+    const handleFocus = () => {
+      setRefreshKey(prev => prev + 1)
     }
-  }
+    
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+  }, [])
 
   return (
     <AppShell>

@@ -3,12 +3,14 @@
 import Image from 'next/image'
 import { AppShell } from '@/components/layout/app-shell'
 import { useAuthStore, type UserProfileWithDetails } from '@/lib/store/authStore'
-import { Mail, Phone, GraduationCap, Building2, BookOpen, Calendar, LogOut, Users } from 'lucide-react'
+import { Mail, Phone, GraduationCap, Building2, BookOpen, Calendar, LogOut, Users, Bell } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import type { LucideIcon } from 'lucide-react'
 import { ClassmateService } from '@/lib/services'
+import { supabase } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
 import { useState, useEffect } from 'react'
+import { NotificationPermissionModal } from '@/components/notification-permission-modal'
 
 // Helper function to format department names
 function formatDepartmentName(dept: string): string {
@@ -41,6 +43,8 @@ export default function ProfilePage() {
     const typedProfile = profile as UserProfileWithDetails | null
     const [courseRepName, setCourseRepName] = useState<string | null>(null)
     const [loadingCourseRep, setLoadingCourseRep] = useState(true)
+    const [showNotificationModal, setShowNotificationModal] = useState(false)
+    const [notificationToken, setNotificationToken] = useState<string | null>(null)
     
     // Get level and semester from class_group
     const levelNumber = typedProfile?.class_group?.level?.level_number
@@ -52,7 +56,6 @@ export default function ProfilePage() {
     const isCourseRep = typedProfile?.user_roles?.some(
         (ur: { role?: { name: string } }) => ur.role?.name === 'course_rep'
     ) || false
-
     useEffect(() => {
         const fetchCourseRep = async () => {
             if (status !== 'authenticated' || !user?.id || !profile) return
@@ -70,6 +73,36 @@ export default function ProfilePage() {
 
         fetchCourseRep()
     }, [user?.id, profile?.id, status])
+
+    // Fetch notification token
+    useEffect(() => {
+        const fetchNotificationToken = async () => {
+            if (!user?.id) return
+            
+            try {
+                const { data, error } = await supabase
+                    .from('device_tokens')
+                    .select('token, created_at')
+                    .eq('user_id', user.id)
+                    .eq('is_active', true)
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .single()
+                
+                if (error) {
+                    console.error('Error fetching notification token:', error)
+                    setNotificationToken(null)
+                } else if (data) {
+                    setNotificationToken(data.token)
+                }
+            } catch (error) {
+                console.error('Error fetching notification token:', error)
+                setNotificationToken(null)
+            }
+        }
+
+        fetchNotificationToken()
+    }, [user?.id, showNotificationModal])
 
     const handleLogout = async () => {
         try {
@@ -128,6 +161,32 @@ export default function ProfilePage() {
                         </div>
                     </div>
 
+                    {/* Notification Status */}
+                    {notificationToken && (
+                        <div className="mb-6">
+                            <h2 className="text-lg font-bold text-gray-900 px-1 mb-3">Notifications</h2>
+                            <div className="p-4 bg-green-50 rounded-xl border border-green-200">
+                                <div className="flex items-start gap-3">
+                                    <Bell className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-semibold text-green-900">Notifications Enabled</p>
+                                        <p className="text-xs text-green-700 mt-1 break-all font-mono">{notificationToken}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Bio */}
+                    {profile?.bio && (
+                        <div className="mb-6">
+                            <h2 className="text-lg font-bold text-gray-900 px-1 mb-3">About</h2>
+                            <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
+                                <p className="text-sm text-gray-700 leading-relaxed">{profile.bio}</p>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Profile Information */}
                     <div className="space-y-3 mb-6">
                         <h2 className="text-lg font-bold text-gray-900 px-1">Profile Information</h2>
@@ -158,18 +217,16 @@ export default function ProfilePage() {
                         )}
                     </div>
 
-                    {/* Bio */}
-                    {profile?.bio && (
-                        <div className="mb-6">
-                            <h2 className="text-lg font-bold text-gray-900 px-1 mb-3">About</h2>
-                            <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
-                                <p className="text-sm text-gray-700 leading-relaxed">{profile.bio}</p>
-                            </div>
-                        </div>
-                    )}
-
                     {/* Action Buttons */}
                     <div className="space-y-3">
+                        <button
+                            className="w-full py-3 px-4 bg-blue-50 text-blue-600 rounded-xl font-semibold hover:bg-blue-100 transition-colors flex items-center justify-center gap-2 border border-blue-200"
+                            onClick={() => setShowNotificationModal(true)}
+                        >
+                            <Bell className="w-5 h-5" />
+                            Enable Notifications
+                        </button>
+                        
                         <button
                             className="w-full py-3 px-4 bg-red-50 text-red-600 rounded-xl font-semibold hover:bg-red-100 transition-colors flex items-center justify-center gap-2 border border-red-200"
                             onClick={handleLogout}
@@ -180,6 +237,13 @@ export default function ProfilePage() {
                     </div>
                 </div>
             </div>
+
+            {/* Notification Permission Modal */}
+            <NotificationPermissionModal
+                isOpen={showNotificationModal}
+                onClose={() => setShowNotificationModal(false)}
+                userId={user?.id || ''}
+            />
         </AppShell>
     )
 }

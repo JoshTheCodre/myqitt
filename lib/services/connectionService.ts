@@ -131,29 +131,12 @@ export class ConnectionService {
 
   /**
    * Get course outline data source
+   * Course OUTLINE requires connection - but course LIST is available to everyone in the same level/semester
    */
   static async getCourseOutlineUserId(currentUserId: string): Promise<{ userId: string; isViewOnly: boolean; userName?: string; isConnected: boolean }> {
     const connectedUser = await this.getConnectedUser(currentUserId)
     
     if (connectedUser && connectedUser.connectionTypes.includes('course_outline')) {
-      return {
-        userId: connectedUser.userId,
-        isViewOnly: true,
-        userName: connectedUser.userName,
-        isConnected: true
-      }
-    }
-    
-    return { userId: currentUserId, isViewOnly: false, isConnected: false }
-  }
-
-  /**
-   * Get course list data source
-   */
-  static async getCourseListUserId(currentUserId: string): Promise<{ userId: string; isViewOnly: boolean; userName?: string; isConnected: boolean }> {
-    const connectedUser = await this.getConnectedUser(currentUserId)
-    
-    if (connectedUser && connectedUser.connectionTypes.includes('course_list')) {
       return {
         userId: connectedUser.userId,
         isViewOnly: true,

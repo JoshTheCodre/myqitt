@@ -10,12 +10,13 @@ import { useCourseStore } from '@/lib/store/courseStore'
 import { ConnectionService } from '@/lib/services'
 import toast from 'react-hot-toast'
 import confetti from 'canvas-confetti'
+import ReactMarkdown from 'react-markdown'
 
 interface TimetableEntry {
-  day: string
+  day_of_week: string
   start_time: string
   end_time: string
-  venue: string
+  location: string
 }
 
 function CourseDetailContent() {
@@ -53,7 +54,17 @@ function CourseDetailContent() {
   }, [courseCode, user?.id])
 
   const loadCourseDetails = async () => {
-    if (!user?.id) return
+    if (!user?.id) {
+      console.log('No user ID, skipping load')
+      return
+    }
+    
+    if (!courseCode) {
+      console.log('No course code, skipping load')
+      return
+    }
+    
+    console.log('Loading course details for:', courseCode)
     
     try {
       setLoading(true)
@@ -66,46 +77,48 @@ function CourseDetailContent() {
       
       const userIsCourseRep = isCourseRep()
       
-      // Only fetch course outline if connected or is course rep
-      if (outlineSource.isConnected || userIsCourseRep) {
-        const { data: courseData, error: courseError } = await supabase
-          .from('courses')
-          .select('description')
-          .eq('code', courseCode)
-          .single()
-        
-        if (courseError) {
-          console.error('Error fetching course:', courseError)
-        } else if (courseData?.description) {
-          setOutline(courseData.description)
-        }
+      // First get the course by code
+      const { data: courseData, error: courseError } = await supabase
+        .from('courses')
+        .select('id, description')
+        .eq('code', courseCode)
+        .single()
+      
+      console.log('Course query result:', { courseData, courseError, courseCode })
+      
+      if (courseError) {
+        console.error('Error fetching course:', courseError, 'Course code:', courseCode)
+        return
+      }
+      
+      // Set outline if connected or is course rep
+      if ((outlineSource.isConnected || userIsCourseRep) && courseData?.description) {
+        setOutline(courseData.description)
       }
 
-      // Fetch timetable entries - check connection for timetable
-      const timetableSource = await ConnectionService.getTimetableUserId(user.id)
-      if (timetableSource.isConnected || userIsCourseRep) {
+      if (courseData?.id) {
+        // Get timetable entries for this course
         const { data: timetableData, error: timetableError } = await supabase
-          .from('timetable')
-          .select('day, start_time, end_time, venue')
-          .eq('user_id', timetableSource.userId)
-          .eq('course_code', courseCode)
-          .order('day')
+          .from('timetable_entries')
+          .select('day_of_week, start_time, end_time, location')
+          .eq('course_id', courseData.id)
+          .order('day_of_week')
+        
+        console.log('Timetable query result:', { timetableData, timetableError, courseId: courseData.id })
         
         if (timetableError) {
           console.error('Error fetching timetable:', timetableError)
         } else if (timetableData) {
           setTimetableEntries(timetableData)
         }
-      }
 
-      // Count assignments - check connection for assignments
-      const assignmentSource = await ConnectionService.getAssignmentsUserId(user.id)
-      if (assignmentSource.isConnected || userIsCourseRep) {
+        // Count assignments for this course
         const { count, error: assignmentError } = await supabase
           .from('assignments')
           .select('*', { count: 'exact', head: true })
-          .eq('user_id', assignmentSource.userId)
-          .eq('course_code', courseCode)
+          .eq('course_id', courseData.id)
+        
+        console.log('Assignments query result:', { count, assignmentError, courseId: courseData.id })
         
         if (assignmentError) {
           console.error('Error counting assignments:', assignmentError)
@@ -234,7 +247,7 @@ function CourseDetailContent() {
 
   const dayOrder = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
   const sortedEntries = [...timetableEntries].sort((a, b) => 
-    dayOrder.indexOf(a.day.toLowerCase()) - dayOrder.indexOf(b.day.toLowerCase())
+    dayOrder.indexOf(a.day_of_week.toLowerCase()) - dayOrder.indexOf(b.day_of_week.toLowerCase())
   )
 
   return (
@@ -371,8 +384,8 @@ function CourseDetailContent() {
                 <p className="text-gray-400 text-xs">Connect to a classmate to view their course outline</p>
               </div>
             ) : outline ? (
-              <div className="prose prose-sm max-w-none">
-                <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{outline}</p>
+              <div className="prose prose-sm max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-strong:text-gray-900 prose-ul:text-gray-700 prose-ol:text-gray-700 prose-li:marker:text-blue-600">
+                <ReactMarkdown>{outline}</ReactMarkdown>
               </div>
             ) : (
               <div className="text-center py-8">
@@ -403,7 +416,7 @@ function CourseDetailContent() {
                   >
                     <div className="flex-shrink-0 w-full sm:w-20">
                       <div className="bg-white rounded-lg px-3 py-1.5 sm:py-2 border border-gray-200 shadow-sm group-hover:border-blue-300 transition-colors inline-block sm:block">
-                        <p className="text-xs sm:text-sm font-black text-gray-900 capitalize sm:text-center">{entry.day}</p>
+                        <p className="text-xs sm:text-sm font-black text-gray-900 capitalize sm:text-center">{entry.day_of_week}</p>
                       </div>
                     </div>
                     <div className="flex-1 flex flex-col gap-1.5 sm:gap-2">
@@ -413,7 +426,7 @@ function CourseDetailContent() {
                       </div>
                       <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
                         <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-500" />
-                        <span className="font-medium">{entry.venue || 'No venue set'}</span>
+                        <span className="font-medium">{entry.location || 'No venue set'}</span>
                       </div>
                     </div>
                   </div>
@@ -435,7 +448,7 @@ function CourseDetailContent() {
       {/* Outline Edit Modal */}
       {showOutlineModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="bg-white rounded-t-2xl sm:rounded-3xl shadow-2xl w-full sm:max-w-2xl p-5 sm:p-8 border border-gray-200 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-t-2xl sm:rounded-3xl shadow-2xl w-full sm:max-w-4xl p-5 sm:p-8 border border-gray-200 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4 sm:mb-6">
               <h2 className="text-xl sm:text-2xl font-black text-gray-900">{outline ? 'Edit' : 'Add'} Course Outline</h2>
               <button
@@ -446,17 +459,44 @@ function CourseDetailContent() {
               </button>
             </div>
 
-            <div className="mb-4 sm:mb-6">
-              <label className="block text-xs sm:text-sm font-bold text-gray-700 mb-2 sm:mb-3">
-                Course Outline
-              </label>
-              <textarea
-                value={editingOutline}
-                onChange={(e) => setEditingOutline(e.target.value)}
-                placeholder="Enter the course outline, topics covered, learning objectives, etc."
-                className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all min-h-[200px] sm:min-h-[300px] resize-y text-sm sm:text-base"
-                disabled={savingOutline}
-              />
+            <div className="mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <label className="block text-xs sm:text-sm font-bold text-gray-700">
+                  Course Outline
+                </label>
+                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">Markdown supported</span>
+              </div>
+              <p className="text-xs text-gray-500 mb-3">
+                You can use **bold**, *italic*, # headings, - bullet points, 1. numbered lists, and more.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4 sm:mb-6">
+              {/* Editor */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">Edit</label>
+                <textarea
+                  value={editingOutline}
+                  onChange={(e) => setEditingOutline(e.target.value)}
+                  placeholder={`# Course Overview\n\nEnter the course outline here...\n\n## Topics Covered\n- Topic 1\n- Topic 2\n\n## Learning Objectives\n1. Objective 1\n2. Objective 2`}
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all min-h-[300px] sm:min-h-[400px] resize-y text-sm sm:text-base font-mono"
+                  disabled={savingOutline}
+                />
+              </div>
+              
+              {/* Preview */}
+              <div className="hidden lg:block">
+                <label className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">Preview</label>
+                <div className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-200 rounded-lg sm:rounded-xl bg-gray-50 min-h-[300px] sm:min-h-[400px] overflow-y-auto">
+                  {editingOutline ? (
+                    <div className="prose prose-sm max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-strong:text-gray-900 prose-ul:text-gray-700 prose-ol:text-gray-700 prose-li:marker:text-blue-600">
+                      <ReactMarkdown>{editingOutline}</ReactMarkdown>
+                    </div>
+                  ) : (
+                    <p className="text-gray-400 text-sm italic">Preview will appear here...</p>
+                  )}
+                </div>
+              </div>
             </div>
 
             <div className="flex gap-2 sm:gap-3">

@@ -3,6 +3,7 @@
 import { useAuthStore } from '@/lib/store/authStore'
 import { Sidebar } from './sidebar'
 import { BottomNav } from './bottom-nav'
+import { TopNav } from './top-nav'
 
 // ✅ FIXED: AppShell no longer initializes auth - that's AuthProvider's job
 export function AppShell({ children }: { children: React.ReactNode }) {

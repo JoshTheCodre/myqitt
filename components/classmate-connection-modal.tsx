@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState } from 'react'
-import { X, Calendar, FileText, Clock, BookOpen, List, CheckCircle2 } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { X, Calendar, FileText, Clock, BookOpen, CheckCircle2, Unlink } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
 
@@ -26,6 +26,8 @@ interface ClassmateConnectionModalProps {
   onConnected: () => void
 }
 
+// Note: course_list is NOT included because courses are general for everyone in the same level/semester
+// Only course_outline requires connection to view
 const connectionOptions: ConnectionOption[] = [
   {
     id: 'timetable',
@@ -62,15 +64,6 @@ const connectionOptions: ConnectionOption[] = [
     color: 'text-purple-600',
     bgColor: 'bg-purple-50',
     borderColor: 'border-purple-500'
-  },
-  {
-    id: 'course_list',
-    label: 'Course List',
-    description: 'View their registered courses',
-    icon: <List className="w-5 h-5" />,
-    color: 'text-indigo-600',
-    bgColor: 'bg-indigo-50',
-    borderColor: 'border-indigo-500'
   }
 ]
 
@@ -85,6 +78,32 @@ export function ClassmateConnectionModal({
     new Set(connectionOptions.map(opt => opt.id)) // All checked by default
   )
   const [loading, setLoading] = useState(false)
+  const [isAlreadyConnected, setIsAlreadyConnected] = useState(false)
+  const [disconnecting, setDisconnecting] = useState(false)
+
+  // Check if already connected when modal opens
+  useEffect(() => {
+    const checkConnection = async () => {
+      if (!isOpen) return
+      
+      const { data } = await supabase
+        .from('connections')
+        .select('connection_types')
+        .eq('follower_id', currentUserId)
+        .eq('following_id', classmate.id)
+        .single()
+      
+      if (data) {
+        setIsAlreadyConnected(true)
+        setSelectedOptions(new Set(data.connection_types || []))
+      } else {
+        setIsAlreadyConnected(false)
+        setSelectedOptions(new Set(connectionOptions.map(opt => opt.id)))
+      }
+    }
+    
+    checkConnection()
+  }, [isOpen, currentUserId, classmate.id])
 
   const toggleOption = (optionId: string) => {
     setSelectedOptions(prev => {
@@ -154,6 +173,28 @@ export function ClassmateConnectionModal({
       toast.error(error.message || 'Failed to connect')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleDisconnect = async () => {
+    setDisconnecting(true)
+    try {
+      const { error } = await supabase
+        .from('connections')
+        .delete()
+        .eq('follower_id', currentUserId)
+        .eq('following_id', classmate.id)
+
+      if (error) throw error
+      
+      toast.success(`Disconnected from ${classmate.name}`)
+      onConnected()
+      onClose()
+    } catch (error: any) {
+      console.error('Error disconnecting:', error)
+      toast.error(error.message || 'Failed to disconnect')
+    } finally {
+      setDisconnecting(false)
     }
   }
 
@@ -274,6 +315,18 @@ export function ClassmateConnectionModal({
 
           {/* Footer */}
           <div className="p-6 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
+            {/* Disconnect button - only show if already connected */}
+            {isAlreadyConnected && (
+              <button
+                onClick={handleDisconnect}
+                disabled={disconnecting}
+                className="w-full mb-3 px-4 py-2.5 text-red-600 bg-red-50 border border-red-200 rounded-xl hover:bg-red-100 transition-colors font-medium flex items-center justify-center gap-2"
+              >
+                <Unlink className="w-4 h-4" />
+                {disconnecting ? 'Disconnecting...' : 'Disconnect'}
+              </button>
+            )}
+            
             <div className="flex gap-3">
               <button
                 onClick={onClose}
@@ -290,7 +343,7 @@ export function ClassmateConnectionModal({
                     : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 }`}
               >
-                {loading ? 'Connecting...' : `Connect (${selectedOptions.size})`}
+                {loading ? 'Saving...' : isAlreadyConnected ? `Update (${selectedOptions.size})` : `Connect (${selectedOptions.size})`}
               </button>
             </div>
           </div>
