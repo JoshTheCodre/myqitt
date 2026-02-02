@@ -187,7 +187,17 @@ export class TimetableService {
       // Sort entries by start time for each day
       Object.keys(groupedData).forEach(day => {
         groupedData[day].sort((a, b) => {
-          return a.time.localeCompare(b.time)
+          // Extract start time from "9am-11am" format
+          const getStartTime = (timeStr: string) => {
+            const start = timeStr.split('-')[0].trim()
+            const isPM = start.toLowerCase().includes('pm')
+            const hour = parseInt(start.replace(/[^\d]/g, ''))
+            // Convert to 24-hour for proper sorting
+            if (isPM && hour !== 12) return hour + 12
+            if (!isPM && hour === 12) return 0
+            return hour
+          }
+          return getStartTime(a.time) - getStartTime(b.time)
         })
       })
 

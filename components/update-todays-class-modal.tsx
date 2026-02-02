@@ -70,7 +70,7 @@ export function UpdateTodaysClassModal({
   }
 
   const [formData, setFormData] = useState<TodaysClass>({
-    timetable_entry_id: originalClass.id,
+    timetable_entry_id: originalClass.id && originalClass.id !== 'undefined' ? originalClass.id : undefined,
     course_code: originalClass.course_code,
     start_time: convertTo24Hour(originalClass.start_time),
     end_time: convertTo24Hour(originalClass.end_time),
@@ -98,7 +98,7 @@ export function UpdateTodaysClassModal({
       })
     } else {
       setFormData({
-        timetable_entry_id: originalClass.id,
+        timetable_entry_id: originalClass.id && originalClass.id !== 'undefined' ? originalClass.id : undefined,
         course_code: originalClass.course_code,
         start_time: convertTo24Hour(originalClass.start_time),
         end_time: convertTo24Hour(originalClass.end_time),
@@ -125,9 +125,9 @@ export function UpdateTodaysClassModal({
 
     setLoading(true)
     try {
-      const dataToSave = {
+      // Prepare data to save - only include timetable_entry_id if it's a valid UUID
+      const dataToSave: any = {
         user_id: userId,
-        timetable_entry_id: formData.timetable_entry_id,
         course_code: formData.course_code,
         start_time: formData.start_time,
         end_time: formData.end_time,
@@ -135,6 +135,11 @@ export function UpdateTodaysClassModal({
         is_cancelled: formData.is_cancelled,
         notes: formData.notes || null,
         date: formData.date
+      }
+
+      // Only add timetable_entry_id if it exists and is not 'undefined' string
+      if (formData.timetable_entry_id && formData.timetable_entry_id !== 'undefined') {
+        dataToSave.timetable_entry_id = formData.timetable_entry_id
       }
 
       if (formData.id && existingUpdate) {

@@ -271,23 +271,11 @@ export default function TimetablePage() {
       // Fetch timetable data
       const data = await TimetableService.getTimetable(dataSource.userId!)
       
-      // If not connected and not a course rep, don't show any timetable data
-      if (!dataSource.isConnected && !data.isCourseRep) {
-        setTimetable({
-          Monday: [],
-          Tuesday: [],
-          Wednesday: [],
-          Thursday: [],
-          Friday: []
-        })
-        setHasTimetable(false)
-        setIsCourseRep(false)
-      } else {
-        setTimetable(data.timetable)
-        setHasTimetable(data.hasTimetable)
-        // Only show course rep actions if viewing own data and is course rep
-        setIsCourseRep(dataSource.isViewOnly ? false : data.isCourseRep)
-      }
+      // Always show timetable data if it exists
+      setTimetable(data.timetable)
+      setHasTimetable(data.hasTimetable)
+      // Only show course rep actions if viewing own data and is course rep
+      setIsCourseRep(dataSource.isViewOnly ? false : data.isCourseRep)
     } catch (error) {
       console.error('Failed to fetch timetable:', error)
       toast.error('Failed to load timetable')

@@ -9,6 +9,8 @@ import { BookOpen, Loader2, Plus, X, AlertTriangle, ChevronRight } from 'lucide-
 import { useRouter } from 'next/navigation'
 import type { CourseItem } from '@/lib/types/course'
 import toast from 'react-hot-toast'
+import { CourseRegistrationModal } from '@/components/course-registration-modal'
+import { supabase } from '@/lib/supabase/client'
 
 // ============ HEADER COMPONENT ============
 function Header({ profile }: { profile: UserProfileWithDetails | null }) {
@@ -44,6 +46,46 @@ export default function CoursesPage() {
     } = useCourseStore()
     const { hasUserCourses, hasCarryoverCourses, carryoverCredits } = useCourseSelectors()
     const [showCarryoverModal, setShowCarryoverModal] = useState(false)
+    const [showRegistrationModal, setShowRegistrationModal] = useState(false)
+
+    // Check if user has already confirmed course registration
+    useEffect(() => {
+        const checkRegistrationStatus = async () => {
+            if (!user?.id) return
+
+            try {
+                // First check database
+                const { data, error } = await supabase
+                    .from('user_preferences')
+                    .select('course_registration_completed')
+                    .eq('user_id', user.id)
+                    .single()
+
+                if (error && error.code !== 'PGRST116') {
+                    // PGRST116 = no rows returned, which is fine
+                    console.error('Error checking registration status:', error)
+                }
+
+                // If user hasn't confirmed registration, show modal
+                if (!data?.course_registration_completed) {
+                    // Also check localStorage as fallback
+                    const localStatus = localStorage.getItem(`course_registration_${user.id}`)
+                    if (localStatus !== 'completed') {
+                        setShowRegistrationModal(true)
+                    }
+                }
+            } catch (err) {
+                console.error('Error checking registration:', err)
+                // Check localStorage as fallback
+                const localStatus = localStorage.getItem(`course_registration_${user.id}`)
+                if (localStatus !== 'completed') {
+                    setShowRegistrationModal(true)
+                }
+            }
+        }
+
+        checkRegistrationStatus()
+    }, [user?.id])
 
     const handleCourseClick = (course: CourseItem) => {
         router.push(`/courses/detail?code=${encodeURIComponent(course.courseCode)}&title=${encodeURIComponent(course.courseTitle)}&unit=${course.courseUnit}`)
@@ -201,6 +243,14 @@ export default function CoursesPage() {
                     onSuccess={() => {
                         setShowCarryoverModal(false)
                     }}
+                />
+            )}
+
+            {/* Course Registration Check Modal */}
+            {showRegistrationModal && user?.id && (
+                <CourseRegistrationModal
+                    userId={user.id}
+                    onClose={() => setShowRegistrationModal(false)}
                 />
             )}
         </AppShell>

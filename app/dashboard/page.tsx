@@ -423,13 +423,7 @@ function TodaysClasses({ userId }: { userId?: string }) {
       const courseRepStatus = checkIsCourseRep()
       setIsCourseRep(courseRepStatus)
       
-      // If not connected and not course rep, show empty
-      if (!dataSource.isConnected && !courseRepStatus) {
-        setClasses([])
-        setLoading(false)
-        return
-      }
-
+      // Always fetch and show classes if they exist
       const todaysClasses = await TodaysClassService.getTodaysClasses(dataSource.userId!)
       // Sort by start time (earliest first) - handle both 24h and 12h formats
       const sortedClasses = todaysClasses.sort((a, b) => {
@@ -680,7 +674,7 @@ function TodaysClasses({ userId }: { userId?: string }) {
           onClose={handleCloseModal}
           userId={userId}
           originalClass={{
-            id: selectedClass.timetable_entry_id || selectedClass.id,
+            id: selectedClass.timetable_entry_id || selectedClass.id || '',
             course_code: selectedClass.course_code,
             start_time: selectedClass.start_time,
             end_time: selectedClass.end_time,
@@ -689,7 +683,7 @@ function TodaysClasses({ userId }: { userId?: string }) {
           }}
           existingUpdate={selectedClass.has_update ? {
             id: selectedClass.todays_class_id,
-            timetable_entry_id: selectedClass.timetable_entry_id,
+            timetable_entry_id: selectedClass.timetable_entry_id || undefined,
             course_code: selectedClass.course_code,
             start_time: selectedClass.start_time,
             end_time: selectedClass.end_time,
