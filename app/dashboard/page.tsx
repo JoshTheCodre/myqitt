@@ -9,7 +9,6 @@ import { AppShell } from '@/components/layout/app-shell'
 import { ClassMenu } from '@/components/class-menu'
 import { UpdateTodaysClassModal } from '@/components/update-todays-class-modal'
 import { NotificationPermissionModal } from '@/components/notification-permission-modal'
-import { CatchUpNotificationFeed } from '@/components/catch-up-notification-feed'
 import { TodaysClassService, ConnectionService, type MergedClass } from '@/lib/services'
 import { supabase } from '@/lib/supabase/client'
 
@@ -316,7 +315,7 @@ function ActionCards() {
   return (
     <div className="grid grid-cols-2 gap-3 md:gap-6">
       <Link href="/courses">
-        <div className="relative rounded-xl md:rounded-2xl p-3 md:p-8 text-white cursor-pointer hover:shadow-lg transition-shadow overflow-hidden h-36 md:h-auto">
+        <div className="relative rounded-xl md:rounded-2xl p-3 md:p-8 text-white cursor-pointer hover:shadow-lg transition-shadow overflow-hidden h-44 md:h-56">
           <Image src="/courses-card-bg.png" alt="" fill className="object-cover" sizes="(max-width: 768px) 50vw, 25vw" />
           <div className="absolute inset-0 z-[1]" style={{ background: 'linear-gradient(to bottom right, rgba(10, 50, 248, 0.85), rgba(8, 40, 201, 0.85))' }} />
           <div className="relative z-10 flex flex-col justify-between h-full">
@@ -332,7 +331,7 @@ function ActionCards() {
       </Link>
 
       <Link href="/classmates">
-        <div className="relative rounded-xl md:rounded-2xl p-4 md:p-8 text-white cursor-pointer hover:shadow-lg transition-shadow overflow-hidden h-36 md:h-auto">
+        <div className="relative rounded-xl md:rounded-2xl p-4 md:p-8 text-white cursor-pointer hover:shadow-lg transition-shadow overflow-hidden h-44 md:h-56">
           <Image src="/classmates-card-bg.png" alt="" fill className="object-cover" sizes="(max-width: 768px) 50vw, 25vw" />
           <div className="absolute inset-0 z-[1]" style={{ background: 'linear-gradient(to bottom right, rgba(70, 210, 143, 0.85), rgba(58, 185, 121, 0.85))' }} />
           <div className="relative z-10 flex flex-col justify-between h-full">
@@ -740,12 +739,9 @@ export default function Page() {
       <div className="h-full flex items-start justify-center">
         <div className="w-full max-w-2xl px-4 md:px-5 py-4 md:py-8 pb-24 lg:pb-8">
           <Header profile={profile} />
-          <div className="mt-5 md:mt-12">
-            <CatchUpNotificationFeed />
-          </div>
           
           {/* Action Cards */}
-          <div className="mt-5 md:mt-8">
+          <div className="mt-5 md:mt-12">
             <ActionCards />
           </div>
 
