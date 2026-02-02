@@ -5,11 +5,29 @@ import Link from 'next/link'
 import { Home, Clock, FileText, LogOut } from 'lucide-react'
 import { useAuthStore } from '@/lib/store/authStore'
 import { useRouter, usePathname } from 'next/navigation'
+import { AssignmentViewService } from '@/lib/services'
+import { useEffect, useState } from 'react'
 
 export function Sidebar() {
-  const { logout } = useAuthStore()
+  const { logout, user } = useAuthStore()
   const router = useRouter()
   const pathname = usePathname()
+  const [unreadCount, setUnreadCount] = useState(0)
+
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      if (!user?.id) return
+      const count = await AssignmentViewService.getUnreadCount(user.id)
+      setUnreadCount(count)
+    }
+
+    fetchUnreadCount()
+    
+    // Refresh count periodically
+    const interval = setInterval(fetchUnreadCount, 30000) // Every 30 seconds
+    
+    return () => clearInterval(interval)
+  }, [user?.id, pathname])
 
   const handleLogout = async () => {
     try {
@@ -55,13 +73,18 @@ export function Sidebar() {
               </button>
             </Link>
             <Link href="/assignment">
-              <button className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-colors ${
+              <button className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-colors relative ${
                 isActive('/assignment')
                   ? 'bg-blue-100 text-blue-600'
                   : 'text-gray-600 hover:bg-gray-100'
               }`}>
                 <FileText size={20} />
                 <span>Assignments</span>
+                {unreadCount > 0 && (
+                  <span className="ml-auto bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5 shadow-sm">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
               </button>
             </Link>
           </nav>

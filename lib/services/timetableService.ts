@@ -71,6 +71,7 @@ export class TimetableService {
           class_group_id,
           current_semester_id,
           school_id,
+          class_groups!inner(department_id),
           user_roles(role:roles(name))
         `)
         .eq('id', userId)
@@ -85,10 +86,14 @@ export class TimetableService {
         (ur) => ur?.role?.name === 'course_rep'
       ) || false
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const classGroups = data.class_groups as any
+      
       return {
         class_group_id: data.class_group_id,
         semester_id: data.current_semester_id || undefined,
         school_id: data.school_id || undefined,
+        department_id: classGroups?.department_id || undefined,
         isCourseRep
       }
     } catch (error) {
@@ -102,7 +107,8 @@ export class TimetableService {
     timetable: Record<string, Array<{ time: string; title: string; location: string; id?: string; courseCode?: string }>>,
     hasTimetable: boolean,
     isCourseRep: boolean,
-    timetableId?: string
+    timetableId?: string,
+    lastUpdated?: string
   }> {
     try {
       // Initialize grouped data
@@ -127,6 +133,7 @@ export class TimetableService {
           id,
           class_group_id,
           semester_id,
+          updated_at,
           entries:timetable_entries(
             id,
             day_of_week,
@@ -205,7 +212,8 @@ export class TimetableService {
         timetable: groupedData,
         hasTimetable,
         isCourseRep: userInfo.isCourseRep,
-        timetableId
+        timetableId,
+        lastUpdated: timetableRecord?.updated_at
       }
     } catch (error: any) {
       toast.error('Failed to load timetable')

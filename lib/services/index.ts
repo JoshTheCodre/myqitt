@@ -1,5 +1,6 @@
 // Re-export all services for easy importing
 export { AssignmentService } from './assignmentService'
+export { AssignmentViewService } from './assignmentViewService'
 export { TimetableService } from './timetableService'
 export { ClassmateService } from './classmateService'
 export { ProfileService } from './profileService'

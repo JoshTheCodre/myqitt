@@ -230,6 +230,7 @@ export default function TimetablePage() {
   const [isViewOnly, setIsViewOnly] = useState(false)
   const [isConnected, setIsConnected] = useState(false)
   const [viewingUserName, setViewingUserName] = useState<string | undefined>()
+  const [lastUpdated, setLastUpdated] = useState<string | undefined>()
   const [showFreeTimeModal, setShowFreeTimeModal] = useState(false)
   const timetableImageRef = useRef<TimetableImageGeneratorHandle>(null)
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
@@ -274,6 +275,7 @@ export default function TimetablePage() {
       // Always show timetable data if it exists
       setTimetable(data.timetable)
       setHasTimetable(data.hasTimetable)
+      setLastUpdated(data.lastUpdated)
       // Only show course rep actions if viewing own data and is course rep
       setIsCourseRep(dataSource.isViewOnly ? false : data.isCourseRep)
     } catch (error) {
@@ -307,6 +309,25 @@ export default function TimetablePage() {
             isViewOnly={isViewOnly}
             viewingUserName={viewingUserName}
           />
+          
+          {hasTimetable && lastUpdated && (
+            <div className="mt-3 inline-flex items-center gap-2 bg-blue-50 px-3 py-1.5 rounded-full">
+              <span className="text-xs text-gray-600">Last updated:</span>
+              <span className="text-xs font-bold text-blue-600">
+                {new Date(lastUpdated).toLocaleDateString('en-US', { 
+                  month: 'short', 
+                  day: 'numeric', 
+                  year: 'numeric'
+                })}
+              </span>
+              <span className="text-xs font-bold text-blue-600">
+                {new Date(lastUpdated).toLocaleTimeString('en-US', { 
+                  hour: 'numeric',
+                  minute: '2-digit'
+                })}
+              </span>
+            </div>
+          )}
           
           <div className="mt-8">
             <DaySelector 

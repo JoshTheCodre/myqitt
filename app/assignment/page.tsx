@@ -6,7 +6,7 @@ import { AppShell } from '@/components/layout/app-shell'
 import { Calendar, ChevronRight, Plus, BadgeCheck, CircleCheck, Clock, Eye } from 'lucide-react'
 import { useState, useEffect, useCallback } from 'react'
 import { useAuthStore } from '@/lib/store/authStore'
-import { AssignmentService, ConnectionService, type GroupedAssignment, type AssignmentDate, type AssignmentStats } from '@/lib/services'
+import { AssignmentService, AssignmentViewService, ConnectionService, type GroupedAssignment, type AssignmentDate, type AssignmentStats } from '@/lib/services'
 
 // ============ TYPES ============
 interface AssignmentCardProps {
@@ -15,6 +15,7 @@ interface AssignmentCardProps {
   submittedCount: number
   dates: AssignmentDate[]
   onDateClick: (dateLabel: string) => void
+  isNew?: boolean
 }
 
 interface AssignmentsListProps {
@@ -24,6 +25,7 @@ interface AssignmentsListProps {
   isViewOnly: boolean
   isConnected: boolean
   viewingUserName?: string
+  onUnreadCountChange?: (count: number) => void
 }
 
 // ============ STATS CARD COMPONENT ============
@@ -66,17 +68,24 @@ function StatsCard({ stats }: { stats: AssignmentStats }) {
 }
 
 // ============ HEADER COMPONENT ============
-function Header({ onAddClick, isCourseRep, isViewOnly, viewingUserName }: { 
+function Header({ onAddClick, isCourseRep, isViewOnly, viewingUserName, unreadCount }: { 
   onAddClick: () => void; 
   isCourseRep: boolean;
   isViewOnly: boolean;
   viewingUserName?: string;
+  unreadCount?: number;
 }) {
   return (
     <div>
       <div className="flex items-start justify-between gap-4">
         <div className="relative">
           <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-gray-900">Assignments</h1>
+          {unreadCount !== undefined && unreadCount > 0 && !isViewOnly && (
+            <div className="mt-2 inline-flex items-center gap-1.5 bg-blue-50 px-3 py-1 rounded-full">
+              <span className="text-sm font-bold text-blue-600">{unreadCount}</span>
+              <span className="text-sm text-gray-700">new assignment{unreadCount > 1 ? 's' : ''}</span>
+            </div>
+          )}
           {isViewOnly && viewingUserName && (
             <div className="flex items-center gap-1.5 mt-2 text-sm text-blue-600 bg-blue-50 px-3 py-1 rounded-full w-fit">
               <Eye className="w-4 h-4" />
@@ -104,12 +113,20 @@ function AssignmentCard({
   assignmentCount,
   submittedCount,
   dates,
-  onDateClick
+  onDateClick,
+  isNew = false
 }: AssignmentCardProps) {
   const completionPercentage = assignmentCount > 0 ? Math.round((submittedCount / assignmentCount) * 100) : 0
 
   return (
-    <div className="bg-white rounded-xl border border-blue-200 hover:border-blue-300 hover:shadow-md transition-all p-6">
+    <div className="bg-white rounded-xl border border-blue-200 hover:border-blue-300 hover:shadow-md transition-all p-6 relative">
+      {isNew && (
+        <div className="absolute top-3 right-3">
+          <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-sm animate-pulse">
+            NEW
+          </span>
+        </div>
+      )}
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
@@ -157,10 +174,11 @@ function AssignmentCard({
 }
 
 // ============ ASSIGNMENTS LIST COMPONENT ============
-function AssignmentsList({ router, onIsCourseRepChange, dataUserId, isViewOnly, isConnected, viewingUserName }: AssignmentsListProps) {
+function AssignmentsList({ router, onIsCourseRepChange, dataUserId, isViewOnly, isConnected, viewingUserName, onUnreadCountChange }: AssignmentsListProps) {
   const [assignments, setAssignments] = useState<GroupedAssignment[]>([])
   const [loading, setLoading] = useState(true)
   const [isCourseRep, setIsCourseRep] = useState(false)
+  const [unviewedIds, setUnviewedIds] = useState<Set<string>>(new Set())
   const { user, profile } = useAuthStore()
   const status = useAuthStore((s) => s.status)
 
@@ -190,6 +208,10 @@ function AssignmentsList({ router, onIsCourseRepChange, dataUserId, isViewOnly, 
       // Pass the logged-in user's ID to get THEIR submission status
       const data = await AssignmentService.getAssignments(loggedInUserId)
       
+      // Get unviewed assignment IDs
+      const unviewed = await AssignmentViewService.getUnviewedAssignmentIds(loggedInUserId)
+      setUnviewedIds(new Set(unviewed))
+      
       // Only allow course rep actions if viewing own data
       const courseRepStatus = isViewOnly ? false : data.isCourseRep
       setIsCourseRep(courseRepStatus)
@@ -209,7 +231,24 @@ function AssignmentsList({ router, onIsCourseRepChange, dataUserId, isViewOnly, 
     }
   }
 
-  const handleDateClick = (assignmentData: AssignmentDate & { courseCode: string }) => {
+  const handleDateClick = async (assignmentData: AssignmentDate & { courseCode: string }) => {
+    // Mark as viewed
+    if (user?.id) {
+      const wasUnviewed = unviewedIds.has(assignmentData.id)
+      await AssignmentViewService.markAsViewed(user.id, assignmentData.id)
+      // Remove from unviewed set
+      setUnviewedIds(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(assignmentData.id)
+        return newSet
+      })
+      // Update parent unread count
+      if (wasUnviewed && onUnreadCountChange) {
+        const newCount = await AssignmentViewService.getUnreadCount(user.id)
+        onUnreadCountChange(newCount)
+      }
+    }
+    
     const params = new URLSearchParams({
       id: assignmentData.id,
       courseCode: assignmentData.courseCode,
@@ -268,21 +307,27 @@ function AssignmentsList({ router, onIsCourseRepChange, dataUserId, isViewOnly, 
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {assignments.map((assignment) => (
-        <AssignmentCard
-          key={assignment.courseCode}
-          courseCode={assignment.courseCode}
-          assignmentCount={assignment.assignmentCount}
-          submittedCount={assignment.submittedCount}
-          dates={assignment.dates}
-          onDateClick={(dateLabel) => {
-            const dateData = assignment.dates.find(d => d.label === dateLabel)
-            if (dateData) {
-              handleDateClick({ ...dateData, courseCode: assignment.courseCode })
-            }
-          }}
-        />
-      ))}
+      {assignments.map((assignment) => {
+        // Check if any of the assignment's dates are unviewed
+        const hasUnviewed = assignment.dates.some(date => unviewedIds.has(date.id))
+        
+        return (
+          <AssignmentCard
+            key={assignment.courseCode}
+            courseCode={assignment.courseCode}
+            assignmentCount={assignment.assignmentCount}
+            submittedCount={assignment.submittedCount}
+            dates={assignment.dates}
+            isNew={hasUnviewed}
+            onDateClick={(dateLabel) => {
+              const dateData = assignment.dates.find(d => d.label === dateLabel)
+              if (dateData) {
+                handleDateClick({ ...dateData, courseCode: assignment.courseCode })
+              }
+            }}
+          />
+        )
+      })}
     </div>
   )
 }
@@ -299,6 +344,7 @@ export default function AssignmentPage() {
   const [viewingUserName, setViewingUserName] = useState<string | undefined>()
   const [dataUserId, setDataUserId] = useState<string | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [unreadCount, setUnreadCount] = useState<number>(0)
 
   const fetchStats = useCallback(async (currentUserId: string, connected: boolean) => {
     try {
@@ -327,6 +373,10 @@ export default function AssignmentPage() {
         
         // Stats are always personal to current user
         await fetchStats(user.id, dataSource.isConnected)
+        
+        // Fetch unread count
+        const count = await AssignmentViewService.getUnreadCount(user.id)
+        setUnreadCount(count)
       }
     }
     
@@ -356,6 +406,7 @@ export default function AssignmentPage() {
             isCourseRep={isCourseRep}
             isViewOnly={isViewOnly}
             viewingUserName={viewingUserName}
+            unreadCount={unreadCount}
           />
           
           <div className="mt-6">
@@ -370,6 +421,7 @@ export default function AssignmentPage() {
               isViewOnly={isViewOnly}
               isConnected={isConnected}
               viewingUserName={viewingUserName}
+              onUnreadCountChange={setUnreadCount}
             />
           </div>
         </div>
