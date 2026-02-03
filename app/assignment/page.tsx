@@ -86,12 +86,6 @@ function Header({ onAddClick, isCourseRep, isViewOnly, viewingUserName, unreadCo
               <span className="text-sm text-gray-700">new assignment{unreadCount > 1 ? 's' : ''}</span>
             </div>
           )}
-          {isViewOnly && viewingUserName && (
-            <div className="flex items-center gap-1.5 mt-2 text-sm text-blue-600 bg-blue-50 px-3 py-1 rounded-full w-fit">
-              <Eye className="w-4 h-4" />
-              <span>Viewing {viewingUserName}&apos;s assignments</span>
-            </div>
-          )}
         </div>
         {isCourseRep && !isViewOnly && (
           <button

@@ -63,12 +63,6 @@ function Header({
       <div className="flex items-start justify-between gap-3">
         <div className="relative">
           <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-gray-900">Timetable</h1>
-          {isViewOnly && viewingUserName && (
-            <div className="flex items-center gap-1.5 mt-2 text-sm text-blue-600 bg-blue-50 px-3 py-1 rounded-full w-fit">
-              <Eye className="w-4 h-4" />
-              <span>Viewing {viewingUserName}&apos;s timetable</span>
-            </div>
-          )}
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           {hasTimetable && (

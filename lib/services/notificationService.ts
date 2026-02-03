@@ -91,7 +91,7 @@ export class NotificationService {
   static async getConnectees(hostUserId: string): Promise<NotificationRecipient[]> {
     const { data, error } = await this.supabase
       .from('connections')
-      .select('user_id')
+      .select('user_id, connection_types')
       .eq('connected_to_id', hostUserId)
       .eq('status', 'accepted');
 
@@ -100,7 +100,10 @@ export class NotificationService {
       return [];
     }
 
-    return data.map((conn: any) => ({ userId: conn.user_id }));
+    // Filter to only those connected for assignments
+    return data
+      .filter((conn: any) => conn.connection_types?.includes('assignments'))
+      .map((conn: any) => ({ userId: conn.user_id }));
   }
 
   /**
@@ -177,6 +180,52 @@ export class NotificationService {
   }
 
   /**
+   * Notify connectees about timetable update
+   */
+  static async notifyTimetableUpdated(
+    hostUserId: string
+  ): Promise<void> {
+    const connectees = await this.getConnectees(hostUserId);
+    
+    if (connectees.length === 0) return;
+
+    await this.sendNotification({
+      recipients: connectees,
+      payload: {
+        type: 'timetable_updated',
+        title: 'Timetable Updated',
+        message: 'Your class timetable has been updated. Check the changes!',
+        data: { hostUserId },
+        actionUrl: `/timetable`,
+      },
+    });
+  }
+
+  /**
+   * Notify connectees about course outline update
+   */
+  static async notifyCourseOutlineUpdated(
+    hostUserId: string,
+    courseCode: string,
+    courseTitle: string
+  ): Promise<void> {
+    const connectees = await this.getConnectees(hostUserId);
+    
+    if (connectees.length === 0) return;
+
+    await this.sendNotification({
+      recipients: connectees,
+      payload: {
+        type: 'course_outline_updated',
+        title: 'Course Outline Updated',
+        message: `${courseCode} - ${courseTitle} outline has been updated`,
+        data: { hostUserId, courseCode },
+        actionUrl: `/courses/detail?code=${encodeURIComponent(courseCode)}&title=${encodeURIComponent(courseTitle)}`,
+      },
+    });
+  }
+
+  /**
    * Mark notification as read
    */
   static async markAsRead(notificationId: string): Promise<void> {
@@ -234,5 +283,80 @@ export class NotificationService {
       .update({ is_read: true })
       .eq('user_id', userId)
       .eq('is_read', false);
+  }
+
+  /**
+   * Register FCM token for a user
+   */
+  static async registerFCMToken(userId: string, token: string): Promise<void> {
+    try {
+      // Check if token already exists
+      const { data: existing } = await this.supabase
+        .from('device_tokens')
+        .select('id, is_active')
+        .eq('user_id', userId)
+        .eq('token', token)
+        .maybeSingle();
+
+      if (existing) {
+        // Update existing token to active
+        await this.supabase
+          .from('device_tokens')
+          .update({ is_active: true, updated_at: new Date().toISOString() })
+          .eq('id', existing.id);
+      } else {
+        // Insert new token
+        await this.supabase
+          .from('device_tokens')
+          .insert({
+            user_id: userId,
+            token: token,
+            device_type: 'web',
+            is_active: true
+          });
+      }
+
+      console.log('FCM token registered successfully');
+    } catch (error) {
+      console.error('Error registering FCM token:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Unregister FCM token for a user
+   */
+  static async unregisterFCMToken(userId: string): Promise<void> {
+    try {
+      // Mark all tokens for this user as inactive
+      await this.supabase
+        .from('device_tokens')
+        .update({ is_active: false })
+        .eq('user_id', userId)
+        .eq('device_type', 'web');
+
+      console.log('FCM tokens unregistered successfully');
+    } catch (error) {
+      console.error('Error unregistering FCM token:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get unread notification count
+   */
+  static async getUnreadCount(userId: string): Promise<number> {
+    const { count, error } = await this.supabase
+      .from('notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('is_read', false);
+
+    if (error) {
+      console.error('Failed to get unread count:', error);
+      return 0;
+    }
+
+    return count || 0;
   }
 }

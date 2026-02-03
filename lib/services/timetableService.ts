@@ -630,6 +630,13 @@ export class TimetableService {
         if (error) throw error
       }
 
+      // Notify connectees about timetable update
+      if (userInfo.isCourseRep) {
+        const { NotificationService } = await import('./notificationService')
+        NotificationService.notifyTimetableUpdated(userId)
+          .catch(err => console.error('Failed to send notification:', err))
+      }
+
       toast.success('Timetable saved successfully!')
     } catch (error: any) {
       toast.error(error.message || 'Failed to save timetable')

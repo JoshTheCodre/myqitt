@@ -3,7 +3,10 @@ export type NotificationType =
   | 'assignment_updated'
   | 'assignment_deleted'
   | 'assignment_due_soon'
+  | 'timetable_updated'
+  | 'course_outline_updated'
   | 'class_reminder'
+  | 'announcement'
   | 'general';
 
 export interface NotificationPayload {

@@ -98,8 +98,14 @@ export default function NotificationsPage() {
         return '🗑️';
       case 'assignment_due_soon':
         return '⏰';
+      case 'timetable_updated':
+        return '📅';
+      case 'course_outline_updated':
+        return '📚';
       case 'class_reminder':
         return '🔔';
+      case 'announcement':
+        return '📢';
       default:
         return '📬';
     }

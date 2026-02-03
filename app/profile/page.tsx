@@ -165,12 +165,50 @@ export default function ProfilePage() {
                     {notificationToken && (
                         <div className="mb-6">
                             <h2 className="text-lg font-bold text-gray-900 px-1 mb-3">Notifications</h2>
-                            <div className="p-4 bg-green-50 rounded-xl border border-green-200">
+                            <div className={`p-4 rounded-xl border ${
+                                notificationToken.includes('APA91b') 
+                                    ? 'bg-green-50 border-green-200' 
+                                    : 'bg-yellow-50 border-yellow-200'
+                            }`}>
                                 <div className="flex items-start gap-3">
-                                    <Bell className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                                    <Bell className={`w-5 h-5 flex-shrink-0 mt-0.5 ${
+                                        notificationToken.includes('APA91b') 
+                                            ? 'text-green-600' 
+                                            : 'text-yellow-600'
+                                    }`} />
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-semibold text-green-900">Notifications Enabled</p>
-                                        <p className="text-xs text-green-700 mt-1 break-all font-mono">{notificationToken}</p>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <p className={`text-sm font-semibold ${
+                                                notificationToken.includes('APA91b') 
+                                                    ? 'text-green-900' 
+                                                    : 'text-yellow-900'
+                                            }`}>
+                                                {notificationToken.includes('APA91b') 
+                                                    ? '✓ Push Notifications Active' 
+                                                    : '⚠ Fallback Token (Setup Required)'}
+                                            </p>
+                                        </div>
+                                        <p className={`text-xs mt-1 mb-2 ${
+                                            notificationToken.includes('APA91b') 
+                                                ? 'text-green-700' 
+                                                : 'text-yellow-700'
+                                        }`}>
+                                            {notificationToken.includes('APA91b') 
+                                                ? 'Real FCM token - can receive push notifications' 
+                                                : 'Firebase not configured - add credentials to .env.local'}
+                                        </p>
+                                        <details className="mt-2">
+                                            <summary className={`text-xs font-medium cursor-pointer hover:underline ${
+                                                notificationToken.includes('APA91b') 
+                                                    ? 'text-green-600' 
+                                                    : 'text-yellow-600'
+                                            }`}>
+                                                Show token ({notificationToken.length} chars)
+                                            </summary>
+                                            <p className="text-xs text-gray-700 mt-2 break-all font-mono bg-white/50 p-2 rounded border border-gray-200">
+                                                {notificationToken}
+                                            </p>
+                                        </details>
                                     </div>
                                 </div>
                             </div>

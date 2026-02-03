@@ -12,22 +12,30 @@ export function Sidebar() {
   const { logout, user } = useAuthStore()
   const router = useRouter()
   const pathname = usePathname()
-  const [unreadCount, setUnreadCount] = useState(0)
+  const [unreadCount, setUnreadCount] = useState<number | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     const fetchUnreadCount = async () => {
-      if (!user?.id) return
+      if (!user?.id) {
+        setUnreadCount(null)
+        setIsLoading(false)
+        return
+      }
+      
       const count = await AssignmentViewService.getUnreadCount(user.id)
       setUnreadCount(count)
+      setIsLoading(false)
     }
 
+    // Initial fetch
     fetchUnreadCount()
     
     // Refresh count periodically
     const interval = setInterval(fetchUnreadCount, 30000) // Every 30 seconds
     
     return () => clearInterval(interval)
-  }, [user?.id, pathname])
+  }, [user?.id])
 
   const handleLogout = async () => {
     try {
@@ -80,9 +88,9 @@ export function Sidebar() {
               }`}>
                 <FileText size={20} />
                 <span>Assignments</span>
-                {unreadCount > 0 && (
+                {!isLoading && (unreadCount ?? 0) > 0 && (
                   <span className="ml-auto bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5 shadow-sm">
-                    {unreadCount > 99 ? '99+' : unreadCount}
+                    {(unreadCount ?? 0) > 99 ? '99+' : unreadCount}
                   </span>
                 )}
               </button>

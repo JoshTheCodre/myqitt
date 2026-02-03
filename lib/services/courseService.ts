@@ -300,4 +300,48 @@ export class CourseService {
       return null
     }
   }
+
+  /**
+   * Update course outline and notify connectees
+   */
+  static async updateCourseOutline(
+    courseCode: string,
+    outline: string,
+    userId: string
+  ): Promise<{ success: boolean; error?: string; courseTitle?: string }> {
+    try {
+      // Get course details first
+      const { data: course, error: fetchError } = await supabase
+        .from('courses')
+        .select('id, code, title')
+        .eq('code', courseCode)
+        .single()
+
+      if (fetchError || !course) {
+        console.error('Error fetching course:', fetchError)
+        return { success: false, error: 'Course not found' }
+      }
+
+      // Update the course outline
+      const { error: updateError } = await supabase
+        .from('courses')
+        .update({ description: outline })
+        .eq('code', courseCode)
+
+      if (updateError) {
+        console.error('Error updating course:', updateError)
+        return { success: false, error: updateError.message }
+      }
+
+      // Notify connectees about course outline update
+      const { NotificationService } = await import('./notificationService')
+      NotificationService.notifyCourseOutlineUpdated(userId, course.code, course.title)
+        .catch(err => console.error('Failed to send notification:', err))
+
+      return { success: true, courseTitle: course.title }
+    } catch (error: any) {
+      console.error('Error updating course outline:', error)
+      return { success: false, error: error.message }
+    }
+  }
 }

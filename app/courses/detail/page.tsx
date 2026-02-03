@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase/client'
 import { useAuthStore } from '@/lib/store/authStore'
 import { useCourseStore } from '@/lib/store/courseStore'
 import { ConnectionService } from '@/lib/services'
+import { CourseService } from '@/lib/services/courseService'
 import toast from 'react-hot-toast'
 import confetti from 'canvas-confetti'
 import ReactMarkdown from 'react-markdown'
@@ -146,23 +147,26 @@ function CourseDetailContent() {
   }
 
   const handleSaveOutline = async () => {
-    if (!courseCode) return
+    if (!courseCode || !user?.id) return
     
     setSavingOutline(true)
     try {
-      const { error } = await supabase
-        .from('courses')
-        .update({ description: editingOutline })
-        .eq('code', courseCode)
+      const result = await CourseService.updateCourseOutline(
+        courseCode,
+        editingOutline,
+        user.id
+      )
       
-      if (error) throw error
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to save outline')
+      }
       
       setOutline(editingOutline)
       setShowOutlineModal(false)
-      toast.success('Course outline saved!')
-    } catch (error) {
+      toast.success('Course outline saved and connectees notified!')
+    } catch (error: any) {
       console.error('Error saving outline:', error)
-      toast.error('Failed to save outline')
+      toast.error(error.message || 'Failed to save outline')
     } finally {
       setSavingOutline(false)
     }

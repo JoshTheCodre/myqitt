@@ -10,27 +10,35 @@ export function BottomNav() {
   const router = useRouter()
   const pathname = usePathname()
   const user = useAuthStore((s) => s.user)
-  const [unreadCount, setUnreadCount] = useState(0)
+  const [unreadCount, setUnreadCount] = useState<number | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     const fetchUnreadCount = async () => {
-      if (!user?.id) return
+      if (!user?.id) {
+        setUnreadCount(null)
+        setIsLoading(false)
+        return
+      }
+      
       const count = await AssignmentViewService.getUnreadCount(user.id)
       setUnreadCount(count)
+      setIsLoading(false)
     }
 
+    // Initial fetch
     fetchUnreadCount()
     
-    // Refresh count when navigating back to bottom nav
+    // Refresh count periodically
     const interval = setInterval(fetchUnreadCount, 30000) // Every 30 seconds
     
     return () => clearInterval(interval)
-  }, [user?.id, pathname])
+  }, [user?.id])
 
   const items = [
     { id: 'home', icon: Home, label: 'Home', href: '/dashboard' },
     { id: 'timetable', icon: Calendar, label: 'Timetable', href: '/timetable' },
-    { id: 'assignment', icon: ClipboardList, label: 'Assignments', href: '/assignment', badge: unreadCount },
+    { id: 'assignment', icon: ClipboardList, label: 'Assignments', href: '/assignment', badge: unreadCount ?? 0 },
   ]
 
   const isActive = (href: string) => pathname === href
@@ -52,7 +60,7 @@ export function BottomNav() {
                   <Icon
                     className={`w-6 h-6 ${active ? 'text-blue-600' : 'text-gray-500'}`}
                   />
-                  {item.badge && item.badge > 0 && (
+                  {!isLoading && item.badge && item.badge > 0 && (
                     <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 shadow-sm">
                       {item.badge > 99 ? '99+' : item.badge}
                     </span>
