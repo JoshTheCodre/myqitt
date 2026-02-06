@@ -11,6 +11,7 @@ import { supabase } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
 import { useState, useEffect } from 'react'
 import { NotificationPermissionModal } from '@/components/notification-permission-modal'
+import { requestNotificationPermission } from '@/lib/firebase/messaging'
 
 // Helper function to format department names
 function formatDepartmentName(dept: string): string {
@@ -104,6 +105,92 @@ export default function ProfilePage() {
         fetchNotificationToken()
     }, [user?.id, showNotificationModal])
 
+    const handleRegenerateToken = async () => {
+        if (!user?.id) return
+        
+        try {
+            toast.loading('Regenerating FCM token...')
+            
+            // Delete old token
+            await supabase
+                .from('device_tokens')
+                .delete()
+                .eq('user_id', user.id)
+            
+            // Request new FCM token
+            const fcmToken = await requestNotificationPermission()
+            
+            if (fcmToken) {
+                // Save new token to database
+                const { error } = await supabase.from('device_tokens').insert({
+                    user_id: user.id,
+                    token: fcmToken,
+                    device_type: 'web',
+                    device_name: getDeviceName(),
+                    is_active: true,
+                    last_used_at: new Date().toISOString()
+                })
+                
+                if (!error) {
+                    setNotificationToken(fcmToken)
+                    toast.dismiss()
+                    toast.success('✓ FCM token saved! You can now receive notifications.')
+                    
+                    // Send test notification
+                    await sendTestNotification(user.id)
+                } else {
+                    toast.dismiss()
+                    toast.error('Failed to save token')
+                }
+            } else {
+                toast.dismiss()
+                toast.error('Failed to get FCM token. Check Firebase config.')
+            }
+        } catch (error) {
+            console.error('Error regenerating token:', error)
+            toast.dismiss()
+            toast.error('Failed to regenerate token')
+        }
+    }
+    
+    const sendTestNotification = async (userId: string) => {
+        try {
+            // Get user's device token
+            const { data: deviceToken } = await supabase
+                .from('device_tokens')
+                .select('token')
+                .eq('user_id', userId)
+                .eq('is_active', true)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .single()
+            
+            if (!deviceToken) {
+                console.error('No active device token found')
+                return
+            }
+            
+            // Call edge function to send test notification
+            const { error } = await supabase.functions.invoke('send-notification', {
+                body: {
+                    tokens: [deviceToken.token],
+                    notification: {
+                        title: '🎉 Notifications Active!',
+                        body: 'You will now receive updates for assignments, timetable changes, and more.',
+                        url: '/profile',
+                        data: { type: 'test_notification' }
+                    }
+                }
+            })
+            
+            if (error) {
+                console.error('Failed to send test notification:', error)
+            }
+        } catch (error) {
+            console.error('Error sending test notification:', error)
+        }
+    }
+
     const handleLogout = async () => {
         try {
             await logout()
@@ -111,6 +198,18 @@ export default function ProfilePage() {
         } catch (error) {
             console.error('Logout error:', error)
         }
+    }
+    
+    // Helper function to get device name
+    function getDeviceName(): string {
+        const ua = navigator.userAgent
+        if (ua.includes('iPhone')) return 'iPhone'
+        if (ua.includes('iPad')) return 'iPad'
+        if (ua.includes('Android')) return 'Android'
+        if (ua.includes('Windows')) return 'Windows'
+        if (ua.includes('Mac')) return 'Mac'
+        if (ua.includes('Linux')) return 'Linux'
+        return 'Unknown Device'
     }
 
     if (!user || !profile) {
@@ -197,6 +296,14 @@ export default function ProfilePage() {
                                                 ? 'Real FCM token - can receive push notifications' 
                                                 : 'Firebase not configured - add credentials to .env.local'}
                                         </p>
+                                        {!notificationToken.includes('APA91b') && (
+                                            <button
+                                                onClick={handleRegenerateToken}
+                                                className="mb-2 px-3 py-1.5 text-xs font-medium bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
+                                            >
+                                                Regenerate FCM Token
+                                            </button>
+                                        )}
                                         <details className="mt-2">
                                             <summary className={`text-xs font-medium cursor-pointer hover:underline ${
                                                 notificationToken.includes('APA91b') 

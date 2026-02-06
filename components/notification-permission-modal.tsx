@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Bell, X, Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
+import { requestNotificationPermission } from '@/lib/firebase/messaging'
 
 interface NotificationPermissionModalProps {
   isOpen: boolean
@@ -16,7 +17,7 @@ export function NotificationPermissionModal({ isOpen, onClose, userId }: Notific
 
   if (!isOpen) return null
 
-  const requestNotificationPermission = async () => {
+  const handleRequestPermission = async () => {
     setLoading(true)
     setError(null)
 
@@ -28,17 +29,14 @@ export function NotificationPermissionModal({ isOpen, onClose, userId }: Notific
         return
       }
 
-      // Request permission
-      const permission = await Notification.requestPermission()
+      // Get FCM token using Firebase
+      const fcmToken = await requestNotificationPermission()
 
-      if (permission === 'granted') {
-        // Save a basic notification preference token
-        // We'll use a simple identifier instead of push subscription for now
-        const basicToken = `web_${userId}_${Date.now()}`
-        
+      if (fcmToken) {
+        // Save the FCM token to database
         const { error: dbError } = await supabase.from('device_tokens').insert({
           user_id: userId,
-          token: basicToken,
+          token: fcmToken,
           device_type: 'web',
           device_name: getDeviceName(),
           is_active: true,
@@ -47,21 +45,34 @@ export function NotificationPermissionModal({ isOpen, onClose, userId }: Notific
 
         if (dbError) {
           console.error('Database error:', dbError)
-          setError('Failed to save notification preference')
+          setError('Failed to save notification token')
           setLoading(false)
           return
+        }
+
+        // Send welcome notification
+        try {
+          await supabase.functions.invoke('send-notification', {
+            body: {
+              tokens: [fcmToken],
+              notification: {
+                title: '🎉 Welcome to Notifications!',
+                body: 'You will receive updates for assignments, timetable changes, and class announcements.',
+                url: '/dashboard',
+                data: { type: 'welcome_notification' }
+              }
+            }
+          })
+        } catch (error) {
+          console.error('Failed to send welcome notification:', error)
         }
 
         // Success - close the modal
         setLoading(false)
         onClose()
-      } else if (permission === 'denied') {
-        setError('Notification permission was denied. You can enable it in your browser settings.')
-        setLoading(false)
       } else {
-        // User dismissed the prompt
+        setError('Failed to get notification token. Please check if Firebase is configured.')
         setLoading(false)
-        onClose()
       }
     } catch (err) {
       console.error('Notification permission error:', err)
@@ -105,7 +116,7 @@ export function NotificationPermissionModal({ isOpen, onClose, userId }: Notific
 
         <div className="space-y-3">
           <button
-            onClick={requestNotificationPermission}
+            onClick={handleRequestPermission}
             disabled={loading}
             className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-blue-600 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
