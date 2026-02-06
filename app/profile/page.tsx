@@ -121,7 +121,7 @@ export default function ProfilePage() {
             const fcmToken = await requestNotificationPermission()
             
             if (fcmToken) {
-                // Save new token to database
+                // Save new token
                 const { error } = await supabase.from('device_tokens').insert({
                     user_id: user.id,
                     token: fcmToken,
@@ -134,10 +134,7 @@ export default function ProfilePage() {
                 if (!error) {
                     setNotificationToken(fcmToken)
                     toast.dismiss()
-                    toast.success('✓ FCM token saved! You can now receive notifications.')
-                    
-                    // Send test notification
-                    await sendTestNotification(user.id)
+                    toast.success('FCM token regenerated successfully!')
                 } else {
                     toast.dismiss()
                     toast.error('Failed to save token')
@@ -150,44 +147,6 @@ export default function ProfilePage() {
             console.error('Error regenerating token:', error)
             toast.dismiss()
             toast.error('Failed to regenerate token')
-        }
-    }
-    
-    const sendTestNotification = async (userId: string) => {
-        try {
-            // Get user's device token
-            const { data: deviceToken } = await supabase
-                .from('device_tokens')
-                .select('token')
-                .eq('user_id', userId)
-                .eq('is_active', true)
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .single()
-            
-            if (!deviceToken) {
-                console.error('No active device token found')
-                return
-            }
-            
-            // Call edge function to send test notification
-            const { error } = await supabase.functions.invoke('send-notification', {
-                body: {
-                    tokens: [deviceToken.token],
-                    notification: {
-                        title: '🎉 Notifications Active!',
-                        body: 'You will now receive updates for assignments, timetable changes, and more.',
-                        url: '/profile',
-                        data: { type: 'test_notification' }
-                    }
-                }
-            })
-            
-            if (error) {
-                console.error('Failed to send test notification:', error)
-            }
-        } catch (error) {
-            console.error('Error sending test notification:', error)
         }
     }
 

@@ -50,23 +50,6 @@ export function NotificationPermissionModal({ isOpen, onClose, userId }: Notific
           return
         }
 
-        // Send welcome notification
-        try {
-          await supabase.functions.invoke('send-notification', {
-            body: {
-              tokens: [fcmToken],
-              notification: {
-                title: '🎉 Welcome to Notifications!',
-                body: 'You will receive updates for assignments, timetable changes, and class announcements.',
-                url: '/dashboard',
-                data: { type: 'welcome_notification' }
-              }
-            }
-          })
-        } catch (error) {
-          console.error('Failed to send welcome notification:', error)
-        }
-
         // Success - close the modal
         setLoading(false)
         onClose()
