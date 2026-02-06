@@ -276,7 +276,7 @@ export default function TimetablePage() {
         // Not connected and not course rep - show empty state
         setTimetable({ Monday: [], Tuesday: [], Wednesday: [], Thursday: [], Friday: [] })
         setHasTimetable(false)
-        setLastUpdated(null)
+        setLastUpdated(undefined)
         setIsCourseRep(false)
       }
     } catch (error) {

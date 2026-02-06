@@ -21,6 +21,19 @@ function formatDepartmentName(dept: string): string {
         .join(' ')
 }
 
+// Helper function to get device name
+function getDeviceName(): string {
+    if (typeof window === 'undefined') return 'Unknown Device'
+    const ua = navigator.userAgent
+    if (ua.includes('iPhone')) return 'iPhone'
+    if (ua.includes('iPad')) return 'iPad'
+    if (ua.includes('Android')) return 'Android'
+    if (ua.includes('Windows')) return 'Windows'
+    if (ua.includes('Mac')) return 'Mac'
+    if (ua.includes('Linux')) return 'Linux'
+    return 'Unknown Device'
+}
+
 // ============ PROFILE CARD COMPONENT ============
 function ProfileCard({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string | number | null | undefined }) {
     return (
@@ -157,18 +170,6 @@ export default function ProfilePage() {
         } catch (error) {
             console.error('Logout error:', error)
         }
-    }
-    
-    // Helper function to get device name
-    function getDeviceName(): string {
-        const ua = navigator.userAgent
-        if (ua.includes('iPhone')) return 'iPhone'
-        if (ua.includes('iPad')) return 'iPad'
-        if (ua.includes('Android')) return 'Android'
-        if (ua.includes('Windows')) return 'Windows'
-        if (ua.includes('Mac')) return 'Mac'
-        if (ua.includes('Linux')) return 'Linux'
-        return 'Unknown Device'
     }
 
     if (!user || !profile) {
