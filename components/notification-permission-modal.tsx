@@ -22,44 +22,33 @@ export function NotificationPermissionModal({ isOpen, onClose, userId }: Notific
     setError(null)
 
     try {
-      // Check if notifications are supported
-      if (!('Notification' in window)) {
-        setError('Notifications are not supported in this browser')
+      // Get FCM token using Firebase (will throw error if fails)
+      const fcmToken = await requestNotificationPermission()
+
+      // Save the FCM token to database
+      const { error: dbError } = await supabase.from('device_tokens').insert({
+        user_id: userId,
+        token: fcmToken,
+        device_type: 'web',
+        device_name: getDeviceName(),
+        is_active: true,
+        last_used_at: new Date().toISOString()
+      })
+
+      if (dbError) {
+        console.error('Database error:', dbError)
+        setError('Failed to save notification token')
         setLoading(false)
         return
       }
 
-      // Get FCM token using Firebase
-      const fcmToken = await requestNotificationPermission()
-
-      if (fcmToken) {
-        // Save the FCM token to database
-        const { error: dbError } = await supabase.from('device_tokens').insert({
-          user_id: userId,
-          token: fcmToken,
-          device_type: 'web',
-          device_name: getDeviceName(),
-          is_active: true,
-          last_used_at: new Date().toISOString()
-        })
-
-        if (dbError) {
-          console.error('Database error:', dbError)
-          setError('Failed to save notification token')
-          setLoading(false)
-          return
-        }
-
-        // Success - close the modal
-        setLoading(false)
-        onClose()
-      } else {
-        setError('Failed to get notification token. Please check if Firebase is configured.')
-        setLoading(false)
-      }
+      // Success - close the modal
+      setLoading(false)
+      onClose()
     } catch (err) {
       console.error('Notification permission error:', err)
-      setError('Failed to enable notifications. Please try again.')
+      const errorMessage = err instanceof Error ? err.message : 'Failed to enable notifications'
+      setError(errorMessage)
       setLoading(false)
     }
   }

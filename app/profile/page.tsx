@@ -121,9 +121,9 @@ export default function ProfilePage() {
     const handleRegenerateToken = async () => {
         if (!user?.id) return
         
+        const loadingToast = toast.loading('Regenerating FCM token...')
+        
         try {
-            toast.loading('Regenerating FCM token...')
-            
             // Delete old token
             await supabase
                 .from('device_tokens')
@@ -133,33 +133,29 @@ export default function ProfilePage() {
             // Request new FCM token
             const fcmToken = await requestNotificationPermission()
             
-            if (fcmToken) {
-                // Save new token
-                const { error } = await supabase.from('device_tokens').insert({
-                    user_id: user.id,
-                    token: fcmToken,
-                    device_type: 'web',
-                    device_name: getDeviceName(),
-                    is_active: true,
-                    last_used_at: new Date().toISOString()
-                })
-                
-                if (!error) {
-                    setNotificationToken(fcmToken)
-                    toast.dismiss()
-                    toast.success('FCM token regenerated successfully!')
-                } else {
-                    toast.dismiss()
-                    toast.error('Failed to save token')
-                }
+            // Save new token
+            const { error } = await supabase.from('device_tokens').insert({
+                user_id: user.id,
+                token: fcmToken,
+                device_type: 'web',
+                device_name: getDeviceName(),
+                is_active: true,
+                last_used_at: new Date().toISOString()
+            })
+            
+            if (!error) {
+                setNotificationToken(fcmToken)
+                toast.dismiss(loadingToast)
+                toast.success('FCM token regenerated successfully!')
             } else {
-                toast.dismiss()
-                toast.error('Failed to get FCM token. Check Firebase config.')
+                toast.dismiss(loadingToast)
+                toast.error('Failed to save token')
             }
         } catch (error) {
             console.error('Error regenerating token:', error)
-            toast.dismiss()
-            toast.error('Failed to regenerate token')
+            toast.dismiss(loadingToast)
+            const errorMessage = error instanceof Error ? error.message : 'Failed to regenerate token'
+            toast.error(errorMessage)
         }
     }
 
