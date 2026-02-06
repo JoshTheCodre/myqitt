@@ -426,6 +426,20 @@ export class AssignmentService {
         return { total: 0, submitted: 0, pending: 0, overdue: 0 }
       }
 
+      // Check if user has access to assignments (course rep or connected)
+      const { data: connection } = await supabase
+        .from('connections')
+        .select('connection_types')
+        .eq('follower_id', userId)
+        .single()
+
+      const isConnectedForAssignments = connection?.connection_types?.includes('assignments') || false
+
+      // If not course rep and not connected for assignments, return empty stats
+      if (!userInfo.isCourseRep && !isConnectedForAssignments) {
+        return { total: 0, submitted: 0, pending: 0, overdue: 0 }
+      }
+
       // Get all assignments for the class group
       let assignmentQuery = supabase
         .from('assignments')

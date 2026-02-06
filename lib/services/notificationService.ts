@@ -86,24 +86,24 @@ export class NotificationService {
   /**
    * Get all connectees (students connected to a host)
    * @param hostUserId - The host user ID
+   * @param connectionType - The connection type to filter by (e.g., 'assignments', 'timetable', 'course_outline')
    * @returns Array of connectee user IDs
    */
-  static async getConnectees(hostUserId: string): Promise<NotificationRecipient[]> {
+  static async getConnectees(hostUserId: string, connectionType: string): Promise<NotificationRecipient[]> {
     const { data, error } = await this.supabase
       .from('connections')
-      .select('user_id, connection_types')
-      .eq('connected_to_id', hostUserId)
-      .eq('status', 'accepted');
+      .select('follower_id, connection_types')
+      .eq('following_id', hostUserId);
 
     if (error || !data) {
       console.error('Failed to get connectees:', error);
       return [];
     }
 
-    // Filter to only those connected for assignments
+    // Filter to only those connected for the specified type
     return data
-      .filter((conn: any) => conn.connection_types?.includes('assignments'))
-      .map((conn: any) => ({ userId: conn.user_id }));
+      .filter((conn: any) => conn.connection_types?.includes(connectionType))
+      .map((conn: any) => ({ userId: conn.follower_id }));
   }
 
   /**
@@ -115,7 +115,7 @@ export class NotificationService {
     assignmentId: string,
     dueDate?: string
   ): Promise<void> {
-    const connectees = await this.getConnectees(hostUserId);
+    const connectees = await this.getConnectees(hostUserId, 'assignments');
     
     if (connectees.length === 0) return;
 
@@ -140,7 +140,7 @@ export class NotificationService {
     assignmentId: string,
     changes?: string
   ): Promise<void> {
-    const connectees = await this.getConnectees(hostUserId);
+    const connectees = await this.getConnectees(hostUserId, 'assignments');
     
     if (connectees.length === 0) return;
 
@@ -163,7 +163,7 @@ export class NotificationService {
     hostUserId: string,
     assignmentTitle: string
   ): Promise<void> {
-    const connectees = await this.getConnectees(hostUserId);
+    const connectees = await this.getConnectees(hostUserId, 'assignments');
     
     if (connectees.length === 0) return;
 
@@ -185,7 +185,7 @@ export class NotificationService {
   static async notifyTimetableUpdated(
     hostUserId: string
   ): Promise<void> {
-    const connectees = await this.getConnectees(hostUserId);
+    const connectees = await this.getConnectees(hostUserId, 'timetable');
     
     if (connectees.length === 0) return;
 
@@ -209,7 +209,7 @@ export class NotificationService {
     courseCode: string,
     courseTitle: string
   ): Promise<void> {
-    const connectees = await this.getConnectees(hostUserId);
+    const connectees = await this.getConnectees(hostUserId, 'course_outline');
     
     if (connectees.length === 0) return;
 

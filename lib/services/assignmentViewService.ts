@@ -26,14 +26,39 @@ export class AssignmentViewService {
    */
   static async getUnreadCount(userId: string): Promise<number> {
     try {
-      // First get user's class group and semester
+      // First check if user has access to assignments
+      // They need to be either a course rep OR connected to someone for assignments
       const { data: userData, error: userError } = await supabase
         .from('users')
-        .select('class_group_id, current_semester_id')
+        .select(`
+          class_group_id, 
+          current_semester_id,
+          user_roles(role:roles(name))
+        `)
         .eq('id', userId)
         .single()
 
       if (userError || !userData?.class_group_id) return 0
+
+      // Check if user is course rep
+      const userRoles = userData.user_roles as any[] | null
+      const isCourseRep = userRoles?.some(
+        (ur) => ur?.role?.name === 'course_rep'
+      ) || false
+
+      // Check if user is connected for assignments
+      const { data: connection } = await supabase
+        .from('connections')
+        .select('connection_types')
+        .eq('follower_id', userId)
+        .single()
+
+      const isConnectedForAssignments = connection?.connection_types?.includes('assignments') || false
+
+      // If not course rep and not connected for assignments, return 0
+      if (!isCourseRep && !isConnectedForAssignments) {
+        return 0
+      }
 
       // Get all assignments for the user's class group and semester
       let query = supabase

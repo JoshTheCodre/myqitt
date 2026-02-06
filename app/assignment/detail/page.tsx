@@ -28,11 +28,23 @@ function AssignmentDetailContent() {
     dueDate: ''
   })
 
+  // State for displaying current assignment data (can be updated)
+  const [currentTitle, setCurrentTitle] = useState('')
+  const [currentDescription, setCurrentDescription] = useState('')
+  const [currentDueDate, setCurrentDueDate] = useState('')
+
   const id = searchParams.get('id') || ''
   const courseCode = searchParams.get('courseCode') || ''
   const title = searchParams.get('title') || ''
   const description = searchParams.get('description') || ''
   const dueDate = searchParams.get('dueDate') || ''
+  
+  // Initialize display state from URL params
+  useEffect(() => {
+    setCurrentTitle(title)
+    setCurrentDescription(description)
+    setCurrentDueDate(dueDate)
+  }, [title, description, dueDate])
   
   // Fetch submission status
   useEffect(() => {
@@ -93,12 +105,12 @@ function AssignmentDetailContent() {
   }
 
   const handleShareAsText = async () => {
-    const text = `📝 ${title}\n\n📚 Course: ${courseCode}\n📅 Due: ${dueDate}\n\n${description}`
+    const text = `📝 ${currentTitle}\n\n📚 Course: ${courseCode}\n📅 Due: ${currentDueDate}\n\n${currentDescription}`
     
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `Assignment: ${title}`,
+          title: `Assignment: ${currentTitle}`,
           text: text
         })
         toast.success('Shared successfully!')
@@ -124,9 +136,9 @@ function AssignmentDetailContent() {
   // Initialize form data when modal opens
   const handleOpenModal = () => {
     setFormData({
-      title,
-      description,
-      dueDate
+      title: currentTitle,
+      description: currentDescription,
+      dueDate: currentDueDate
     })
     setShowUpdateModal(true)
   }
@@ -163,10 +175,14 @@ function AssignmentDetailContent() {
         return
       }
 
+      // Update the displayed data with new values
+      setCurrentTitle(formData.title)
+      setCurrentDescription(formData.description)
+      setCurrentDueDate(formData.dueDate)
+
       toast.success('Assignment updated successfully!')
       setShowUpdateModal(false)
-      // Refresh the page to show updated data
-      router.refresh()
+      setUpdating(false)
     } catch (error) {
       console.error('Failed to update assignment:', error)
       toast.error('Failed to update assignment')
@@ -243,7 +259,7 @@ function AssignmentDetailContent() {
                 </button>
               </div>
             </div>
-            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">{title}</h1>
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">{currentTitle}</h1>
           </div>
 
           {/* Details Cards */}
@@ -306,7 +322,7 @@ function AssignmentDetailContent() {
                 </div>
                 <div>
                   <p className="text-xs text-red-600 font-semibold uppercase tracking-wider">Due Date</p>
-                  <p className="text-2xl font-bold text-red-700 mt-1">{dueDate}</p>
+                  <p className="text-2xl font-bold text-red-700 mt-1">{currentDueDate}</p>
                 </div>
               </div>
             </div>
@@ -319,7 +335,7 @@ function AssignmentDetailContent() {
                 </div>
                 <div className="flex-1">
                   <p className="text-xs text-gray-600 font-semibold uppercase tracking-wider mb-3">Description</p>
-                  <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{description}</p>
+                  <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{currentDescription}</p>
                 </div>
               </div>
             </div>
@@ -426,9 +442,9 @@ function AssignmentDetailContent() {
       <AssignmentImageGenerator
         ref={assignmentImageRef}
         courseCode={courseCode}
-        title={title}
-        description={description}
-        dueDate={dueDate}
+        title={currentTitle}
+        description={currentDescription}
+        dueDate={currentDueDate}
         submitted={submitted}
       />
     </AppShell>

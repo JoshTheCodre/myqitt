@@ -1,6 +1,6 @@
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage, Messaging, MessagePayload } from 'firebase/messaging';
-import { firebaseConfig, vapidKey } from './config';
+import { firebaseConfig, vapidKey, isFirebaseConfigured } from './config';
 
 let app: FirebaseApp;
 let messaging: Messaging | null = null;
@@ -8,6 +8,11 @@ let messaging: Messaging | null = null;
 // Initialize Firebase
 export const initializeFirebase = () => {
   if (typeof window === 'undefined') return null;
+  
+  if (!isFirebaseConfigured()) {
+    console.error('Cannot initialize Firebase: Configuration is incomplete');
+    return null;
+  }
   
   if (!getApps().length) {
     app = initializeApp(firebaseConfig);

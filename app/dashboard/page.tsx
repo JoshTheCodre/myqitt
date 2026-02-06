@@ -422,34 +422,39 @@ function TodaysClasses({ userId }: { userId?: string }) {
       const courseRepStatus = checkIsCourseRep()
       setIsCourseRep(courseRepStatus)
       
-      // Always fetch and show classes if they exist
-      const todaysClasses = await TodaysClassService.getTodaysClasses(dataSource.userId!)
-      // Sort by start time (earliest first) - handle both 24h and 12h formats
-      const sortedClasses = todaysClasses.sort((a, b) => {
-        const timeToMinutes = (time: string) => {
-          // Handle both "09:00" and "9:00AM" formats
-          const cleanTime = time.replace(/\s/g, '').toUpperCase()
-          const isPM = cleanTime.includes('PM')
-          const isAM = cleanTime.includes('AM')
-          
-          const timeOnly = cleanTime.replace(/AM|PM/g, '')
-          const [hoursStr, minutesStr] = timeOnly.split(':')
-          let hours = parseInt(hoursStr, 10)
-          const minutes = parseInt(minutesStr || '0', 10)
-          
-          // Convert to 24-hour format if AM/PM is present
-          if (isPM && hours !== 12) {
-            hours += 12
-          } else if (isAM && hours === 12) {
-            hours = 0
+      // Only fetch and show classes if connected or user is course rep
+      if (dataSource.isConnected || courseRepStatus) {
+        const todaysClasses = await TodaysClassService.getTodaysClasses(dataSource.userId!)
+        // Sort by start time (earliest first) - handle both 24h and 12h formats
+        const sortedClasses = todaysClasses.sort((a, b) => {
+          const timeToMinutes = (time: string) => {
+            // Handle both "09:00" and "9:00AM" formats
+            const cleanTime = time.replace(/\s/g, '').toUpperCase()
+            const isPM = cleanTime.includes('PM')
+            const isAM = cleanTime.includes('AM')
+            
+            const timeOnly = cleanTime.replace(/AM|PM/g, '')
+            const [hoursStr, minutesStr] = timeOnly.split(':')
+            let hours = parseInt(hoursStr, 10)
+            const minutes = parseInt(minutesStr || '0', 10)
+            
+            // Convert to 24-hour format if AM/PM is present
+            if (isPM && hours !== 12) {
+              hours += 12
+            } else if (isAM && hours === 12) {
+              hours = 0
+            }
+            
+            return hours * 60 + minutes
           }
-          
-          return hours * 60 + minutes
-        }
-        return timeToMinutes(a.start_time) - timeToMinutes(b.start_time)
-      })
-      console.log('Loaded today\'s classes:', sortedClasses.length, 'classes')
-      setClasses(sortedClasses)
+          return timeToMinutes(a.start_time) - timeToMinutes(b.start_time)
+        })
+        console.log('Loaded today\'s classes:', sortedClasses.length, 'classes')
+        setClasses(sortedClasses)
+      } else {
+        // Not connected and not course rep - show empty
+        setClasses([])
+      }
     } catch (error) {
       console.error('Failed to fetch today\'s classes:', error)
       setClasses([])

@@ -11,3 +11,27 @@ export const firebaseConfig = {
 
 // VAPID key for web push
 export const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY || "";
+
+// Validate Firebase configuration
+export const isFirebaseConfigured = (): boolean => {
+  const isValid = !!(
+    firebaseConfig.apiKey &&
+    firebaseConfig.projectId &&
+    firebaseConfig.messagingSenderId &&
+    firebaseConfig.appId &&
+    vapidKey
+  );
+  
+  if (!isValid) {
+    console.error('Firebase is not properly configured. Missing environment variables.');
+    console.error('Config status:', {
+      hasApiKey: !!firebaseConfig.apiKey,
+      hasProjectId: !!firebaseConfig.projectId,
+      hasSenderId: !!firebaseConfig.messagingSenderId,
+      hasAppId: !!firebaseConfig.appId,
+      hasVapidKey: !!vapidKey
+    });
+  }
+  
+  return isValid;
+};
