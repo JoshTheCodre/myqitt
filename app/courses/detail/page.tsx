@@ -1,14 +1,13 @@
 'use client'
 
 import { useRouter, useSearchParams } from 'next/navigation'
-import { AppShell } from '@/components/layout/app-shell'
-import { ArrowLeft, Calendar, FileText, Clock, ExternalLink, Edit3, Plus, MapPin, Award, X, CheckCircle2, Trash2, PartyPopper, Eye } from 'lucide-react'
+import { AppShell } from '@/utils/layout/app-shell'
+import { ArrowLeft, Calendar, FileText, Clock, Edit3, Plus, MapPin, Award, CheckCircle2, Trash2, X } from 'lucide-react'
 import { Suspense, useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase/client'
-import { useAuthStore } from '@/lib/store/authStore'
-import { useCourseStore } from '@/lib/store/courseStore'
-import { ConnectionService } from '@/lib/services'
-import { CourseService } from '@/lib/services/courseService'
+import { supabase } from '@/utils/supabase/client'
+import { useAuthStore } from '@/app/auth/store/authStore'
+import { useCourseStore } from '@/app/courses/store/courseStore'
+import { useCourseStore as useCourseStoreLookup } from '@/app/courses/store/courseStore'
 import toast from 'react-hot-toast'
 import confetti from 'canvas-confetti'
 import ReactMarkdown from 'react-markdown'
@@ -43,9 +42,6 @@ function CourseDetailContent() {
   const [completing, setCompleting] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
-  const [isConnectedForOutline, setIsConnectedForOutline] = useState(false)
-  const [isViewOnlyOutline, setIsViewOnlyOutline] = useState(false)
-  const [outlineUserName, setOutlineUserName] = useState<string | undefined>()
 
   useEffect(() => {
     if (courseCode && user?.id) {
@@ -70,12 +66,6 @@ function CourseDetailContent() {
     try {
       setLoading(true)
       
-      // Check connection status for course outline
-      const outlineSource = await ConnectionService.getCourseOutlineUserId(user.id)
-      setIsConnectedForOutline(outlineSource.isConnected)
-      setIsViewOnlyOutline(outlineSource.isViewOnly)
-      setOutlineUserName(outlineSource.userName)
-      
       const userIsCourseRep = isCourseRep()
       
       // First get the course by code
@@ -92,8 +82,8 @@ function CourseDetailContent() {
         return
       }
       
-      // Set outline if connected or is course rep
-      if ((outlineSource.isConnected || userIsCourseRep) && courseData?.description) {
+      // Everyone can see outline if it exists
+      if (courseData?.description) {
         setOutline(courseData.description)
       }
 
@@ -151,15 +141,8 @@ function CourseDetailContent() {
     
     setSavingOutline(true)
     try {
-      const result = await CourseService.updateCourseOutline(
-        courseCode,
-        editingOutline,
-        user.id
-      )
-      
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to save outline')
-      }
+      const { updateCourseOutline } = useCourseStoreLookup.getState()
+      await updateCourseOutline(courseCode, editingOutline)
       
       setOutline(editingOutline)
       setShowOutlineModal(false)
@@ -318,87 +301,57 @@ function CourseDetailContent() {
           )}
 
           {/* Quick Stats */}
-          <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-6 sm:mb-8">
-            {/* Classes This Week */}
-            <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-200 p-4 sm:p-5 shadow-sm hover:shadow-md hover:border-blue-200 transition-all group">
-              <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gradient-to-br from-blue-100 to-blue-50 flex items-center justify-center shadow-sm border border-blue-100 group-hover:from-blue-200 group-hover:to-blue-100 transition-colors">
-                  <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+          <div className="grid grid-cols-2 gap-4 mb-8">
+            <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center">
+                  <Calendar className="w-6 h-6 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-[10px] sm:text-xs font-bold text-blue-600 uppercase tracking-widest">Sessions</p>
-                  <p className="text-2xl sm:text-3xl font-black text-gray-900">{timetableEntries.length}</p>
+                  <p className="text-xs font-semibold text-blue-600 uppercase">Sessions</p>
+                  <p className="text-3xl font-black text-gray-900">{timetableEntries.length}</p>
                 </div>
               </div>
-              <p className="text-[10px] sm:text-xs text-gray-500 font-medium">per week</p>
             </div>
 
-            {/* Assignments */}
-            <button
-              onClick={() => router.push(`/assignment?course=${courseCode}`)}
-              className="bg-white rounded-xl sm:rounded-2xl border border-gray-200 p-4 sm:p-5 shadow-sm hover:shadow-md hover:border-blue-200 transition-all text-left group"
-            >
-              <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gradient-to-br from-blue-100 to-blue-50 flex items-center justify-center shadow-sm border border-blue-100 group-hover:from-blue-200 group-hover:to-blue-100 transition-colors">
-                  <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+            <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center">
+                  <FileText className="w-6 h-6 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-[10px] sm:text-xs font-bold text-blue-600 uppercase tracking-widest">Assignments</p>
-                  <p className="text-2xl sm:text-3xl font-black text-gray-900">{assignmentCount}</p>
+                  <p className="text-xs font-semibold text-blue-600 uppercase">Assignments</p>
+                  <p className="text-3xl font-black text-gray-900">{assignmentCount}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-1 text-[10px] sm:text-xs text-blue-600 font-bold">
-                <span>View all</span>
-                <ExternalLink className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
-              </div>
-            </button>
+            </div>
           </div>
 
           {/* Course Outline */}
-          <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-200 p-4 sm:p-6 shadow-sm hover:shadow-md transition-all mb-6 sm:mb-8">
-            <div className="flex items-center justify-between mb-4 sm:mb-6 gap-3">
-              <div>
-                <h2 className="text-lg sm:text-xl font-black text-gray-900">Course Outline</h2>
-                {isViewOnlyOutline && outlineUserName && (
-                  <div className="flex items-center gap-1.5 mt-1 text-xs text-blue-600">
-                    <Eye className="w-3 h-3" />
-                    <span>From {outlineUserName}</span>
-                  </div>
-                )}
-              </div>
-              {(isCourseRep() && !isViewOnlyOutline) && (
+          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-black text-gray-900">Course Outline</h2>
+              {isCourseRep() && (
                 <button
                   onClick={openOutlineModal}
-                  className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm shadow-sm hover:shadow-md transition-all"
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm transition-all"
                 >
-                  {outline ? <Edit3 className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
-                  <span>{outline ? 'Edit' : 'Add'}</span>
+                  {outline ? <><Edit3 className="w-4 h-4" />Edit</> : <><Plus className="w-4 h-4" />Add</>}
                 </button>
               )}
             </div>
             {loading ? (
-              <div className="flex items-center gap-2 text-gray-500 text-sm">
+              <div className="flex items-center gap-2 text-gray-500">
                 <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
                 <span>Loading...</span>
               </div>
-            ) : !isConnectedForOutline && !isCourseRep() ? (
-              <div className="text-center py-8">
-                <FileText className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500 text-sm font-medium mb-2">Course outline not available</p>
-                <p className="text-gray-400 text-xs">Connect to a classmate to view their course outline</p>
-              </div>
             ) : outline ? (
-              <div className="prose prose-sm max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-strong:text-gray-900 prose-ul:text-gray-700 prose-ol:text-gray-700 prose-li:marker:text-blue-600">
+              <div className="prose prose-sm max-w-none">
                 <ReactMarkdown>{outline}</ReactMarkdown>
               </div>
             ) : (
               <div className="text-center py-8">
-                <p className="text-gray-500 text-sm font-medium mb-2">No course outline yet</p>
-                {isCourseRep() && !isViewOnlyOutline ? (
-                  <p className="text-gray-400 text-xs">Click &quot;Add&quot; to create one</p>
-                ) : (
-                  <p className="text-gray-400 text-xs">The course rep hasn&apos;t added one yet</p>
-                )}
+                <p className="text-gray-500 text-sm">{isCourseRep() ? 'Click Add to create an outline' : 'No outline added yet'}</p>
               </div>
             )}
           </div>
@@ -530,7 +483,7 @@ function CourseDetailContent() {
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 text-center">
             <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <PartyPopper className="w-10 h-10 text-green-600" />
+              <CheckCircle2 className="w-10 h-10 text-green-600" />
             </div>
             <h2 className="text-2xl font-black text-gray-900 mb-3">Congratulations!</h2>
             <p className="text-gray-600 mb-2">You&apos;ve completed</p>

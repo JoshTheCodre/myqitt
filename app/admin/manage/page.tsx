@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { AppShell } from '@/components/layout/app-shell'
-import { useAuthStore, type UserProfileWithDetails } from '@/lib/store/authStore'
-import { ClassmateService, type Classmate } from '@/lib/services'
+import { AppShell } from '@/utils/layout/app-shell'
+import { useAuthStore, type UserProfileWithDetails } from '@/app/auth/store/authStore'
+import { useClassmateStore, type Classmate } from '@/app/classmates/store/classmateStore'
 import { ChevronLeft, MoreVertical, ArrowLeft, Users, Search } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
@@ -186,7 +186,9 @@ export default function ManageClassmatesPage() {
     
     try {
       setLoading(true)
-      const data = await ClassmateService.getClassmates(classGroupId)
+      const { fetchClassmates } = useClassmateStore.getState()
+      await fetchClassmates()
+      const data = useClassmateStore.getState().classmates
       setClassmates(data)
     } catch (error) {
       console.error('Error fetching classmates:', error)

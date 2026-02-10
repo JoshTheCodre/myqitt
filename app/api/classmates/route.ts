@@ -1,97 +1,156 @@
 import { NextRequest } from 'next/server'
-import { createSupabaseServerClient, getAuthenticatedUserProfile, jsonResponse, errorResponse, unauthorizedResponse } from '@/lib/api/server'
+import { getAuthenticatedUser, jsonSuccess, jsonError } from '@/utils/api-helpers'
 
-// GET /api/classmates - Get all classmates in user's class group
+// GET /api/classmates
 export async function GET(request: NextRequest) {
-  const supabase = await createSupabaseServerClient()
-  const userProfile = await getAuthenticatedUserProfile(supabase)
+  const { supabase, user, error } = await getAuthenticatedUser()
+  if (error) return error
 
-  if (!userProfile) {
-    return unauthorizedResponse()
+  const { searchParams } = new URL(request.url)
+  const action = searchParams.get('action')
+
+  if (action === 'count') return getClassmatesCount(supabase!, user!.id)
+  if (action === 'course-rep') return getCourseRep(supabase!, user!.id)
+  if (action === 'search') {
+    const term = searchParams.get('term') || ''
+    return searchClassmates(supabase!, user!.id, term)
   }
 
-  if (!userProfile.class_group_id) {
-    return jsonResponse({ classmates: [], count: 0, courseRep: null })
-  }
+  return getClassmates(supabase!, user!.id)
+}
 
-  try {
-    const { searchParams } = new URL(request.url)
-    const search = searchParams.get('search')
+// ============ HANDLERS ============
 
-    // Build query for classmates
-    let query = supabase
-      .from('users')
-      .select(`
-        id,
-        name,
-        email,
-        avatar_url,
-        phone_number,
-        bio,
-        user_roles(role:roles(name)),
-        school:schools!users_school_id_fkey(name),
-        class_group:class_groups!users_class_group_id_fkey(
-          department:departments!class_groups_department_id_fkey(name),
-          level:levels!class_groups_level_id_fkey(level_number)
-        )
-      `)
-      .eq('class_group_id', userProfile.class_group_id)
+async function getClassmates(supabase: any, userId: string) {
+  const { data: userData } = await supabase
+    .from('users')
+    .select('class_group_id')
+    .eq('id', userId)
+    .single()
 
-    // Add search filter if provided
-    if (search && search.length >= 2) {
-      query = query.ilike('name', `%${search}%`)
+  if (!userData?.class_group_id) return jsonSuccess([])
+
+  const { data: classmates, error: fetchError } = await supabase
+    .from('users')
+    .select(`
+      id, name, email, avatar_url, phone_number, bio,
+      user_roles(role:roles(name), verified),
+      school:schools!users_school_id_fkey(name),
+      class_group:class_groups!users_class_group_id_fkey(
+        department:departments!class_groups_department_id_fkey(name),
+        level:levels!class_groups_level_id_fkey(level_number)
+      )
+    `)
+    .eq('class_group_id', userData.class_group_id)
+    .order('name')
+
+  if (fetchError) return jsonError('Failed to fetch classmates', 500)
+
+  const result = (classmates || []).map((user: any) => {
+    const courseRepRole = user.user_roles?.find((ur: any) => ur.role?.name === 'course_rep')
+    const isCourseRep = !!courseRepRole
+    const isVerifiedCourseRep = isCourseRep && courseRepRole?.verified === true
+
+    return {
+      id: user.id,
+      name: user.name || 'Unknown',
+      email: user.email,
+      avatar_url: user.avatar_url || undefined,
+      phone_number: user.phone_number || undefined,
+      bio: user.bio || undefined,
+      isCourseRep,
+      isVerifiedCourseRep,
+      schoolName: user.school?.name,
+      departmentName: user.class_group?.department?.name,
+      levelNumber: user.class_group?.level?.level_number
     }
+  })
 
-    query = query.order('name')
+  result.sort((a: any, b: any) => {
+    if (a.isVerifiedCourseRep && !b.isVerifiedCourseRep) return -1
+    if (!a.isVerifiedCourseRep && b.isVerifiedCourseRep) return 1
+    return (a.name || '').localeCompare(b.name || '')
+  })
 
-    const { data: classmates, error } = await query
+  return jsonSuccess(result)
+}
 
-    if (error) {
-      console.error('Fetch classmates error:', error)
-      return errorResponse('Failed to fetch classmates', 500)
+async function getClassmatesCount(supabase: any, userId: string) {
+  const { data: userData } = await supabase
+    .from('users')
+    .select('class_group_id')
+    .eq('id', userId)
+    .single()
+
+  if (!userData?.class_group_id) return jsonSuccess(0)
+
+  const { count } = await supabase
+    .from('users')
+    .select('id', { count: 'exact', head: true })
+    .eq('class_group_id', userData.class_group_id)
+
+  return jsonSuccess(count || 0)
+}
+
+async function getCourseRep(supabase: any, userId: string) {
+  const { data: userData } = await supabase
+    .from('users')
+    .select('class_group_id')
+    .eq('id', userId)
+    .single()
+
+  if (!userData?.class_group_id) return jsonSuccess(null)
+
+  const { data: levelRep } = await supabase
+    .from('level_reps')
+    .select(`user:users!level_reps_user_id_fkey(id, name, email, avatar_url, phone_number, bio)`)
+    .eq('class_group_id', userData.class_group_id)
+    .eq('is_active', true)
+    .single()
+
+  if (!levelRep?.user) return jsonSuccess(null)
+
+  const u = levelRep.user as any
+  return jsonSuccess({
+    id: u.id,
+    name: u.name || 'Unknown',
+    email: u.email,
+    avatar_url: u.avatar_url,
+    phone_number: u.phone_number,
+    bio: u.bio,
+    isCourseRep: true,
+    isVerifiedCourseRep: true
+  })
+}
+
+async function searchClassmates(supabase: any, userId: string, term: string) {
+  const { data: userData } = await supabase
+    .from('users')
+    .select('class_group_id')
+    .eq('id', userId)
+    .single()
+
+  if (!userData?.class_group_id) return jsonSuccess([])
+
+  const { data: classmates } = await supabase
+    .from('users')
+    .select(`id, name, email, avatar_url, phone_number, bio, user_roles(role:roles(name), verified)`)
+    .eq('class_group_id', userData.class_group_id)
+    .ilike('name', `%${term}%`)
+    .order('name')
+    .limit(20)
+
+  return jsonSuccess((classmates || []).map((user: any) => {
+    const courseRepRole = user.user_roles?.find((ur: any) => ur.role?.name === 'course_rep')
+    return {
+      id: user.id,
+      name: user.name || 'Unknown',
+      email: user.email,
+      avatar_url: user.avatar_url || undefined,
+      phone_number: user.phone_number || undefined,
+      bio: user.bio || undefined,
+      isCourseRep: !!courseRepRole,
+      isVerifiedCourseRep: !!courseRepRole && courseRepRole?.verified === true
     }
-
-    if (!classmates?.length) {
-      return jsonResponse({ classmates: [], count: 0, courseRep: null })
-    }
-
-    // Transform to response format
-    const result = classmates.map(user => {
-      const isCourseRep = (user.user_roles as any[])?.some(
-        ur => ur.role?.name === 'course_rep'
-      ) || false
-
-      return {
-        id: user.id,
-        name: user.name || 'Unknown',
-        email: user.email,
-        avatar_url: user.avatar_url || undefined,
-        phone_number: user.phone_number || undefined,
-        bio: user.bio || undefined,
-        isCourseRep,
-        schoolName: (user.school as any)?.name,
-        departmentName: (user.class_group as any)?.department?.name,
-        levelNumber: (user.class_group as any)?.level?.level_number
-      }
-    })
-
-    // Sort: course rep first, then alphabetically by name
-    result.sort((a, b) => {
-      if (a.isCourseRep && !b.isCourseRep) return -1
-      if (!a.isCourseRep && b.isCourseRep) return 1
-      return (a.name || '').localeCompare(b.name || '')
-    })
-
-    // Find course rep
-    const courseRep = result.find(c => c.isCourseRep) || null
-
-    return jsonResponse({
-      classmates: result,
-      count: result.length,
-      courseRep
-    })
-  } catch (error) {
-    console.error('Classmates fetch error:', error)
-    return errorResponse('Internal server error', 500)
-  }
+  }))
 }

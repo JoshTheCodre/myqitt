@@ -4,9 +4,9 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronDown, Check } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { useAuthStore } from '@/lib/store/authStore'
-import { ProfileService } from '@/lib/services'
-import { NotificationPermissionModal } from '@/components/notification-permission-modal'
+import { useAuthStore } from '@/app/auth/store/authStore'
+import { useProfileStore } from '@/app/admin/store/profileStore'
+import { NotificationPermissionModal } from '@/app/notifications/components/notification-permission-modal'
 
 interface SchoolOption {
     id: string
@@ -51,7 +51,8 @@ export function StudentRegisterForm({ onRegisterSuccess }: { onRegisterSuccess: 
     useEffect(() => {
         const fetchSchools = async () => {
             try {
-                const schoolsData = await ProfileService.getSchools()
+                const { fetchSchools } = useProfileStore.getState()
+                const schoolsData = await fetchSchools()
                 
                 const formattedSchools: SchoolOption[] = schoolsData.map((school) => {
                     const logoMap: Record<string, string> = {
@@ -91,7 +92,8 @@ export function StudentRegisterForm({ onRegisterSuccess }: { onRegisterSuccess: 
 
             setLoadingDepartments(true)
             try {
-                const depts = await ProfileService.getDepartmentsBySchool(selectedSchool)
+                const { fetchDepartmentsBySchool } = useProfileStore.getState()
+                const depts = await fetchDepartmentsBySchool(selectedSchool)
                 setDepartments(depts.map(d => ({
                     id: d.id,
                     name: d.name,
@@ -120,7 +122,8 @@ export function StudentRegisterForm({ onRegisterSuccess }: { onRegisterSuccess: 
 
             setLoadingSemesters(true)
             try {
-                const sems = await ProfileService.getSemesters(selectedSchool)
+                const { fetchSemesters } = useProfileStore.getState()
+                const sems = await fetchSemesters(selectedSchool)
                 setSemesters(sems.map(s => ({
                     id: s.id,
                     name: s.name
@@ -194,7 +197,7 @@ export function StudentRegisterForm({ onRegisterSuccess }: { onRegisterSuccess: 
     }
 
     return (
-        <form onSubmit={handleSubmit} className="w-full space-y-4">
+        <form onSubmit={handleSubmit} className="w-full space-y-4 px-1">
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4">
                 <p className="text-sm text-gray-800 font-medium">👨‍🎓 Student Registration</p>
                 <p className="text-xs text-gray-600 mt-1">Join your class and connect with classmates</p>

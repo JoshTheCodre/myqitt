@@ -1,13 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Users, UserPlus, Check } from 'lucide-react'
-import { AppShell } from '@/components/layout/app-shell'
-import { useAuthStore } from '@/lib/store/authStore'
-import { ClassmateService, type Classmate } from '@/lib/services'
-import { ClassmateConnectionModal } from '@/components/classmate-connection-modal'
-import { supabase } from '@/lib/supabase/client'
-import toast from 'react-hot-toast'
+import { Users } from 'lucide-react'
+import { AppShell } from '@/utils/layout/app-shell'
+import { useAuthStore } from '@/app/auth/store/authStore'
+import { useClassmateStore, type Classmate } from '@/app/classmates/store/classmateStore'
 
 interface HeaderProps {
   classmateCount: number
@@ -16,9 +13,6 @@ interface HeaderProps {
 interface ClassmateCardProps {
   classmate: Classmate
   isCurrentUser: boolean
-  isConnected: boolean
-  hasOtherConnection: boolean
-  onConnect: () => void
 }
 
 interface ClassmatesListProps {
@@ -34,7 +28,7 @@ function Header({ classmateCount }: HeaderProps) {
         <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-gray-900">Classmates</h1>
         <div className="bg-emerald-100 text-emerald-600 px-3 py-1 rounded-full text-sm font-semibold">{classmateCount}</div>
       </div>
-      <p className="text-gray-500 mt-2 text-sm">Connect with peers to share timetables, assignments & more</p>
+      <p className="text-gray-500 mt-2 text-sm">View your classmates and course representatives</p>
     </div>
   )
 }
@@ -42,47 +36,20 @@ function Header({ classmateCount }: HeaderProps) {
 // ============ CLASSMATE CARD COMPONENT ============
 function ClassmateCard({ 
   classmate,
-  isCurrentUser,
-  isConnected,
-  hasOtherConnection,
-  onConnect
+  isCurrentUser
 }: ClassmateCardProps) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all duration-300 overflow-hidden group relative">
       <div className="p-5">
-        {/* Current user badge or Connect button */}
-        {isCurrentUser ? (
+        {/* Current user badge */}
+        {isCurrentUser && (
           <div className="absolute top-4 right-4 px-4 py-1.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-600 border border-blue-200">
             You
           </div>
-        ) : (
-          <button
-            onClick={onConnect}
-            disabled={hasOtherConnection && !isConnected}
-            className={`absolute top-4 right-4 px-3 py-1.5 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 ${
-              isConnected
-                ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
-                : hasOtherConnection
-                  ? 'bg-gray-50 text-gray-400 border border-gray-200 cursor-not-allowed'
-                  : 'bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 hover:border-blue-300'
-            }`}
-          >
-            {isConnected ? (
-              <>
-                <Check className="w-3.5 h-3.5" />
-                Connected
-              </>
-            ) : (
-              <>
-                <UserPlus className="w-3.5 h-3.5" />
-                Connect
-              </>
-            )}
-          </button>
         )}
 
         {/* Avatar and header */}
-        <div className="flex items-center gap-3 pr-24">
+        <div className={isCurrentUser ? "flex items-center gap-3 pr-24" : "flex items-center gap-3"}>
           <div className="w-14 h-14 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center flex-shrink-0 text-blue-600 font-bold text-lg border border-blue-100 group-hover:border-blue-200 transition-colors">
             {classmate.name.charAt(0).toUpperCase()}
           </div>
@@ -104,33 +71,7 @@ function ClassmateCard({
 function ClassmatesList({ onCountUpdate }: ClassmatesListProps) {
   const { user, profile } = useAuthStore()
   const [classmates, setClassmates] = useState<Classmate[]>([])
-  const [connections, setConnections] = useState<Set<string>>(new Set())
-  const [currentConnection, setCurrentConnection] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const [selectedClassmate, setSelectedClassmate] = useState<Classmate | null>(null)
-  const [showModal, setShowModal] = useState(false)
-
-  const loadConnections = async () => {
-    if (!user?.id) return
-    
-    try {
-      const { data } = await supabase
-        .from('connections')
-        .select('following_id')
-        .eq('follower_id', user.id)
-      
-      if (data && data.length > 0) {
-        setConnections(new Set(data.map(c => c.following_id)))
-        // User can only have one connection, so take the first
-        setCurrentConnection(data[0].following_id)
-      } else {
-        setConnections(new Set())
-        setCurrentConnection(null)
-      }
-    } catch (error) {
-      console.error('Error loading connections:', error)
-    }
-  }
 
   useEffect(() => {
     const loadClassmates = async () => {
@@ -140,10 +81,11 @@ function ClassmatesList({ onCountUpdate }: ClassmatesListProps) {
       }
 
       try {
-        const data = await ClassmateService.getClassmates(user.id)
+        const { fetchClassmates } = useClassmateStore.getState()
+        await fetchClassmates()
+        const data = useClassmateStore.getState().classmates
         setClassmates(data)
         onCountUpdate(data.length)
-        await loadConnections()
       } catch (error) {
         console.error('Error loading classmates:', error)
         setClassmates([])
@@ -155,28 +97,6 @@ function ClassmatesList({ onCountUpdate }: ClassmatesListProps) {
 
     loadClassmates()
   }, [user?.id, profile?.class_group_id, onCountUpdate])
-
-  const handleConnectClick = (classmate: Classmate) => {
-    // If already connected to this person, allow editing
-    if (connections.has(classmate.id)) {
-      setSelectedClassmate(classmate)
-      setShowModal(true)
-      return
-    }
-    
-    // If already connected to someone else, show error
-    if (currentConnection && currentConnection !== classmate.id) {
-      toast.error('You can only connect to one person. Disconnect first to connect to someone else.')
-      return
-    }
-    
-    setSelectedClassmate(classmate)
-    setShowModal(true)
-  }
-
-  const handleConnected = () => {
-    loadConnections()
-  }
 
   if (loading) {
     return (
@@ -213,34 +133,15 @@ function ClassmatesList({ onCountUpdate }: ClassmatesListProps) {
   }
 
   return (
-    <>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {classmates.map((classmate) => (
-          <ClassmateCard
-            key={classmate.id}
-            classmate={classmate}
-            isCurrentUser={classmate.id === user?.id}
-            isConnected={connections.has(classmate.id)}
-            hasOtherConnection={!!currentConnection && !connections.has(classmate.id)}
-            onConnect={() => handleConnectClick(classmate)}
-          />
-        ))}
-      </div>
-
-      {/* Connection Modal */}
-      {selectedClassmate && user && (
-        <ClassmateConnectionModal
-          isOpen={showModal}
-          onClose={() => {
-            setShowModal(false)
-            setSelectedClassmate(null)
-          }}
-          classmate={selectedClassmate}
-          currentUserId={user.id}
-          onConnected={handleConnected}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {classmates.map((classmate) => (
+        <ClassmateCard
+          key={classmate.id}
+          classmate={classmate}
+          isCurrentUser={classmate.id === user?.id}
         />
-      )}
-    </>
+      ))}
+    </div>
   )
 }
 

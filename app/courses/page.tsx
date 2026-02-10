@@ -1,16 +1,16 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { AppShell } from '@/components/layout/app-shell'
-import { GroupedCourseList } from '@/components/courses/course-list'
-import { useCourseStore, useCourseSelectors } from '@/lib/store/courseStore'
-import { useAuthStore, UserProfileWithDetails } from '@/lib/store/authStore'
+import { AppShell } from '@/utils/layout/app-shell'
+import { GroupedCourseList } from '@/app/courses/components/course-list'
+import { useCourseStore, useCourseSelectors } from '@/app/courses/store/courseStore'
+import { useAuthStore, UserProfileWithDetails } from '@/app/auth/store/authStore'
 import { BookOpen, Loader2, Plus, X, AlertTriangle, ChevronRight } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import type { CourseItem } from '@/lib/types/course'
+import type { CourseItem } from '@/app/courses/types/course'
 import toast from 'react-hot-toast'
-import { CourseRegistrationModal } from '@/components/course-registration-modal'
-import { supabase } from '@/lib/supabase/client'
+import { CourseRegistrationModal } from '@/app/courses/components/course-registration-modal'
+import { supabase } from '@/utils/supabase/client'
 
 // ============ HEADER COMPONENT ============
 function Header({ profile }: { profile: UserProfileWithDetails | null }) {
@@ -104,8 +104,8 @@ export default function CoursesPage() {
             
             if (user?.id && profile && mounted) {
                 await Promise.all([
-                    fetchUserCourses(user.id),
-                    fetchCarryoverCourses(user.id)
+                    fetchUserCourses(),
+                    fetchCarryoverCourses()
                 ])
             }
         }
@@ -287,7 +287,7 @@ function CarryoverModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
 
         setSubmitting(true)
         try {
-            await addCarryoverCourse(user.id, {
+            await addCarryoverCourse({
                 course_code: courseCode.trim(),
                 course_title: courseTitle.trim(),
                 credit_unit: creditValue

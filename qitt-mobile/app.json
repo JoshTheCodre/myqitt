@@ -1,0 +1,36 @@
+{
+  "expo": {
+    "name": "Qitt",
+    "slug": "qitt-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "scheme": "qitt",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#4045EF"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.qitt.mobile"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#4045EF"
+      },
+      "edgeToEdgeEnabled": true,
+      "package": "com.qitt.mobile"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router"
+    ]
+  }
+}

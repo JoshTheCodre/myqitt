@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useAuthStore } from '@/lib/store/authStore'
-import { AppShell } from '@/components/layout/app-shell'
+import { useAuthStore } from '@/app/auth/store/authStore'
+import { AppShell } from '@/utils/layout/app-shell'
 import { Plus, Edit2, Trash2, X, Save, Calendar, Target, Image as ImageIcon, FileText, Link as LinkIcon, Eye } from 'lucide-react'
-import { CatchUpService, type CatchUpItem } from '@/lib/services/catchUpService'
-import { supabase } from '@/lib/supabase/client'
+import { useCatchUpStore, type CatchUpItem, formatTargetInfo, formatExpiryDate } from '@/app/admin/store/catchupStore'
+import { supabase } from '@/utils/supabase/client'
 import ReactMarkdown from 'react-markdown'
 
 interface CatchUpFormData {
@@ -530,12 +530,12 @@ export default function CatchUpAdminPage() {
                       <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500">
                         <span className="flex items-center gap-1">
                           <Target className="w-3.5 h-3.5" />
-                          {CatchUpService.formatTargetInfo(item)}
+                          {formatTargetInfo(item)}
                         </span>
                         {item.expires_at && (
                           <span className="flex items-center gap-1">
                             <Calendar className="w-3.5 h-3.5" />
-                            {CatchUpService.formatExpiryDate(item.expires_at)}
+                            {formatExpiryDate(item.expires_at)}
                           </span>
                         )}
                         {item.cta && (

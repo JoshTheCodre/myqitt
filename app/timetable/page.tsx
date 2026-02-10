@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { AppShell } from '@/components/layout/app-shell'
+import { AppShell } from '@/utils/layout/app-shell'
 import { Clock, MapPin, Plus, Share2, Calendar, Eye } from 'lucide-react'
-import { useAuthStore } from '@/lib/store/authStore'
-import { TimetableService, ConnectionService } from '@/lib/services'
+import { useAuthStore } from '@/app/auth/store/authStore'
+import { useTimetableStore } from '@/app/timetable/store/timetableStore'
 import toast from 'react-hot-toast'
-import { FreeTimeModal } from '@/components/timetable/free-time-modal'
-import { TimetableImageGenerator, TimetableImageGeneratorHandle } from '@/components/timetable/timetable-image-generator'
+import { FreeTimeModal } from '@/app/timetable/components/free-time-modal'
+import { TimetableImageGenerator, TimetableImageGeneratorHandle } from '@/app/timetable/components/timetable-image-generator'
 
 // ============ TYPES ============
 interface ClassInfo {
@@ -257,28 +257,18 @@ export default function TimetablePage() {
     try {
       setLoading(true)
       
-      // Check if viewing connected user's timetable
-      const dataSource = await ConnectionService.getTimetableUserId(user.id)
-      setIsViewOnly(dataSource.isViewOnly)
-      setViewingUserName(dataSource.userName)
-      setIsConnected(dataSource.isConnected)
+      // Fetch timetable data via store (everyone sees course rep's timetable)
+      const { fetchTimetable: fetchTimetableData } = useTimetableStore.getState()
+      await fetchTimetableData()
+      const timetableState = useTimetableStore.getState()
       
-      // Fetch timetable data
-      const data = await TimetableService.getTimetable(dataSource.userId!)
-      
-      // Only show timetable if connected OR user is course rep
-      if (dataSource.isConnected || data.isCourseRep) {
-        setTimetable(data.timetable)
-        setHasTimetable(data.hasTimetable)
-        setLastUpdated(data.lastUpdated)
-        setIsCourseRep(dataSource.isViewOnly ? false : data.isCourseRep)
-      } else {
-        // Not connected and not course rep - show empty state
-        setTimetable({ Monday: [], Tuesday: [], Wednesday: [], Thursday: [], Friday: [] })
-        setHasTimetable(false)
-        setLastUpdated(undefined)
-        setIsCourseRep(false)
-      }
+      setTimetable(timetableState.timetable as Record<string, ClassInfo[]>)
+      setHasTimetable(timetableState.hasTimetable)
+      setLastUpdated(timetableState.lastUpdated)
+      setIsCourseRep(timetableState.isCourseRep)
+      setIsViewOnly(false)
+      setViewingUserName(undefined)
+      setIsConnected(false)
     } catch (error) {
       console.error('Failed to fetch timetable:', error)
       toast.error('Failed to load timetable')

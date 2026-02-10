@@ -1,17 +1,18 @@
 'use client'
 
 import Image from 'next/image'
-import { AppShell } from '@/components/layout/app-shell'
-import { useAuthStore, type UserProfileWithDetails } from '@/lib/store/authStore'
+import { AppShell } from '@/utils/layout/app-shell'
+import { useAuthStore, type UserProfileWithDetails } from '@/app/auth/store/authStore'
 import { Mail, Phone, GraduationCap, Building2, BookOpen, Calendar, LogOut, Users, Bell } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import type { LucideIcon } from 'lucide-react'
-import { ClassmateService } from '@/lib/services'
-import { supabase } from '@/lib/supabase/client'
+import { useClassmateStore } from '@/app/classmates/store/classmateStore'
+import { supabase } from '@/utils/supabase/client'
 import toast from 'react-hot-toast'
 import { useState, useEffect } from 'react'
-import { NotificationPermissionModal } from '@/components/notification-permission-modal'
-import { requestNotificationPermission } from '@/lib/firebase/messaging'
+import { NotificationPermissionModal } from '@/app/notifications/components/notification-permission-modal'
+import { requestNotificationPermission } from '@/utils/firebase/messaging'
+import { getDeviceName } from '@/utils/utils'
 
 // Helper function to format department names
 function formatDepartmentName(dept: string): string {
@@ -21,29 +22,16 @@ function formatDepartmentName(dept: string): string {
         .join(' ')
 }
 
-// Helper function to get device name
-function getDeviceName(): string {
-    if (typeof window === 'undefined') return 'Unknown Device'
-    const ua = navigator.userAgent
-    if (ua.includes('iPhone')) return 'iPhone'
-    if (ua.includes('iPad')) return 'iPad'
-    if (ua.includes('Android')) return 'Android'
-    if (ua.includes('Windows')) return 'Windows'
-    if (ua.includes('Mac')) return 'Mac'
-    if (ua.includes('Linux')) return 'Linux'
-    return 'Unknown Device'
-}
-
 // ============ PROFILE CARD COMPONENT ============
 function ProfileCard({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string | number | null | undefined }) {
     return (
         <div className="flex items-center gap-3 p-4 bg-white rounded-xl border border-gray-200">
-            <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
                 <Icon className="w-5 h-5 text-blue-600" />
             </div>
-            <div className="flex-1 min-w-0">
+            <div className="flex-1">
                 <p className="text-xs text-gray-500">{label}</p>
-                <p className="text-sm font-semibold text-gray-900 truncate">{value || 'Not set'}</p>
+                <p className="text-sm font-semibold text-gray-900">{value || 'Not set'}</p>
             </div>
         </div>
     )
@@ -75,7 +63,9 @@ export default function ProfilePage() {
             if (status !== 'authenticated' || !user?.id || !profile) return
             
             try {
-                const courseRep = await ClassmateService.getCourseRep(user.id)
+                const { fetchCourseRep } = useClassmateStore.getState()
+                await fetchCourseRep()
+                const courseRep = useClassmateStore.getState().courseRep
                 setCourseRepName(courseRep?.name || null)
             } catch (error) {
                 console.error('Error fetching course rep:', error)
@@ -190,28 +180,25 @@ export default function ProfilePage() {
         <AppShell>
             <div className="h-full flex items-start justify-center">
                 <div className="w-full max-w-2xl px-4 py-8 pb-24 lg:pb-8">
-                    {/* Header with Avatar */}
-                    <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-8 text-white shadow-lg mb-6">
-                        <div className="flex flex-col items-center text-center">
-                            <div className="w-24 h-24 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-3xl font-bold mb-4">
+                    {/* Header */}
+                    <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 text-white mb-6">
+                        <div className="flex flex-col items-center">
+                            <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center text-2xl font-bold mb-3">
                                 {profile?.avatar_url ? (
                                     <Image 
                                         src={profile.avatar_url} 
                                         alt={profile.name || 'User'} 
-                                        width={96}
-                                        height={96}
-                                        className="w-full h-full rounded-full object-cover"
+                                        width={80}
+                                        height={80}
+                                        className="rounded-full"
                                     />
                                 ) : (
                                     <span>{initials}</span>
                                 )}
                             </div>
-                            <h1 className="text-2xl font-bold mb-1">{profile?.name || 'User'}</h1>
-                            <p className="text-blue-100 text-sm">{profile?.email}</p>
+                            <h1 className="text-2xl font-bold mb-1">{profile?.name}</h1>
                             {levelNumber && semesterName && (
-                                <div className="mt-3 px-4 py-1.5 bg-white/20 backdrop-blur-sm rounded-full text-sm font-medium">
-                                    {levelNumber}00 Level • {semesterName}
-                                </div>
+                                <p className="text-blue-100 text-sm">{levelNumber}00 Level • {semesterName}</p>
                             )}
                         </div>
                     </div>

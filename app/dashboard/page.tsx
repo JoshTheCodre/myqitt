@@ -4,13 +4,14 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { HeadsetIcon, ArrowRight, Clock, Plus, AlertCircle, MapPin, Megaphone, ChevronRight, Users, FileText, UsersRound, BookOpen as BookIcon, Bell } from 'lucide-react'
-import { useAuthStore, UserProfileWithDetails } from '@/lib/store/authStore'
-import { AppShell } from '@/components/layout/app-shell'
-import { ClassMenu } from '@/components/class-menu'
-import { UpdateTodaysClassModal } from '@/components/update-todays-class-modal'
-import { NotificationPermissionModal } from '@/components/notification-permission-modal'
-import { TodaysClassService, ConnectionService, type MergedClass } from '@/lib/services'
-import { supabase } from '@/lib/supabase/client'
+import { useAuthStore, UserProfileWithDetails } from '@/app/auth/store/authStore'
+import { AppShell } from '@/utils/layout/app-shell'
+import { ClassMenu } from '@/app/dashboard/components/class-menu'
+import { UpdateTodaysClassModal } from '@/app/dashboard/components/update-todays-class-modal'
+import { NotificationPermissionModal } from '@/app/notifications/components/notification-permission-modal'
+import { type MergedClass } from '@/app/timetable/store/timetableStore'
+import { useTimetableStore } from '@/app/timetable/store/timetableStore'
+import { supabase } from '@/utils/supabase/client'
 
 // ============ HELPER FUNCTIONS ============
 const getInitials = (name?: string) => {
@@ -414,19 +415,17 @@ function TodaysClasses({ userId }: { userId?: string }) {
     try {
       setLoading(true)
       
-      // Check if connected for today's classes
-      const dataSource = await ConnectionService.getTodayClassesUserId(userId)
-      setIsConnected(dataSource.isConnected)
-      
       // Check if user is course rep
       const courseRepStatus = checkIsCourseRep()
       setIsCourseRep(courseRepStatus)
+      setIsConnected(false)
       
-      // Only fetch and show classes if connected or user is course rep
-      if (dataSource.isConnected || courseRepStatus) {
-        const todaysClasses = await TodaysClassService.getTodaysClasses(dataSource.userId!)
-        // Sort by start time (earliest first) - handle both 24h and 12h formats
-        const sortedClasses = todaysClasses.sort((a, b) => {
+      // Everyone sees today's classes from course rep
+      const { fetchTodaysClasses: fetchClasses } = useTimetableStore.getState()
+      await fetchClasses()
+      const todaysClasses = useTimetableStore.getState().todaysClasses as MergedClass[]
+      // Sort by start time (earliest first) - handle both 24h and 12h formats
+      const sortedClasses = todaysClasses.sort((a, b) => {
           const timeToMinutes = (time: string) => {
             // Handle both "09:00" and "9:00AM" formats
             const cleanTime = time.replace(/\s/g, '').toUpperCase()
@@ -451,10 +450,6 @@ function TodaysClasses({ userId }: { userId?: string }) {
         })
         console.log('Loaded today\'s classes:', sortedClasses.length, 'classes')
         setClasses(sortedClasses)
-      } else {
-        // Not connected and not course rep - show empty
-        setClasses([])
-      }
     } catch (error) {
       console.error('Failed to fetch today\'s classes:', error)
       setClasses([])
@@ -622,13 +617,15 @@ function TodaysClasses({ userId }: { userId?: string }) {
                   )}
                 </div>
                 
-                {/* Menu Button - Top Right */}
-                <div className="absolute top-3 right-3 z-20">
-                  <ClassMenu 
-                    onUpdate={() => handleUpdateClass(cls)}
-                    hasUpdate={cls.has_update}
-                  />
-                </div>
+                {/* Menu Button - Top Right (Course Rep only) */}
+                {isCourseRep && (
+                  <div className="absolute top-3 right-3 z-20">
+                    <ClassMenu 
+                      onUpdate={() => handleUpdateClass(cls)}
+                      hasUpdate={cls.has_update}
+                    />
+                  </div>
+                )}
               </div>
             )
             })

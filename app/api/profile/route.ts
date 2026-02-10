@@ -1,130 +1,202 @@
 import { NextRequest } from 'next/server'
-import { createSupabaseServerClient, getAuthenticatedUserProfile, jsonResponse, errorResponse, unauthorizedResponse } from '@/lib/api/server'
+import { getAuthenticatedUser, jsonSuccess, jsonError } from '@/utils/api-helpers'
 
-// GET /api/profile - Get current user's full profile
+// GET /api/profile - Get profile data (schools, faculties, departments, etc.)
 export async function GET(request: NextRequest) {
-  const supabase = await createSupabaseServerClient()
-  const userProfile = await getAuthenticatedUserProfile(supabase)
+  const { supabase, error } = await getAuthenticatedUser()
+  if (error) return error
 
-  if (!userProfile) {
-    return unauthorizedResponse()
+  const { searchParams } = new URL(request.url)
+  const action = searchParams.get('action')
+
+  if (action === 'schools') return getSchools(supabase!)
+  if (action === 'faculties') {
+    const schoolId = searchParams.get('schoolId') || ''
+    return getFaculties(supabase!, schoolId)
+  }
+  if (action === 'departments') {
+    const facultyId = searchParams.get('facultyId') || ''
+    return getDepartments(supabase!, facultyId)
+  }
+  if (action === 'departments-by-school') {
+    const schoolId = searchParams.get('schoolId') || ''
+    return getDepartmentsBySchool(supabase!, schoolId)
+  }
+  if (action === 'levels') {
+    const departmentId = searchParams.get('departmentId') || ''
+    return getLevels(supabase!, departmentId)
+  }
+  if (action === 'sessions') {
+    const schoolId = searchParams.get('schoolId') || ''
+    return getSessions(supabase!, schoolId)
+  }
+  if (action === 'semesters') {
+    const schoolId = searchParams.get('schoolId') || ''
+    return getSemesters(supabase!, schoolId)
+  }
+  if (action === 'course-rep') {
+    const userId = searchParams.get('userId') || ''
+    return getCourseRepForDepartment(supabase!, userId)
+  }
+  if (action === 'invite-code') {
+    const userId = searchParams.get('userId') || ''
+    return getInviteCode(supabase!, userId)
+  }
+  if (action === 'school-name') {
+    const schoolId = searchParams.get('schoolId') || ''
+    return getSchoolName(supabase!, schoolId)
   }
 
-  try {
-    // Get user profile with all related data
-    const { data: profile, error } = await supabase
-      .from('users')
-      .select(`
-        id,
-        email,
-        name,
-        phone_number,
-        avatar_url,
-        bio,
-        school_id,
-        class_group_id,
-        current_session_id,
-        current_semester_id,
-        invite_code,
-        created_at,
-        updated_at,
-        school:schools!users_school_id_fkey(id, name, logo_url),
-        class_group:class_groups!users_class_group_id_fkey(
-          id,
-          name,
-          department:departments!class_groups_department_id_fkey(id, name),
-          level:levels!class_groups_level_id_fkey(id, level_number, name)
-        ),
-        current_session:sessions!users_current_session_id_fkey(id, name),
-        current_semester:semesters!users_current_semester_id_fkey(id, name),
-        user_roles(role:roles(id, name))
-      `)
-      .eq('id', userProfile.id)
-      .single()
-
-    if (error) {
-      console.error('Fetch profile error:', error)
-      return errorResponse('Failed to fetch profile', 500)
-    }
-
-    // Get invite code if user is course rep
-    let inviteCode = null
-    const isCourseRep = (profile.user_roles as any[])?.some(
-      ur => ur.role?.name === 'course_rep'
-    ) || false
-
-    if (isCourseRep) {
-      const { data: levelRep } = await supabase
-        .from('level_reps')
-        .select('id')
-        .eq('user_id', profile.id)
-        .eq('is_active', true)
-        .single()
-
-      if (levelRep) {
-        const { data: invite } = await supabase
-          .from('level_invites')
-          .select('invite_code')
-          .eq('level_rep_id', levelRep.id)
-          .eq('is_active', true)
-          .single()
-
-        inviteCode = invite?.invite_code || null
-      }
-    }
-
-    return jsonResponse({
-      profile: {
-        ...profile,
-        isCourseRep
-      },
-      inviteCode
-    })
-  } catch (error) {
-    console.error('Profile fetch error:', error)
-    return errorResponse('Internal server error', 500)
-  }
+  return jsonError('Unknown action')
 }
 
-// PUT /api/profile - Update user profile
-export async function PUT(request: NextRequest) {
-  const supabase = await createSupabaseServerClient()
-  const userProfile = await getAuthenticatedUserProfile(supabase)
+// PATCH /api/profile - Update profile
+export async function PATCH(request: NextRequest) {
+  const { supabase, user, error } = await getAuthenticatedUser()
+  if (error) return error
 
-  if (!userProfile) {
-    return unauthorizedResponse()
+  const body = await request.json()
+
+  if (body.action === 'upload-avatar') {
+    return jsonError('Use client-side upload for avatar', 400)
   }
 
-  try {
-    const body = await request.json()
-    const { name, phone_number, bio, avatar_url, current_session_id, current_semester_id } = body
+  const { error: updateError } = await supabase!
+    .from('users')
+    .update({ ...body.updates, updated_at: new Date().toISOString() })
+    .eq('id', user!.id)
 
-    const updates: Record<string, any> = {
-      updated_at: new Date().toISOString()
-    }
+  if (updateError) return jsonError(updateError.message, 500)
+  return jsonSuccess({ updated: true })
+}
 
-    if (name !== undefined) updates.name = name
-    if (phone_number !== undefined) updates.phone_number = phone_number
-    if (bio !== undefined) updates.bio = bio
-    if (avatar_url !== undefined) updates.avatar_url = avatar_url
-    if (current_session_id !== undefined) updates.current_session_id = current_session_id
-    if (current_semester_id !== undefined) updates.current_semester_id = current_semester_id
+// ============ HANDLERS ============
 
-    const { data: profile, error } = await supabase
-      .from('users')
-      .update(updates)
-      .eq('id', userProfile.id)
-      .select()
-      .single()
+async function getSchools(supabase: any) {
+  const { data, error: fetchError } = await supabase
+    .from('schools')
+    .select('id, name, logo_url')
+    .order('name')
 
-    if (error) {
-      console.error('Update profile error:', error)
-      return errorResponse('Failed to update profile', 500)
-    }
+  if (fetchError) return jsonError('Failed to load schools', 500)
+  return jsonSuccess(data || [])
+}
 
-    return jsonResponse({ profile, message: 'Profile updated successfully' })
-  } catch (error) {
-    console.error('Update profile error:', error)
-    return errorResponse('Internal server error', 500)
-  }
+async function getFaculties(supabase: any, schoolId: string) {
+  const { data, error: fetchError } = await supabase
+    .from('faculties')
+    .select('id, school_id, name, code')
+    .eq('school_id', schoolId)
+    .order('name')
+
+  if (fetchError) return jsonError('Failed to load faculties', 500)
+  return jsonSuccess(data || [])
+}
+
+async function getDepartments(supabase: any, facultyId: string) {
+  const { data, error: fetchError } = await supabase
+    .from('departments')
+    .select('id, faculty_id, name, code')
+    .eq('faculty_id', facultyId)
+    .order('name')
+
+  if (fetchError) return jsonError('Failed to load departments', 500)
+  return jsonSuccess(data || [])
+}
+
+async function getDepartmentsBySchool(supabase: any, schoolId: string) {
+  const { data, error: fetchError } = await supabase
+    .from('departments')
+    .select(`id, faculty_id, name, code, faculty:faculties!departments_faculty_id_fkey(school_id)`)
+    .order('name')
+
+  if (fetchError) return jsonError('Failed to load departments', 500)
+
+  const filtered = (data || []).filter((dept: any) => dept.faculty?.school_id === schoolId)
+  return jsonSuccess(filtered)
+}
+
+async function getLevels(supabase: any, departmentId: string) {
+  const { data, error: fetchError } = await supabase
+    .from('levels')
+    .select('id, department_id, level_number, name')
+    .eq('department_id', departmentId)
+    .order('level_number')
+
+  if (fetchError) return jsonError('Failed to load levels', 500)
+  return jsonSuccess(data || [])
+}
+
+async function getSessions(supabase: any, schoolId: string) {
+  const { data, error: fetchError } = await supabase
+    .from('sessions')
+    .select('id, school_id, name, is_active')
+    .eq('school_id', schoolId)
+    .order('name', { ascending: false })
+
+  if (fetchError) return jsonError('Failed to load sessions', 500)
+  return jsonSuccess(data || [])
+}
+
+async function getSemesters(supabase: any, schoolId: string) {
+  const { data, error: fetchError } = await supabase
+    .from('semesters')
+    .select('id, school_id, name')
+    .eq('school_id', schoolId)
+    .order('name')
+
+  if (fetchError) return jsonError('Failed to load semesters', 500)
+  return jsonSuccess(data || [])
+}
+
+async function getCourseRepForDepartment(supabase: any, userId: string) {
+  const { data: userData } = await supabase
+    .from('users')
+    .select('class_group_id')
+    .eq('id', userId)
+    .single()
+
+  if (!userData?.class_group_id) return jsonSuccess(null)
+
+  const { data: levelRep } = await supabase
+    .from('level_reps')
+    .select(`user:users!level_reps_user_id_fkey(id, name, email, phone_number)`)
+    .eq('class_group_id', userData.class_group_id)
+    .eq('is_active', true)
+    .single()
+
+  if (!levelRep?.user) return jsonSuccess(null)
+
+  const u = levelRep.user as any
+  return jsonSuccess({ id: u.id, name: u.name || 'Unknown', email: u.email, phone_number: u.phone_number })
+}
+
+async function getInviteCode(supabase: any, userId: string) {
+  const { data: levelRep } = await supabase
+    .from('level_reps')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('is_active', true)
+    .single()
+
+  if (!levelRep) return jsonSuccess(null)
+
+  const { data: invite } = await supabase
+    .from('level_invites')
+    .select('invite_code')
+    .eq('level_rep_id', levelRep.id)
+    .eq('is_active', true)
+    .single()
+
+  return jsonSuccess(invite?.invite_code || null)
+}
+
+async function getSchoolName(supabase: any, schoolId: string) {
+  const { data } = await supabase
+    .from('schools')
+    .select('name')
+    .eq('id', schoolId)
+    .single()
+
+  return jsonSuccess(data?.name || 'Unknown School')
 }

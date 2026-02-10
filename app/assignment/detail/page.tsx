@@ -1,14 +1,14 @@
 'use client'
 
 import { useRouter, useSearchParams } from 'next/navigation'
-import { AppShell } from '@/components/layout/app-shell'
+import { AppShell } from '@/utils/layout/app-shell'
 import { ArrowLeft, Calendar, FileText, Trash2, Edit, X, CheckCircle, Share2, Copy } from 'lucide-react'
 import { Suspense, useState, useEffect, useRef } from 'react'
-import { supabase } from '@/lib/supabase/client'
+import { supabase } from '@/utils/supabase/client'
 import toast from 'react-hot-toast'
-import { useAuthStore, type UserProfileWithDetails } from '@/lib/store/authStore'
-import { AssignmentService } from '@/lib/services'
-import { AssignmentImageGenerator, AssignmentImageGeneratorHandle } from '@/components/assignment/assignment-image-generator'
+import { useAuthStore, type UserProfileWithDetails } from '@/app/auth/store/authStore'
+import { useAssignmentStore } from '@/app/assignment/store/assignmentStore'
+import { AssignmentImageGenerator, AssignmentImageGeneratorHandle } from '@/app/assignment/components/assignment-image-generator'
 
 function AssignmentDetailContent() {
   const router = useRouter()
@@ -87,7 +87,8 @@ function AssignmentDetailContent() {
     setToggling(true)
     try {
       const newSubmitted = !submitted
-      await AssignmentService.toggleSubmission(id, newSubmitted)
+      const { toggleSubmission } = useAssignmentStore.getState()
+      await toggleSubmission(id, newSubmitted)
       setSubmitted(newSubmitted)
       setSubmittedAt(newSubmitted ? new Date().toISOString() : null)
       

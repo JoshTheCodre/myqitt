@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import toast from 'react-hot-toast'
-import { useAuthStore } from '@/lib/store/authStore'
+import { useAuthStore } from '@/app/auth/store/authStore'
 
 export function LoginForm() {
   const { login, loading } = useAuthStore()
@@ -33,7 +33,7 @@ export function LoginForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="w-full space-y-5">
+    <form onSubmit={handleSubmit} className="w-full space-y-5 px-1">
       <div>
         <label className="block text-sm font-semibold text-gray-800 mb-2">Email Address</label>
         <input

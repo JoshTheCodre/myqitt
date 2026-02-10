@@ -2,13 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { AppShell } from '@/components/layout/app-shell'
+import { AppShell } from '@/utils/layout/app-shell'
 import { ArrowLeft, Clock, MapPin, BookOpen, Save, Plus, X } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { useCourseStore } from '@/lib/store/courseStore'
-import { useAuthStore } from '@/lib/store/authStore'
-import { TimetableService } from '@/lib/services'
-// import { NotificationService } from '@/lib/services/notificationService' // DISABLED: Service worker related
+import { useCourseStore } from '@/app/courses/store/courseStore'
+import { useAuthStore } from '@/app/auth/store/authStore'
+import { useTimetableStore } from '@/app/timetable/store/timetableStore'
 
 interface ClassEntry {
   id: string
@@ -91,7 +90,7 @@ export default function AddTimetablePage() {
   // Fetch user courses
   useEffect(() => {
     if (user?.id) {
-      fetchUserCourses(user.id)
+      fetchUserCourses()
     }
   }, [user?.id, fetchUserCourses])
 
@@ -107,7 +106,9 @@ export default function AddTimetablePage() {
     if (!user) return
 
     try {
-      const data = await TimetableService.getTimetable(user.id)
+      const { fetchTimetable } = useTimetableStore.getState()
+      await fetchTimetable()
+      const data = useTimetableStore.getState()
       
       if (data.hasTimetable) {
         setIsUpdateMode(true)
@@ -294,8 +295,9 @@ export default function AddTimetablePage() {
         }
       })
 
-      // Save timetable using service (handles course rep check and department matching)
-      await TimetableService.saveTimetable(user.id, timetableData)
+      // Save timetable using store (handles course rep check and department matching)
+      const { saveTimetable } = useTimetableStore.getState()
+      await saveTimetable(timetableData)
 
       router.push('/timetable')
     } catch (error) {

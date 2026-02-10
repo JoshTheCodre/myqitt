@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuthStore } from '@/lib/store/authStore';
-import { AppShell } from '@/components/layout/app-shell';
-import { NotificationService } from '@/lib/services/notificationService';
-import { NotificationRecord } from '@/lib/types/notification';
+import { useAuthStore } from '@/app/auth/store/authStore';
+import { AppShell } from '@/utils/layout/app-shell';
+import { useNotificationStore } from '@/app/notifications/store/notificationStore';
+import { NotificationRecord } from '@/app/notifications/types/notification';
 import { Bell, Check, CheckCheck, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/utils/supabase/client';
 
 export default function NotificationsPage() {
   const { user } = useAuthStore();
@@ -15,11 +15,13 @@ export default function NotificationsPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
   const router = useRouter();
+  const { fetchNotifications, markAsRead, markAllAsRead } = useNotificationStore();
 
   const loadNotifications = async () => {
     if (!user?.id) return;
     setLoading(true);
-    const data = await NotificationService.getAllNotifications(user.id, 100);
+    await fetchNotifications(100);
+    const data = useNotificationStore.getState().notifications;
     setNotifications(data);
     setLoading(false);
   };
@@ -70,17 +72,17 @@ export default function NotificationsPage() {
   }, [user?.id]);
 
   const handleMarkAsRead = async (notificationId: string) => {
-    await NotificationService.markAsRead(notificationId);
+    await markAsRead(notificationId);
   };
 
   const handleMarkAllAsRead = async () => {
     if (!user?.id) return;
-    await NotificationService.markAllAsRead(user.id);
+    await markAllAsRead();
   };
 
   const handleNotificationClick = (notification: NotificationRecord) => {
     if (!notification.is_read) {
-      NotificationService.markAsRead(notification.id);
+      markAsRead(notification.id);
     }
     
     if (notification.action_url) {

@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { AppShell } from '@/components/layout/app-shell'
+import { AppShell } from '@/utils/layout/app-shell'
 import { ArrowLeft, Calendar, FileText, Save, BookOpen, Upload, X } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { useCourseStore } from '@/lib/store/courseStore'
-import { useAuthStore } from '@/lib/store/authStore'
-import { AssignmentService, CourseService } from '@/lib/services'
+import { useCourseStore } from '@/app/courses/store/courseStore'
+import { useAuthStore } from '@/app/auth/store/authStore'
+import { useAssignmentStore } from '@/app/assignment/store/assignmentStore'
+import { useCourseStore as useCourseStoreForLookup } from '@/app/courses/store/courseStore'
 
 export default function AddAssignmentPage() {
   const router = useRouter()
@@ -46,7 +47,7 @@ export default function AddAssignmentPage() {
   // Fetch user courses
   useEffect(() => {
     if (user?.id) {
-      fetchUserCourses(user.id)
+      fetchUserCourses()
     }
   }, [user?.id, fetchUserCourses])
 
@@ -68,13 +69,15 @@ export default function AddAssignmentPage() {
 
     try {
       // Get the course_id from the course code
-      const courseId = await CourseService.getCourseIdByCode(user.id, formData.courseCode)
+      const { getCourseIdByCode } = useCourseStoreForLookup.getState()
+      const courseId = await getCourseIdByCode(formData.courseCode)
       if (!courseId) {
         toast.error('Could not find the selected course')
         return
       }
 
-      await AssignmentService.createAssignment(user.id, {
+      const { createAssignment } = useAssignmentStore.getState()
+      await createAssignment({
         title: `${formData.courseCode} Assignment`,
         description: formData.description,
         course_id: courseId,

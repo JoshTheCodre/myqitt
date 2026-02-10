@@ -2,10 +2,10 @@ import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import "./globals.css"
 import { Toaster } from 'react-hot-toast'
-import AuthProvider from '@/components/providers/auth-provider'
-import { AuthGate } from '@/components/auth-guard'
-import { PWARegister } from '@/components/pwa-register'
-import { PushNotificationPrompt } from '@/components/push-notification-prompt'
+import AuthProvider from '@/app/auth/components/auth-provider'
+import { AuthGate } from '@/app/auth/components/auth-guard'
+import { PWARegister } from '@/utils/pwa-register'
+import { PushNotificationPrompt } from '@/app/notifications/components/push-notification-prompt'
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

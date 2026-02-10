@@ -1,346 +1,185 @@
 'use client'
 
 import { useState } from 'react'
-import { BookOpen, Search, MoreVertical, ChevronRight, Upload, FolderOpen, Sparkles, User, Calendar } from 'lucide-react'
-import { AppShell } from '@/components/layout/app-shell'
+import { FolderSearch, ChevronDown, User, Calendar, Download, FileText } from 'lucide-react'
+import { AppShell } from '@/utils/layout/app-shell'
+import { courses, pastQuestions, type PastQuestion } from '@/utils/mock-data/resources'
 
-type ResourceType = 'past_questions' | 'lecture_notes' | 'study_guides'
 
-interface Resource {
-  id: string
-  title: string
-  type: ResourceType
-  course: string
-  uploadedBy: string
-  uploadDate: string
-  downloadCount: number
-  fileSize: string
-}
-
-interface Course {
-  id: string
-  code: string
-  title: string
-}
-
-// Resource Card Component - defined outside main component
-function ResourceCard({ resource }: { resource: Resource }) {
+function QuestionCard({ question }: { question: PastQuestion }) {
   return (
     <div 
-      className="flex-shrink-0 w-56 bg-white rounded-xl border border-gray-200 p-4 hover:shadow-lg hover:border-blue-300 transition-all cursor-pointer group"
-      onClick={() => {
-        // TODO: Navigate to resource detail page
-        console.log('View resource:', resource.id)
-      }}
+      className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md hover:border-blue-200 transition-all cursor-pointer"
+      onClick={() => window.location.href = `/resources/detail?id=${question.id}`}
     >
-      <h4 className="font-semibold text-gray-900 mb-1.5 text-sm line-clamp-2 leading-tight group-hover:text-blue-500 transition-colors">{resource.title}</h4>
-      <p className="text-xs text-gray-500 mb-3">{resource.course}</p>
-      
-      <div className="text-xs text-gray-500">
-        <div className="flex items-center justify-between">
-          <span className="flex items-center gap-1">
-            <User className="w-3 h-3 text-blue-500" />
-            {resource.uploadedBy}
-          </span>
-          <span className="flex items-center gap-1">
-            <Calendar className="w-3 h-3 text-purple-500" />
-            {new Date(resource.uploadDate).toLocaleDateString()}
-          </span>
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+          <FileText className="w-5 h-5 text-green-600" />
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold text-sm text-gray-900 mb-1">{question.title}</h3>
+
+          <div className="flex items-center gap-3 text-xs text-gray-500 mb-2">
+            <span className="px-2 py-0.5 bg-yellow-50 text-yellow-700 rounded-full font-medium">{question.course}</span>
+            <span>{question.fileSize}</span>
+          </div>
+
+          <div className="flex items-center justify-between text-xs text-gray-400">
+            <span className="flex items-center gap-1">
+              <User className="w-3 h-3" />
+              {question.uploadedBy}
+            </span>
+
+            <span className="flex items-center gap-1">
+              <Calendar className="w-3 h-3" />
+              {new Date(question.uploadDate).toLocaleDateString()}
+            </span>
+
+            <span className="flex items-center gap-1">
+              <Download className="w-3 h-3" />
+              {question.downloadCount}
+            </span>
+          </div>
         </div>
       </div>
     </div>
   )
 }
 
-// Resource Section Component - defined outside main component
-function ResourceSection({ 
-  title, 
-  resources
-}: { 
-  title: string
-  resources: Resource[]
-}) {
-  if (resources.length === 0) return null
-
-  return (
-    <div className="mb-8 max-w-full overflow-hidden">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <h3 className="font-semibold text-gray-900">{title}</h3>
-          <span className="px-2 py-0.5 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">
-            {resources.length}
-          </span>
-        </div>
-        <button className="flex items-center gap-1 text-[10px] text-blue-600 hover:text-blue-700 font-medium whitespace-nowrap">
-          View All
-          <ChevronRight className="w-2.5 h-2.5 mb-[2px]" />
-        </button>
-      </div>
-
-      <div className="-mx-4 px-4 flex gap-3 overflow-x-auto pb-4 scrollbar-hide">
-        {resources.map(resource => (
-          <ResourceCard key={resource.id} resource={resource} />
-        ))}
-      </div>
-    </div>
-  )
-}
 
 export default function ResourcesPage() {
-  const [selectedCourse, setSelectedCourse] = useState<string>('for-you')
-  const [showMenu, setShowMenu] = useState(false)
+  const [activeTab, setActiveTab] = useState<'past_questions' | 'lecture_notes' | 'study_guides'>('past_questions')
+  const [selectedCourse, setSelectedCourse] = useState<string>('all')
+  const [dropdownOpen, setDropdownOpen] = useState(false)
 
-  // Mock courses - replace with actual query from user's timetable
-  const courses: Course[] = [
-    { id: '1', code: 'CSC 486.1', title: 'Algorithm Design' },
-    { id: '2', code: 'CSC 301.1', title: 'Data Structures' },
-    { id: '3', code: 'MTH 201.1', title: 'Calculus II' },
-    { id: '4', code: 'CSC 205.1', title: 'Computer Architecture' }
-  ]
+  const filtered = selectedCourse === 'all'
+    ? pastQuestions
+    : pastQuestions.filter(q => q.course === selectedCourse)
 
-  // Mock data - replace with actual Supabase query
-  const resources: Resource[] = [
-    {
-      id: '1',
-      title: '2023 Final Exam Questions',
-      type: 'past_questions',
-      course: 'CSC 486.1',
-      uploadedBy: 'John Doe',
-      uploadDate: '2024-12-10',
-      downloadCount: 45,
-      fileSize: '2.3 MB'
-    },
-    {
-      id: '2',
-      title: '2022 Mid-Semester Questions',
-      type: 'past_questions',
-      course: 'CSC 486.1',
-      uploadedBy: 'Jane Smith',
-      uploadDate: '2024-12-08',
-      downloadCount: 32,
-      fileSize: '1.8 MB'
-    },
-    {
-      id: '3',
-      title: 'Data Structures Chapter 1-5',
-      type: 'lecture_notes',
-      course: 'CSC 301.1',
-      uploadedBy: 'Mike Wilson',
-      uploadDate: '2024-12-05',
-      downloadCount: 78,
-      fileSize: '5.1 MB'
-    },
-    {
-      id: '4',
-      title: 'Sorting Algorithms Notes',
-      type: 'lecture_notes',
-      course: 'CSC 486.1',
-      uploadedBy: 'Sarah Lee',
-      uploadDate: '2024-12-03',
-      downloadCount: 56,
-      fileSize: '3.2 MB'
-    },
-    {
-      id: '5',
-      title: 'Algorithm Analysis Guide',
-      type: 'study_guides',
-      course: 'CSC 486.1',
-      uploadedBy: 'Tom Brown',
-      uploadDate: '2024-12-01',
-      downloadCount: 41,
-      fileSize: '2.7 MB'
-    },
-    {
-      id: '6',
-      title: 'Exam Preparation Guide',
-      type: 'study_guides',
-      course: 'CSC 301.1',
-      uploadedBy: 'Lisa Wang',
-      uploadDate: '2024-11-28',
-      downloadCount: 67,
-      fileSize: '4.1 MB'
-    }
-  ]
-
-  const getResourcesByType = (type: ResourceType, courseCode?: string) => {
-    return resources.filter(r => {
-      const matchesType = r.type === type
-      
-      // For "For You" tab, show saved/recommended resources
-      if (courseCode === 'for-you') {
-        return matchesType
-      }
-      
-      const matchesCourse = !courseCode || r.course === courseCode
-      return matchesType && matchesCourse
-    })
-  }
+  const dropdownLabel = selectedCourse === 'all'
+    ? 'All Courses'
+    : courses.find(c => c.code === selectedCourse)?.code || selectedCourse
 
   return (
     <AppShell>
       <div className="h-full flex items-start justify-center overflow-hidden">
-        <div className="w-full lg:w-3/4 px-4 py-8 pb-24 lg:pb-8 overflow-y-auto h-full">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6 gap-3 max-w-full">
-            <div className="flex-1 min-w-0">
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 break-words">Resources</h1>
-              <p className="text-xs sm:text-sm text-gray-600 break-words">Access study materials for your courses</p>
-            </div>
-            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-              <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0">
-                <Search className="w-5 h-5 text-gray-600" />
-              </button>
+        <div className="w-full lg:w-3/4 overflow-y-auto h-full relative">
+          
+          {/* Sticky Header */}
+          <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-sm border-b border-gray-200 px-4 py-4">
+            {/* Header with Dropdown */}
+            <div className="mb-4 flex items-center justify-between gap-4">
+              <h1 className="text-2xl font-bold text-gray-900">Resources</h1>
+              
+              {/* Course Filter Dropdown - Small and Cute */}
               <div className="relative">
-                <button 
-                  onClick={() => setShowMenu(!showMenu)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                <button
+                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                  className="flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-300 rounded-full text-xs font-medium text-yellow-700 hover:from-yellow-100 hover:to-amber-100 hover:border-yellow-400 transition-all shadow-sm"
                 >
-                  <MoreVertical className="w-5 h-5 text-gray-600" />
+                  <span>{dropdownLabel}</span>
+                  <ChevronDown className={`w-3 h-3 text-yellow-600 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
-                
-                {/* Popover Menu */}
-                {showMenu && (
+
+                {dropdownOpen && (
                   <>
-                    <div 
-                      className="fixed inset-0 z-10" 
-                      onClick={() => setShowMenu(false)}
-                    />
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-20">
-                    <a
-                      href="/resources/contribute"
-                      className="w-full px-3 py-2.5 text-left hover:bg-gray-50 transition-colors flex items-center gap-2.5 text-sm block bg-blue-50 border border-blue-200 rounded-lg text-blue-600 font-medium"
-                    >
-                      <div className="w-7 h-7 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <Upload className="w-3.5 h-3.5 text-blue-600" />
-                      </div>
-                      <span>Contribute</span>
-                    </a>
-                      <a href="/resources/my-uploads" className="w-full px-3 py-2.5 text-left hover:bg-gray-50 transition-colors flex items-center gap-2.5 text-sm block">
-                        <div className="w-7 h-7 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <FolderOpen className="w-3.5 h-3.5 text-purple-600" />
-                        </div>
-                        <span className="font-medium text-gray-900">My Uploads</span>
-                      </a>
+                    <div className="fixed inset-0 z-10" onClick={() => setDropdownOpen(false)} />
+                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-20">
+                      <button
+                        onClick={() => { setSelectedCourse('all'); setDropdownOpen(false) }}
+                        className={`w-full px-3 py-2 text-left text-xs hover:bg-yellow-50 transition-colors ${
+                          selectedCourse === 'all' ? 'text-yellow-700 font-semibold bg-yellow-50' : 'text-gray-700'
+                        }`}
+                      >
+                        All Courses
+                      </button>
+
+                      {courses.map(c => (
+                        <button
+                          key={c.code}
+                          onClick={() => { setSelectedCourse(c.code); setDropdownOpen(false) }}
+                          className={`w-full px-3 py-2 text-left text-xs hover:bg-yellow-50 transition-colors ${
+                            selectedCourse === c.code ? 'text-yellow-700 font-semibold bg-yellow-50' : 'text-gray-700'
+                          }`}
+                        >
+                          <div className="font-medium">{c.code}</div>
+                          <div className="text-gray-500">{c.title}</div>
+                        </button>
+                      ))}
                     </div>
                   </>
                 )}
               </div>
             </div>
+
+            {/* Tabs */}
+            <div className="flex gap-2">
+            <button
+              onClick={() => setActiveTab('past_questions')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                activeTab === 'past_questions'
+                  ? 'bg-blue-50 text-blue-600 border border-blue-200'
+                  : 'bg-white text-gray-600 border border-gray-200 hover:border-blue-200 hover:bg-blue-50/50'
+              }`}
+            >
+              Past Questions
+            </button>
+            {/* Future tabs - hidden for now */}
+            {/* 
+            <button
+              onClick={() => setActiveTab('lecture_notes')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                activeTab === 'lecture_notes'
+                  ? 'bg-blue-50 text-blue-600 border border-blue-200'
+                  : 'bg-white text-gray-600 border border-gray-200 hover:border-blue-200 hover:bg-blue-50/50'
+              }`}
+            >
+              Lecture Notes
+            </button>
+            <button
+              onClick={() => setActiveTab('study_guides')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                activeTab === 'study_guides'
+                  ? 'bg-blue-50 text-blue-600 border border-blue-200'
+                  : 'bg-white text-gray-600 border border-gray-200 hover:border-blue-200 hover:bg-blue-50/50'
+              }`}
+            >
+              Study Guides
+            </button>
+            */}
+            </div>
           </div>
 
-          {/* Course Tabs */}
-          <div className="mb-6 -mx-4 px-4 overflow-x-auto scrollbar-hide">
-            <div className="flex gap-2 pb-2">
-              <button
-                onClick={() => setSelectedCourse('for-you')}
-                className={`px-4 py-1.5 rounded-full font-semibold whitespace-nowrap transition-all text-xs flex items-center gap-1.5 ${
-                  selectedCourse === 'for-you'
-                    ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white shadow-lg shadow-blue-500/30'
-                    : 'bg-white text-gray-700 border border-gray-300 hover:border-blue-400 hover:shadow-md'
-                }`}
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                For You
-              </button>
-              {courses.map(course => (
-                <button
-                  key={course.id}
-                  onClick={() => setSelectedCourse(course.code)}
-                  className={`px-4 py-1.5 rounded-full font-medium whitespace-nowrap transition-all text-xs ${
-                    selectedCourse === course.code
-                      ? 'bg-blue-600 text-white shadow-sm'
-                      : 'bg-white text-gray-700 border border-gray-300 hover:border-blue-400'
-                  }`}
-                >
-                  {course.code}
-                </button>
+          {/* Scrollable Content */}
+          <div className="px-4 py-6 pb-24 lg:pb-8">
+            {/* Results Count */}
+            <p className="text-xs text-gray-500 mb-4">{filtered.length} result{filtered.length !== 1 ? 's' : ''}</p>
+
+
+            {/* Question List */}
+          {filtered.length > 0 ? (
+            <div className="space-y-3">
+              {filtered.map(q => (
+                <QuestionCard key={q.id} question={q} />
               ))}
             </div>
-          </div>
-
-          {/* For You Banner - Only show when "For You" is selected */}
-          {selectedCourse === 'for-you' && (
-            <div className="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-4 sm:p-6 text-gray-900 shadow-sm max-w-full">
-              <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 mb-2 flex-wrap">
-                    <h2 className="text-lg sm:text-xl font-bold break-words text-gray-900">Your Saved Resources</h2>
-                    <div className="flex items-center justify-center w-7 h-7 bg-blue-100 rounded-full">
-                      <span className="text-sm font-bold text-blue-600">5</span>
-                    </div>
-                  </div>
-                  <p className="text-gray-600 text-xs mb-4">
-                    Share notes, past questions & study guides to help your peers succeed 👻
-                  </p>
-                  
-                  {/* Action Buttons */}
-                  <div className="flex flex-wrap gap-2">
-                    <a
-                      href="/resources/contribute"
-                      className="px-4 py-2 bg-blue-400 text-white border border-blue-600 rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm flex items-center gap-2 whitespace-nowrap"
-                    >
-                      <Upload className="w-4 h-4" />
-                      Contribute
-                    </a>
-                    <a
-                      href="/resources/my-uploads"
-                      className="px-4 py-2 bg-gray-100 text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-200 transition-colors font-medium text-sm flex items-center gap-2 whitespace-nowrap"
-                    >
-                      <FolderOpen className="w-4 h-4" />
-                      My Uploads
-                    </a>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Resource Sections */}
-          <div className="space-y-6">
-            <ResourceSection
-              title="Past Questions"
-              resources={getResourcesByType('past_questions', selectedCourse)}
-            />
-            
-            <ResourceSection
-              title="Lecture Notes"
-              resources={getResourcesByType('lecture_notes', selectedCourse)}
-            />
-            
-            <ResourceSection
-              title="Study Guides"
-              resources={getResourcesByType('study_guides', selectedCourse)}
-            />
-          </div>
-
-          {/* Empty State */}
-          {getResourcesByType('past_questions', selectedCourse).length === 0 &&
-           getResourcesByType('lecture_notes', selectedCourse).length === 0 &&
-           getResourcesByType('study_guides', selectedCourse).length === 0 && (
+          ) : (
             <div className="text-center py-16 bg-white rounded-xl border border-gray-200">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
-                <BookOpen className="w-8 h-8 text-gray-400" />
+                <FolderSearch className="w-8 h-8 text-gray-400" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No resources available</h3>
-              <p className="text-gray-600">
-                {selectedCourse === 'for-you' 
-                  ? 'Start saving resources to see them here!' 
-                  : `No resources available for ${selectedCourse}`}
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No past questions yet</h3>
+              <p className="text-sm text-gray-500">
+                {selectedCourse === 'all'
+                  ? 'No past questions have been uploaded yet'
+                  : `No past questions for ${selectedCourse}`}
               </p>
             </div>
           )}
-        </div>
+          </div>
 
-        {/* Add custom scrollbar hiding */}
-        <style jsx global>{`
-          .scrollbar-hide::-webkit-scrollbar {
-            display: none;
-          }
-          .scrollbar-hide {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-          }
-        `}</style>
+        </div>
       </div>
     </AppShell>
   )
