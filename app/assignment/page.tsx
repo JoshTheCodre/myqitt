@@ -368,30 +368,24 @@ export default function AssignmentPage() {
   return (
     <AppShell>
       <div className="h-full flex items-start justify-center overflow-hidden">
-        <div className="w-full lg:w-3/4 overflow-y-auto h-full relative overflow-x-hidden">
+        <div className="w-full lg:w-3/4 px-4 py-8 pb-24 lg:pb-8 overflow-x-hidden">
+          <Header 
+            onAddClick={() => router.push('/assignment/add')} 
+            isCourseRep={isCourseRep}
+            unreadCount={unreadCount}
+          />
           
-          {/* Sticky Header */}
-          <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-sm border-b border-gray-200 px-4 py-6">
-            <Header 
-              onAddClick={() => router.push('/assignment/add')} 
-              isCourseRep={isCourseRep}
-              unreadCount={unreadCount}
-            />
-            
-            <div className="mt-6">
-              <StatsCard stats={stats} />
-            </div>
+          <div className="mt-6">
+            <StatsCard stats={stats} />
           </div>
           
-          {/* Scrollable Content */}
-          <div className="px-4 py-6 pb-24 lg:pb-8">
+          <div className="mt-4">
             <AssignmentsList 
               router={router} 
               onIsCourseRepChange={setIsCourseRep}
               onUnreadCountChange={setUnreadCount}
             />
           </div>
-          
         </div>
       </div>
     </AppShell>

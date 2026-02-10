@@ -64,57 +64,55 @@ export default function ResourcesPage() {
   return (
     <AppShell>
       <div className="h-full flex items-start justify-center overflow-hidden">
-        <div className="w-full lg:w-3/4 overflow-y-auto h-full relative">
-          
-          {/* Sticky Header */}
-          <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-sm border-b border-gray-200 px-4 py-4">
-            {/* Header with Dropdown */}
-            <div className="mb-4 flex items-center justify-between gap-4">
-              <h1 className="text-2xl font-bold text-gray-900">Resources</h1>
-              
-              {/* Course Filter Dropdown - Small and Cute */}
-              <div className="relative">
-                <button
-                  onClick={() => setDropdownOpen(!dropdownOpen)}
-                  className="flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-300 rounded-full text-xs font-medium text-yellow-700 hover:from-yellow-100 hover:to-amber-100 hover:border-yellow-400 transition-all shadow-sm"
-                >
-                  <span>{dropdownLabel}</span>
-                  <ChevronDown className={`w-3 h-3 text-yellow-600 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
-                </button>
+        <div className="w-full lg:w-3/4 px-4 py-8 pb-24 lg:pb-8 overflow-y-auto h-full">
 
-                {dropdownOpen && (
-                  <>
-                    <div className="fixed inset-0 z-10" onClick={() => setDropdownOpen(false)} />
-                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-20">
+          {/* Header with Dropdown */}
+          <div className="mb-6 flex items-center justify-between gap-4">
+            <h1 className="text-2xl font-bold text-gray-900">Resources</h1>
+            
+            {/* Course Filter Dropdown - Small and Cute */}
+            <div className="relative">
+              <button
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+                className="flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-300 rounded-full text-xs font-medium text-yellow-700 hover:from-yellow-100 hover:to-amber-100 hover:border-yellow-400 transition-all shadow-sm"
+              >
+                <span>{dropdownLabel}</span>
+                <ChevronDown className={`w-3 h-3 text-yellow-600 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {dropdownOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setDropdownOpen(false)} />
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-20">
+                    <button
+                      onClick={() => { setSelectedCourse('all'); setDropdownOpen(false) }}
+                      className={`w-full px-3 py-2 text-left text-xs hover:bg-yellow-50 transition-colors ${
+                        selectedCourse === 'all' ? 'text-yellow-700 font-semibold bg-yellow-50' : 'text-gray-700'
+                      }`}
+                    >
+                      All Courses
+                    </button>
+
+                    {courses.map(c => (
                       <button
-                        onClick={() => { setSelectedCourse('all'); setDropdownOpen(false) }}
+                        key={c.code}
+                        onClick={() => { setSelectedCourse(c.code); setDropdownOpen(false) }}
                         className={`w-full px-3 py-2 text-left text-xs hover:bg-yellow-50 transition-colors ${
-                          selectedCourse === 'all' ? 'text-yellow-700 font-semibold bg-yellow-50' : 'text-gray-700'
+                          selectedCourse === c.code ? 'text-yellow-700 font-semibold bg-yellow-50' : 'text-gray-700'
                         }`}
                       >
-                        All Courses
+                        <div className="font-medium">{c.code}</div>
+                        <div className="text-gray-500">{c.title}</div>
                       </button>
-
-                      {courses.map(c => (
-                        <button
-                          key={c.code}
-                          onClick={() => { setSelectedCourse(c.code); setDropdownOpen(false) }}
-                          className={`w-full px-3 py-2 text-left text-xs hover:bg-yellow-50 transition-colors ${
-                            selectedCourse === c.code ? 'text-yellow-700 font-semibold bg-yellow-50' : 'text-gray-700'
-                          }`}
-                        >
-                          <div className="font-medium">{c.code}</div>
-                          <div className="text-gray-500">{c.title}</div>
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
+          </div>
 
-            {/* Tabs */}
-            <div className="flex gap-2">
+          {/* Tabs */}
+          <div className="mb-6 flex gap-2">
             <button
               onClick={() => setActiveTab('past_questions')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
@@ -148,16 +146,14 @@ export default function ResourcesPage() {
               Study Guides
             </button>
             */}
-            </div>
           </div>
 
-          {/* Scrollable Content */}
-          <div className="px-4 py-6 pb-24 lg:pb-8">
-            {/* Results Count */}
-            <p className="text-xs text-gray-500 mb-4">{filtered.length} result{filtered.length !== 1 ? 's' : ''}</p>
+
+          {/* Results Count */}
+          <p className="text-xs text-gray-500 mb-4">{filtered.length} result{filtered.length !== 1 ? 's' : ''}</p>
 
 
-            {/* Question List */}
+          {/* Question List */}
           {filtered.length > 0 ? (
             <div className="space-y-3">
               {filtered.map(q => (
@@ -177,7 +173,6 @@ export default function ResourcesPage() {
               </p>
             </div>
           )}
-          </div>
 
         </div>
       </div>
