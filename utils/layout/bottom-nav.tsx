@@ -44,8 +44,8 @@ export function BottomNav() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 lg:hidden z-50">
-      <div className="max-w-md mx-auto px-2">
-        <div className="flex items-center justify-between h-16 py-2">
+      <div className="max-w-md mx-auto">
+        <div className="flex items-center justify-around h-16 py-2">
           {items.map((item) => {
             const Icon = item.icon
             const active = isActive(item.href)
@@ -53,7 +53,7 @@ export function BottomNav() {
               <button
                 key={item.id}
                 onClick={() => router.push(item.href)}
-                className="flex flex-col items-center gap-1 py-2 px-2 rounded-lg transition-colors relative flex-1"
+                className="flex flex-col items-center justify-center gap-1 py-2 rounded-lg transition-colors relative min-w-[70px]"
               >
                 <div className="relative">
                   <Icon
